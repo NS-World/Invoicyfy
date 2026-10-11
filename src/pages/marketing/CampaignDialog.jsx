@@ -31,7 +31,8 @@ import { CampaignServices } from "../../services/CampaignServices";
 import { apiError } from "../../utils/format";
 
 const PAGE = 20;
-const waLink = (phone, text) => `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+// api.whatsapp.com keeps emojis intact; the wa.me short link turns them into "�" on WhatsApp Desktop / Web.
+const waLink = (phone, text) => `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
 
 /** Shows a campaign's progress. API campaigns send automatically while this is open; manual ones send one tap at a time. */
 export default function CampaignDialog({ campaignId, onClose }) {

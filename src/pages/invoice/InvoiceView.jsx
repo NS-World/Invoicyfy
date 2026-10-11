@@ -212,7 +212,7 @@ export default function InvoiceView() {
   const cancelled = invoice.status === "Cancelled";
   const design = getInvoiceSettings(invoice.store);
   const phone = String(invoice.customer_phone || "").replace(/\D/g, "");
-  const waLink = `https://wa.me/${phone.length === 10 ? `91${phone}` : phone}?text=${encodeURIComponent(shareText(invoice))}`;
+  const waLink = `https://api.whatsapp.com/send?phone=${phone.length === 10 ? `91${phone}` : phone}&text=${encodeURIComponent(shareText(invoice))}`;
 
   const share = async () => {
     const text = shareText(invoice);
