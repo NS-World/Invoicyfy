@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import Loader from "../components/common/Loader";
 
 const START_PAGES = [
   ["dashboard", "view", "/dashboard"],
@@ -14,7 +15,8 @@ const START_PAGES = [
 
 /** Sends each user to the first page their role can open. */
 export default function HomeRedirect() {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
+  if (!user?.permissions) return <Loader minHeight="60vh" />; // profile still loading
   const start = START_PAGES.find(([m, a]) => can(m, a));
   return <Navigate to={start ? start[2] : "/settings"} replace />;
 }
