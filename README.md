@@ -21,6 +21,11 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^ index.html [L]
 ```
 
+## Deploy (Hostinger / shared hosting)
+
+`scripts/package-hostinger.sh ../Invoicyfy-Backend` builds `deploy/invoicyfy-hostinger.zip` (web app at `/`,
+API at `/api/` on the same domain). Step-by-step guide: [DEPLOY-HOSTINGER.md](DEPLOY-HOSTINGER.md).
+
 ## Billing flow
 
 1. **Quick Bill** (`/invoices/new`) — counter / delivery sale in one screen: pick or type the customer,
