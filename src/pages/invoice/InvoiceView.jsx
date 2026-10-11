@@ -280,7 +280,7 @@ export default function InvoiceView() {
                   <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} />
                 </Box>
               ) : (
-                <Box sx={{ width: "fit-content", mx: "auto", bgcolor: "#fff", p: 1, boxShadow: 2, zoom: { xs: 0.45, sm: 0.75, lg: 0.9, xl: 1 } }}>
+                <Box sx={{ width: "fit-content", mx: "auto", bgcolor: "#fff", p: 1, boxShadow: 2, zoom: { xs: 0.45, sm: 0.75, lg: 0.78, xl: 1 } }}>
                   <TaxInvoiceA4 invoice={invoice} copyLabel={copyA4} />
                 </Box>
               )}
