@@ -1,5 +1,8 @@
 import { QRCodeSVG } from "qrcode.react";
 import { amountInWords, formatDate, formatNumber } from "../../utils/format";
+import { DEFAULT_INVOICE_SETTINGS, qrCodesFor } from "../../utils/invoiceSettings";
+import { formatQty, rateSuffix } from "../../utils/weight";
+import ExtraQrCodes from "./ExtraQrCodes";
 import "./print.css";
 
 const m = (v) => (Number(v) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -8,26 +11,36 @@ const pct = (v) => `${formatNumber(v, 2)}%`;
 /**
  * A4 GST Tax Invoice ("pakka bill") for B2B: GSTIN of both parties, place of supply,
  * HSN-wise CGST/SGST or IGST, amount in words, bank details, UPI QR and e-invoice IRN/QR when available.
+ * Look and sections come from the invoice designer settings; "classic" is the original layout.
  */
-export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipient" }) {
+export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipient", settings = DEFAULT_INVOICE_SETTINGS, template }) {
+  const s = { ...DEFAULT_INVOICE_SETTINGS, ...settings };
+  const tpl = template || s.a4_template || "classic";
   const store = invoice.store || {};
   const items = invoice.items || [];
   const igst = Boolean(invoice.is_interstate);
-  const title = store.gstin ? "TAX INVOICE" : "INVOICE";
+  const title = store.gstin ? s.title_tax || "TAX INVOICE" : s.title_retail || "INVOICE";
+  const hsnCol = s.show_hsn_column;
+  const discCol = s.show_discount_column;
   const upi =
-    store.upi_id && invoice.balance_due > 0 && invoice.status !== "Cancelled"
+    s.show_upi_qr && store.upi_id && invoice.balance_due > 0 && invoice.status !== "Cancelled"
       ? `upi://pay?pa=${encodeURIComponent(store.upi_id)}&pn=${encodeURIComponent(store.name || "")}&am=${Number(invoice.balance_due).toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Invoice ${invoice.invoice_number}`)}`
       : null;
   const sellerAddress = [store.address, store.city, store.state && `${store.state}${store.pincode ? ` - ${store.pincode}` : ""}`].filter(Boolean).join(", ");
+  const extraQr = qrCodesFor(s, "a4");
+  const bank = s.show_bank && (store.bank_name || store.bank_account_no);
+  const showTerms = s.show_terms && (invoice.terms || invoice.notes);
+  const leadCols = 2 + (hsnCol ? 1 : 0); // #, description, [hsn]
 
   return (
-    <div className="a4">
+    <div className={`a4 tpl-${tpl}`} style={{ "--accent": s.accent_color || "#045864" }}>
       {invoice.status === "Cancelled" && <div className="watermark">CANCELLED</div>}
       <div className="a4-title">
-        <span />
+        {s.show_logo && store.logo ? <img src={store.logo} alt="" className="a4-logo" /> : <span />}
         <h1>{title}</h1>
         <span className="copy">{copyLabel}</span>
       </div>
+      {s.header_note && <div className="header-note">{s.header_note}</div>}
 
       {invoice.irn && (
         <div className="box irn">
@@ -43,7 +56,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
         </div>
       )}
 
-      <div className="grid2 box">
+      <div className="grid2 box first-box">
         <div className="cell">
           <div className="seller-name">{store.legal_name || store.name}</div>
           {store.legal_name && store.legal_name !== store.name && <div>({store.name})</div>}
@@ -64,7 +77,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
             </div>
           )}
           {(store.phone || store.email) && <div>{[store.phone && `Ph: ${store.phone}`, store.email].filter(Boolean).join(" | ")}</div>}
-          {store.fssai_no && <div>FSSAI: {store.fssai_no}</div>}
+          {s.show_fssai && store.fssai_no && <div>FSSAI: {store.fssai_no}</div>}
         </div>
         <div className="cell meta">
           <table>
@@ -133,7 +146,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
               <b>State:</b> {invoice.place_of_supply} (Code: {invoice.place_of_supply_code})
             </div>
           )}
-          {invoice.customer_phone && <div>Ph: {invoice.customer_phone}</div>}
+          {s.show_customer_phone && invoice.customer_phone && <div>Ph: {invoice.customer_phone}</div>}
         </div>
         {invoice.shipping_address && (
           <div className="cell">
@@ -150,10 +163,10 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
             <th rowSpan={2} className="left">
               Description of Goods / Services
             </th>
-            <th rowSpan={2}>HSN/SAC</th>
+            {hsnCol && <th rowSpan={2}>HSN/SAC</th>}
             <th rowSpan={2}>Qty</th>
             <th rowSpan={2}>Rate</th>
-            <th rowSpan={2}>Disc.</th>
+            {discCol && <th rowSpan={2}>Disc.</th>}
             <th rowSpan={2}>Taxable Value</th>
             {igst ? (
               <th colSpan={2}>IGST</th>
@@ -175,14 +188,15 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
               <td>{i + 1}</td>
               <td className="left">
                 {it.product_name}
-                {it.item_note && <div className="note">{it.item_note}</div>}
+                {s.show_item_notes && it.item_note && <div className="note">{it.item_note}</div>}
               </td>
-              <td>{it.hsn_code || "-"}</td>
-              <td>
-                {formatNumber(it.quantity, 3)} {it.unit || ""}
+              {hsnCol && <td>{it.hsn_code || "-"}</td>}
+              <td>{formatQty(it.quantity, it.unit)}</td>
+              <td className="num">
+                {m(it.unit_price)}
+                {rateSuffix(it.unit)}
               </td>
-              <td className="num">{m(it.unit_price)}</td>
-              <td className="num">{Number(it.discount_amount) ? m(it.discount_amount) : "-"}</td>
+              {discCol && <td className="num">{Number(it.discount_amount) ? m(it.discount_amount) : "-"}</td>}
               <td className="num">{m(it.taxable_value)}</td>
               {igst ? (
                 <>
@@ -201,12 +215,12 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
             </tr>
           ))}
           <tr className="total-row">
-            <td colSpan={3} className="left">
+            <td colSpan={leadCols} className="left">
               Total
             </td>
-            <td>{formatNumber(invoice.total_qty, 3)}</td>
+            <td>{items.length} item(s)</td>
             <td />
-            <td className="num">{Number(invoice.discount_amount) ? m(invoice.discount_amount) : "-"}</td>
+            {discCol && <td className="num">{Number(invoice.discount_amount) ? m(invoice.discount_amount) : "-"}</td>}
             <td className="num">{m(invoice.taxable_amount)}</td>
             {igst ? (
               <>
@@ -228,12 +242,12 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
 
       <div className="grid2 box">
         <div className="cell">
-          <div className="label">Amount Chargeable (in words)</div>
-          <div className="bold">INR {amountInWords(invoice.total_amount)}</div>
-          {Number(invoice.tax_amount) > 0 && (
-            <div style={{ marginTop: 4 }}>
-              Tax amount (in words): INR {amountInWords(invoice.tax_amount)}
-            </div>
+          {s.show_amount_in_words && (
+            <>
+              <div className="label">Amount Chargeable (in words)</div>
+              <div className="bold">INR {amountInWords(invoice.total_amount)}</div>
+              {Number(invoice.tax_amount) > 0 && <div style={{ marginTop: 4 }}>Tax amount (in words): INR {amountInWords(invoice.tax_amount)}</div>}
+            </>
           )}
         </div>
         <div className="cell">
@@ -287,7 +301,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
         </div>
       </div>
 
-      {invoice.hsn_summary?.length > 0 && Number(invoice.tax_amount) > 0 && (
+      {s.show_hsn_summary && invoice.hsn_summary?.length > 0 && Number(invoice.tax_amount) > 0 && (
         <table className="lines hsn">
           <thead>
             <tr>
@@ -328,7 +342,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
 
       <div className="grid2 box footer-box">
         <div className="cell">
-          {(store.bank_name || store.bank_account_no) && (
+          {bank && (
             <>
               <div className="label">Bank Details</div>
               {store.bank_account_name && <div>A/c Name: {store.bank_account_name}</div>}
@@ -351,7 +365,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
               </div>
             </div>
           )}
-          {(invoice.terms || invoice.notes) && (
+          {showTerms && (
             <div style={{ marginTop: 6 }}>
               {invoice.notes && (
                 <div>
@@ -368,16 +382,27 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
           )}
         </div>
         <div className="cell sign">
-          <div>
-            For <b>{store.legal_name || store.name}</b>
-          </div>
-          <div className="sign-space" />
-          <div>Authorised Signatory</div>
+          {s.show_signature && (
+            <>
+              <div>
+                For <b>{store.legal_name || store.name}</b>
+              </div>
+              <div className="sign-space" />
+              <div>{s.signature_label || "Authorised Signatory"}</div>
+            </>
+          )}
         </div>
       </div>
-      <div className="center small" style={{ marginTop: 6 }}>
-        This is a computer generated invoice.
-      </div>
+      {extraQr.length > 0 && (
+        <div className="box qr-box">
+          <ExtraQrCodes codes={extraQr} size={76} />
+        </div>
+      )}
+      {s.footer_note && (
+        <div className="center small" style={{ marginTop: 6 }}>
+          {s.footer_note}
+        </div>
+      )}
     </div>
   );
 }

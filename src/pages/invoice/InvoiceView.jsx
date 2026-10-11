@@ -43,6 +43,7 @@ import { PaymentServices } from "../../services/PaymentServices";
 import { useNotify } from "../../context/NotifyProvider";
 import { useAuth } from "../../context/useAuth";
 import { apiError, formatCurrency, formatDate } from "../../utils/format";
+import { A4_TEMPLATES, RECEIPT_TEMPLATES, getInvoiceSettings } from "../../utils/invoiceSettings";
 
 const COPY_LABELS_A4 = ["Original for Recipient", "Duplicate for Transporter", "Triplicate for Supplier", ""];
 const COPY_LABELS_RECEIPT = ["", "Original", "Duplicate"];
@@ -138,7 +139,7 @@ export default function InvoiceView() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const notify = useNotify();
-  const { isManager } = useAuth();
+  const { can } = useAuth();
   const [invoice, setInvoice] = useState(null);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState("receipt");
@@ -146,6 +147,8 @@ export default function InvoiceView() {
   const [receiptWidth, setReceiptWidth] = useState(() => localStorage.getItem("receiptWidth") || "80mm");
   const [copyA4, setCopyA4] = useState(COPY_LABELS_A4[0]);
   const [copyReceipt, setCopyReceipt] = useState("");
+  const [a4Tpl, setA4Tpl] = useState("");
+  const [receiptTpl, setReceiptTpl] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -168,6 +171,9 @@ export default function InvoiceView() {
     load().then((inv) => {
       if (!inv) return;
       setPreview(inv.invoice_type === "tax" ? "a4" : "receipt");
+      const st = getInvoiceSettings(inv.store);
+      setA4Tpl(st.a4_template);
+      setReceiptTpl(st.receipt_template);
       // A freshly created bill prints as the original; reprints are marked duplicate.
       const fresh = Date.now() - new Date(String(inv.created_at).replace(" ", "T")).getTime() < 10 * 60 * 1000;
       setCopyReceipt(fresh ? "" : "Duplicate");
@@ -204,6 +210,7 @@ export default function InvoiceView() {
   if (!invoice) return <Loader />;
 
   const cancelled = invoice.status === "Cancelled";
+  const design = getInvoiceSettings(invoice.store);
   const phone = String(invoice.customer_phone || "").replace(/\D/g, "");
   const waLink = `https://wa.me/${phone.length === 10 ? `91${phone}` : phone}?text=${encodeURIComponent(shareText(invoice))}`;
 
@@ -277,11 +284,11 @@ export default function InvoiceView() {
             <Box sx={{ overflowX: "auto", bgcolor: "#eef1f4", p: { xs: 1, sm: 2 }, borderRadius: 2 }}>
               {preview === "receipt" ? (
                 <Box sx={{ width: "fit-content", mx: "auto", boxShadow: 2 }}>
-                  <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} />
+                  <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} settings={design} template={receiptTpl} />
                 </Box>
               ) : (
                 <Box sx={{ width: "fit-content", mx: "auto", bgcolor: "#fff", p: 1, boxShadow: 2, zoom: { xs: 0.45, sm: 0.75, lg: 0.78, xl: 1 } }}>
-                  <TaxInvoiceA4 invoice={invoice} copyLabel={copyA4} />
+                  <TaxInvoiceA4 invoice={invoice} copyLabel={copyA4} settings={design} template={a4Tpl} />
                 </Box>
               )}
             </Box>
@@ -305,7 +312,7 @@ export default function InvoiceView() {
               </Typography>
             )}
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, mt: 2 }}>
-              {!cancelled && invoice.balance_due > 0 && (
+              {!cancelled && invoice.balance_due > 0 && can("payments", "add") && (
                 <Button variant="contained" color="success" startIcon={<PaymentsIcon />} onClick={() => setPayOpen(true)} sx={{ gridColumn: "1 / -1" }}>
                   Record Payment
                 </Button>
@@ -316,12 +323,12 @@ export default function InvoiceView() {
               <Button variant="outlined" startIcon={<ShareIcon />} onClick={share}>
                 Share
               </Button>
-              {invoice.invoice_type === "tax" && !cancelled && (
+              {invoice.invoice_type === "tax" && !cancelled && can("invoices", "edit") && (
                 <Button variant="outlined" startIcon={<QrCodeIcon />} onClick={() => setEinvOpen(true)} sx={{ gridColumn: "1 / -1" }}>
                   {invoice.irn ? "Edit e-invoice (IRN)" : "Add e-invoice (IRN)"}
                 </Button>
               )}
-              {!cancelled && (
+              {!cancelled && can("invoices", "delete") && (
                 <Button variant="outlined" color="error" startIcon={<BlockIcon />} onClick={() => setCancelOpen(true)} sx={{ gridColumn: "1 / -1" }}>
                   Cancel Invoice
                 </Button>
@@ -350,6 +357,24 @@ export default function InvoiceView() {
                   {COPY_LABELS_RECEIPT.map((c) => (
                     <MenuItem key={c || "none"} value={c}>
                       {c || "None"}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid size={6}>
+                <TextField select fullWidth label="Receipt design" value={receiptTpl} onChange={(e) => setReceiptTpl(e.target.value)}>
+                  {RECEIPT_TEMPLATES.map((t) => (
+                    <MenuItem key={t.key} value={t.key}>
+                      {t.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid size={6}>
+                <TextField select fullWidth label="A4 design" value={a4Tpl} onChange={(e) => setA4Tpl(e.target.value)}>
+                  {A4_TEMPLATES.map((t) => (
+                    <MenuItem key={t.key} value={t.key}>
+                      {t.name}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -385,7 +410,7 @@ export default function InvoiceView() {
                     <ListItem
                       disableGutters
                       secondaryAction={
-                        isManager && (
+                        can("payments", "delete") && (
                           <Tooltip title="Delete payment">
                             <IconButton edge="end" size="small" onClick={() => setDeletePayment(p)}>
                               <DeleteIcon fontSize="small" />
@@ -410,9 +435,9 @@ export default function InvoiceView() {
       {printing && (
         <PrintPortal pageSize={printing === "a4" ? "A4" : receiptWidth}>
           {printing === "a4" ? (
-            <TaxInvoiceA4 invoice={invoice} copyLabel={copyA4} />
+            <TaxInvoiceA4 invoice={invoice} copyLabel={copyA4} settings={design} template={a4Tpl} />
           ) : (
-            <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} />
+            <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} settings={design} template={receiptTpl} />
           )}
         </PrintPortal>
       )}

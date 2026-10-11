@@ -36,6 +36,7 @@ import {
   PointOfSale,
   ChevronLeft,
   ChevronRight,
+  Palette,
 } from "@mui/icons-material";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
@@ -46,33 +47,34 @@ const DRAWER_WIDTH = 240;
 const MINI_WIDTH = 68;
 
 const menu = [
-  { section: null, items: [{ text: "Dashboard", icon: <Dashboard />, path: "/dashboard" }] },
+  { section: null, items: [{ text: "Dashboard", icon: <Dashboard />, path: "/dashboard", perm: "dashboard" }] },
   {
     section: "Sales",
     items: [
-      { text: "Quick Bill", icon: <PointOfSale />, path: "/invoices/new" },
-      { text: "Orders", icon: <Assignment />, path: "/orders" },
-      { text: "Invoices", icon: <Receipt />, path: "/invoices" },
-      { text: "Payments", icon: <Payment />, path: "/payments" },
-      { text: "Customers", icon: <People />, path: "/customers" },
+      { text: "Quick Bill", icon: <PointOfSale />, path: "/invoices/new", perm: "invoices.add" },
+      { text: "Orders", icon: <Assignment />, path: "/orders", perm: "orders" },
+      { text: "Invoices", icon: <Receipt />, path: "/invoices", perm: "invoices" },
+      { text: "Payments", icon: <Payment />, path: "/payments", perm: "payments" },
+      { text: "Customers", icon: <People />, path: "/customers", perm: "customers" },
     ],
   },
   {
     section: "Stock & Money",
     items: [
-      { text: "Products", icon: <ShoppingCart />, path: "/products" },
-      { text: "Inventory", icon: <Inventory2 />, path: "/inventory" },
-      { text: "Expenses", icon: <AccountBalanceWallet />, path: "/expenses" },
-      { text: "Reports", icon: <Assessment />, path: "/reports" },
+      { text: "Products", icon: <ShoppingCart />, path: "/products", perm: "products" },
+      { text: "Inventory", icon: <Inventory2 />, path: "/inventory", perm: "inventory" },
+      { text: "Expenses", icon: <AccountBalanceWallet />, path: "/expenses", perm: "expenses" },
+      { text: "Reports", icon: <Assessment />, path: "/reports", perm: "reports" },
     ],
   },
   {
     section: "Admin",
     items: [
-      { text: "Business Settings", icon: <Settings />, path: "/settings" },
+      { text: "Settings", icon: <Settings />, path: "/settings" },
+      { text: "Invoice Design", icon: <Palette />, path: "/settings/invoice-design", perm: "settings" },
       { text: "Stores", icon: <Store />, path: "/stores", admin: true },
-      { text: "Users", icon: <People />, path: "/users", admin: true },
-      { text: "Roles", icon: <AdminPanelSettings />, path: "/roles", admin: true },
+      { text: "Users", icon: <People />, path: "/users", perm: "users" },
+      { text: "Roles & Permissions", icon: <AdminPanelSettings />, path: "/roles", perm: "users" },
     ],
   },
 ];
@@ -89,6 +91,7 @@ const ACTIVE_ALIASES = {
 
 const isActive = (path, pathname) => {
   if (path === "/invoices") return pathname === "/invoices" || /^\/invoices\/\d+/.test(pathname);
+  if (path === "/settings") return pathname === "/settings";
   if (pathname === path || pathname.startsWith(`${path}/`)) return true;
   return (ACTIVE_ALIASES[path] || []).some((a) => pathname === a || pathname.startsWith(`${a}/`));
 };
@@ -96,7 +99,7 @@ const isActive = (path, pathname) => {
 export default function Home() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, can } = useAuth();
   const { pathname } = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mini, setMini] = useState(() => localStorage.getItem("sidebarMini") === "1");
@@ -124,7 +127,7 @@ export default function Home() {
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
       <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
         {menu.map((group) => {
-          const items = group.items.filter((i) => !i.admin || isAdmin);
+          const items = group.items.filter((i) => (!i.admin || isAdmin) && (!i.perm || can(...i.perm.split("."))));
           if (!items.length) return null;
           return (
             <List

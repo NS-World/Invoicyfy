@@ -24,6 +24,7 @@ export const blankStore = {
   upi_id: "",
   invoice_terms: "",
   receipt_footer: "Thanks",
+  logo: null,
 };
 
 export const storeFromApi = (d) => Object.fromEntries(Object.keys(blankStore).map((k) => [k, d?.[k] ?? blankStore[k]]));

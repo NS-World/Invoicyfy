@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
@@ -18,6 +19,7 @@ import { apiError, formatCurrency, formatNumber } from "../../utils/format";
 export default function Products() {
   const navigate = useNavigate();
   const notify = useNotify();
+  const { can } = useAuth();
   const [status, setStatus] = useState("Active");
   const [toDelete, setToDelete] = useState(null);
   const table = useServerTable((p, s, q, f) => ProductServices.getProductsData(p, s, q, f), { filters: { status }, idField: "product_id" });
@@ -79,16 +81,20 @@ export default function Products() {
       sortable: false,
       renderCell: ({ row }) => (
         <span onClick={(e) => e.stopPropagation()}>
+          {can("products", "edit") && (
           <Tooltip title="Edit">
             <IconButton size="small" color="primary" onClick={() => navigate(`/product?id=${row.product_id}`)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
+          {can("products", "delete") && (
           <Tooltip title="Delete">
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
         </span>
       ),
     },
@@ -99,9 +105,11 @@ export default function Products() {
       <PageHeader
         title="Products"
         actions={
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
-            Add Product
-          </Button>
+          can("products", "add") && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
+              Add Product
+            </Button>
+          )
         }
       />
       <Toolbar>

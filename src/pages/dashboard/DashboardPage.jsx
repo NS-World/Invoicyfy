@@ -50,7 +50,7 @@ const Empty = ({ text = "No data yet" }) => (
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const [range, setRange] = useState(() => {
     const p = datePresets().find((x) => x.key === "month");
     return { from: p.from, to: p.to };
@@ -84,12 +84,16 @@ export default function DashboardPage() {
         subtitle={user?.store_name}
         actions={
           <>
+            {can("orders", "add") && (
             <Button variant="outlined" startIcon={<AddIcon />} onClick={() => navigate("/order")}>
               New Order
             </Button>
+            )}
+            {can("invoices", "add") && (
             <Button variant="contained" startIcon={<PointOfSaleIcon />} onClick={() => navigate("/invoices/new")}>
               Quick Bill
             </Button>
+            )}
           </>
         }
       />

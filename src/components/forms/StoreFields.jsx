@@ -1,6 +1,7 @@
 import { Divider, Grid, MenuItem, TextField, Typography } from "@mui/material";
 import useMeta from "../../hooks/useMeta";
 import { storeInvalid } from "./storeForm";
+import ImageUpload from "./ImageUpload";
 
 const Section = ({ children }) => (
   <Grid size={12}>
@@ -20,6 +21,9 @@ export default function StoreFields({ form, setForm }) {
   return (
     <Grid container spacing={2}>
       <Section>Business</Section>
+      <Grid size={12}>
+        <ImageUpload value={form.logo} onChange={(v) => setForm((f) => ({ ...f, logo: v }))} label="Logo" hint="Optional · shows on bills when turned on in Invoice Design" />
+      </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
         <TextField fullWidth required label="Shop / brand name" value={form.name} onChange={set("name")} helperText="Printed at the top of receipts" />
       </Grid>

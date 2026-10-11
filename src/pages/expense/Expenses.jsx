@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
+import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
@@ -18,6 +19,7 @@ import { apiError, datePresets, downloadCsv, formatCurrency, formatDate } from "
 
 export default function Expenses() {
   const notify = useNotify();
+  const { can } = useAuth();
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [range, setRange] = useState(() => {
@@ -72,16 +74,20 @@ export default function Expenses() {
       sortable: false,
       renderCell: ({ row }) => (
         <span>
+          {can("expenses", "edit") && (
           <Tooltip title="Edit">
             <IconButton size="small" color="primary" onClick={() => setDialog({ open: true, expense: row })}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
+          {can("expenses", "delete") && (
           <Tooltip title="Delete">
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
         </span>
       ),
     },
@@ -97,9 +103,11 @@ export default function Expenses() {
             <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv}>
               Export
             </Button>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ open: true, expense: null })}>
-              Add Expense
-            </Button>
+            {can("expenses", "add") && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ open: true, expense: null })}>
+                Add Expense
+              </Button>
+            )}
           </>
         }
       />

@@ -5,6 +5,7 @@ import theme from "./theme";
 import { AuthProvider } from "./context/AuthProvider";
 import { NotifyProvider } from "./context/NotifyProvider";
 import PrivateRoute from "./routes/PrivateRoute";
+import HomeRedirect from "./routes/HomeRedirect";
 import Loader from "./components/common/Loader";
 import Login from "./pages/login/Login";
 import Home from "./pages/home/Home";
@@ -34,8 +35,10 @@ const RoleForm = lazy(() => import("./pages/role/RoleForm"));
 const Stores = lazy(() => import("./pages/store/Stores"));
 const StoreForm = lazy(() => import("./pages/store/StoreForm"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const InvoiceDesigner = lazy(() => import("./pages/settings/InvoiceDesigner"));
 
 const admin = (el) => <PrivateRoute admin>{el}</PrivateRoute>;
+const guard = (perm, el) => <PrivateRoute perm={perm}>{el}</PrivateRoute>;
 
 function App() {
   return (
@@ -55,33 +58,34 @@ function App() {
                     </PrivateRoute>
                   }
                 >
-                  <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route index element={<HomeRedirect />} />
+                  <Route path="dashboard" element={guard("dashboard", <DashboardPage />)} />
 
-                  <Route path="orders" element={<Orders />} />
-                  <Route path="orders/:id" element={<OrderDetails />} />
-                  <Route path="order" element={<OrderForm />} />
-                  <Route path="order-details" element={<OrderDetails />} />
+                  <Route path="orders" element={guard("orders", <Orders />)} />
+                  <Route path="orders/:id" element={guard("orders", <OrderDetails />)} />
+                  <Route path="order" element={guard("orders.add", <OrderForm />)} />
+                  <Route path="order-details" element={guard("orders", <OrderDetails />)} />
 
-                  <Route path="invoices" element={<Invoices />} />
-                  <Route path="invoices/new" element={<InvoiceForm />} />
-                  <Route path="invoices/:id" element={<InvoiceView />} />
-                  <Route path="payments" element={<Payments />} />
+                  <Route path="invoices" element={guard("invoices", <Invoices />)} />
+                  <Route path="invoices/new" element={guard("invoices.add", <InvoiceForm />)} />
+                  <Route path="invoices/:id" element={guard("invoices", <InvoiceView />)} />
+                  <Route path="payments" element={guard("payments", <Payments />)} />
 
-                  <Route path="customers" element={<Customers />} />
-                  <Route path="customer" element={<CustomerForm />} />
-                  <Route path="products" element={<Products />} />
-                  <Route path="product" element={<ProductForm />} />
-                  <Route path="product-details" element={<ProductDetails />} />
-                  <Route path="inventory" element={<Inventory />} />
-                  <Route path="expenses" element={<Expenses />} />
-                  <Route path="reports" element={<Reports />} />
+                  <Route path="customers" element={guard("customers", <Customers />)} />
+                  <Route path="customer" element={guard("customers", <CustomerForm />)} />
+                  <Route path="products" element={guard("products", <Products />)} />
+                  <Route path="product" element={guard("products", <ProductForm />)} />
+                  <Route path="product-details" element={guard("products", <ProductDetails />)} />
+                  <Route path="inventory" element={guard("inventory", <Inventory />)} />
+                  <Route path="expenses" element={guard("expenses", <Expenses />)} />
+                  <Route path="reports" element={guard("reports", <Reports />)} />
                   <Route path="settings" element={<Settings />} />
+                  <Route path="settings/invoice-design" element={guard("settings", <InvoiceDesigner />)} />
 
-                  <Route path="users" element={admin(<Users />)} />
-                  <Route path="user" element={admin(<UserForm />)} />
-                  <Route path="roles" element={admin(<Roles />)} />
-                  <Route path="role" element={admin(<RoleForm />)} />
+                  <Route path="users" element={guard("users", <Users />)} />
+                  <Route path="user" element={guard("users", <UserForm />)} />
+                  <Route path="roles" element={guard("users", <Roles />)} />
+                  <Route path="role" element={guard("users", <RoleForm />)} />
                   <Route path="stores" element={admin(<Stores />)} />
                   <Route path="store" element={admin(<StoreForm />)} />
                   <Route path="*" element={<NotFound />} />

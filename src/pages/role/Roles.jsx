@@ -33,6 +33,15 @@ export default function Roles() {
 
   const columns = [
     { field: "role_name", headerName: "Role", minWidth: 160, flex: 1 },
+    {
+      field: "permissions",
+      headerName: "Access",
+      minWidth: 220,
+      flex: 2,
+      sortable: false,
+      valueGetter: (v, row) => (row.is_system ? "Full access" : Object.keys(v || {}).length ? `${Object.keys(v).length} modules` : "No access"),
+    },
+    { field: "user_count", headerName: "Users", minWidth: 80, type: "number" },
     { field: "created_at", headerName: "Created", minWidth: 130, valueFormatter: (v) => formatDate(v) },
     {
       field: "actions",
@@ -59,7 +68,7 @@ export default function Roles() {
   return (
     <>
       <PageHeader
-        title="Roles"
+        title="Roles & Permissions"
         actions={
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/role")}>
             Add Role
@@ -69,7 +78,7 @@ export default function Roles() {
       <Toolbar>
         <SearchField value={table.search} onChange={table.setSearch} placeholder="Search roles" />
       </Toolbar>
-      <DataTable table={table} columns={columns} height={420} />
+      <DataTable table={table} columns={columns} height={420} mobileHidden={["created_at", "user_count"]} onRowClick={({ row }) => navigate(`/role?id=${row.role_id}`)} />
       <ConfirmationDialog
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}

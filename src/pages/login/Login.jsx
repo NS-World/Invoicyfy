@@ -35,7 +35,7 @@ export default function Login() {
     import("../../assets/robot-invoice.json").then((m) => setAnimation(m.default)).catch(() => {});
   }, []);
 
-  if (auth.token) return <Navigate to="/dashboard" replace />;
+  if (auth.token) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,7 +54,7 @@ export default function Login() {
         login(res.data.user || null, res.data.access_token, res.data.refresh_token);
         setEmail("");
         setPassword("");
-        navigate("/dashboard", { replace: true });
+        navigate("/", { replace: true });
       } else {
         setError(res.data?.message || "Invalid credentials. Please try again.");
       }

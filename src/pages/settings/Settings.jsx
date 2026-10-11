@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Button, Grid, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
+import PaletteIcon from "@mui/icons-material/Palette";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import Loader from "../../components/common/Loader";
 import StoreFields from "../../components/forms/StoreFields";
@@ -12,7 +14,8 @@ import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
 
 function BusinessProfile() {
-  const { user, isManager } = useAuth();
+  const { user, can } = useAuth();
+  const isManager = can("settings", "edit");
   const notify = useNotify();
   const [form, setForm] = useState(blankStore);
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ function BusinessProfile() {
   return (
     <Paper component="form" onSubmit={save} sx={{ p: { xs: 2, sm: 3 } }}>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {!isManager && <Alert severity="info" sx={{ mb: 2 }}>Only an Admin or Manager can change business details.</Alert>}
+      {!isManager && <Alert severity="info" sx={{ mb: 2 }}>Your role can only view business details.</Alert>}
       <fieldset disabled={!isManager} style={{ border: 0, padding: 0, margin: 0 }}>
         <StoreFields form={form} setForm={setForm} />
       </fieldset>
@@ -111,10 +114,25 @@ function ChangePassword() {
 
 export default function Settings() {
   const [tab, setTab] = useState("business");
-  const { user } = useAuth();
+  const { user, can } = useAuth();
+  const navigate = useNavigate();
   return (
     <Box sx={{ maxWidth: 960, mx: "auto" }}>
       <PageHeader title="Settings" subtitle={user ? `${user.name} · ${user.email}` : ""} />
+      {can("settings") && (
+        <Alert
+          severity="info"
+          icon={<PaletteIcon />}
+          sx={{ mb: 2 }}
+          action={
+            <Button size="small" onClick={() => navigate("/settings/invoice-design")}>
+              Open
+            </Button>
+          }
+        >
+          Change invoice & receipt templates, logo, colours, sections and QR codes in <b>Invoice Design</b>.
+        </Alert>
+      )}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab value="business" label="Business details" />
         <Tab value="password" label="Change password" />

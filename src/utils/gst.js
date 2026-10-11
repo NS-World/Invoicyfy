@@ -48,7 +48,7 @@ export const calcTotals = (items, interstate, roundOff = true) => {
   Object.keys(t).forEach((k) => (t[k] = r2(t[k])));
   const exact = r2(t.taxable + t.tax);
   const total = roundOff ? Math.round(exact) : exact;
-  return { ...t, roundOff: r2(total - exact), total: r2(total) };
+  return { ...t, count: items.length, roundOff: r2(total - exact), total: r2(total) };
 };
 
 export const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
@@ -65,6 +65,8 @@ export const emptyItem = () => ({
   gst_rate: 0,
   price_includes_tax: false,
   item_note: "",
+  weight_presets: null,
+  qty_entry: "g", // for weight items: type the quantity in grams or kg
 });
 
 /** Turn an API item (order/invoice) into editor state. */

@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
@@ -20,6 +21,7 @@ import { datePresets, formatCurrency, formatDate } from "../../utils/format";
 export default function Invoices() {
   const navigate = useNavigate();
   const notify = useNotify();
+  const { can } = useAuth();
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [range, setRange] = useState(() => {
@@ -73,7 +75,7 @@ export default function Invoices() {
               <PrintIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          {row.balance_due > 0 && row.status !== "Cancelled" && (
+          {row.balance_due > 0 && row.status !== "Cancelled" && can("payments", "add") && (
             <Tooltip title="Record payment">
               <IconButton size="small" color="success" onClick={() => setPayFor(row)}>
                 <PaymentsIcon fontSize="small" />
@@ -90,6 +92,7 @@ export default function Invoices() {
       <PageHeader
         title="Invoices"
         actions={
+          can("invoices", "add") && (
           <>
             <Button variant="outlined" onClick={() => navigate("/invoices/new?type=tax")}>
               New GST Invoice
@@ -98,6 +101,7 @@ export default function Invoices() {
               Quick Bill
             </Button>
           </>
+          )
         }
       />
       <Grid container spacing={1.5} sx={{ mb: 2 }}>

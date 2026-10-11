@@ -4,6 +4,7 @@ import AddBoxIcon from "@mui/icons-material/AddBox";
 import HistoryIcon from "@mui/icons-material/History";
 import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
@@ -19,6 +20,7 @@ import { formatCurrency, formatNumber } from "../../utils/format";
 export default function Inventory() {
   const navigate = useNavigate();
   const notify = useNotify();
+  const { can } = useAuth();
   const [filter, setFilter] = useState("");
   const [adjust, setAdjust] = useState(null);
   const [history, setHistory] = useState(null);
@@ -52,11 +54,13 @@ export default function Inventory() {
       sortable: false,
       renderCell: ({ row }) => (
         <span>
+          {can("inventory", "add") && (
           <Tooltip title="Stock in / out">
             <IconButton size="small" color="primary" onClick={() => setAdjust(row)}>
               <AddBoxIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
           <Tooltip title="History">
             <IconButton size="small" onClick={() => setHistory(row)}>
               <HistoryIcon fontSize="small" />
@@ -72,9 +76,11 @@ export default function Inventory() {
       <PageHeader
         title="Inventory"
         actions={
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
-            Add Product
-          </Button>
+          can("products", "add") && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
+              Add Product
+            </Button>
+          )
         }
       />
       <Grid container spacing={1.5} sx={{ mb: 2 }}>

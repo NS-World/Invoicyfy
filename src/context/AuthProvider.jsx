@@ -80,7 +80,11 @@ export const AuthProvider = ({ children }) => {
 
   const value = useMemo(() => {
     const role = (auth.user?.role_name || "").toLowerCase();
+    const perms = auth.user?.permissions || {};
+    // can("invoices", "add") — Admin can do everything; the server enforces the same rules.
+    const can = (module, action = "view") => role === "admin" || (perms[module] || []).includes(action);
     return {
+      can,
       auth,
       user: auth.user,
       login,

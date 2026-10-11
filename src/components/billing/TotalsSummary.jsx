@@ -1,5 +1,5 @@
 import { Box, Divider, Typography } from "@mui/material";
-import { formatCurrency, formatNumber } from "../../utils/format";
+import { formatCurrency } from "../../utils/format";
 
 const Row = ({ label, value, bold, color }) => (
   <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.4 }}>
@@ -16,7 +16,7 @@ const Row = ({ label, value, bold, color }) => (
 export default function TotalsSummary({ t, interstate }) {
   return (
     <Box>
-      <Row label={`Items (${formatNumber(t.qty, 3)} qty)`} value={formatCurrency(t.subtotal)} />
+      <Row label={`${t.count} item${t.count === 1 ? "" : "s"}`} value={formatCurrency(t.subtotal)} />
       {t.discount > 0 && <Row label="Discount" value={`- ${formatCurrency(t.discount)}`} color="success.main" />}
       <Row label="Taxable value" value={formatCurrency(t.taxable)} />
       {interstate ? (

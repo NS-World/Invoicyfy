@@ -5,6 +5,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
@@ -19,6 +20,7 @@ import { apiError, formatCurrency } from "../../utils/format";
 export default function Customers() {
   const navigate = useNavigate();
   const notify = useNotify();
+  const { can } = useAuth();
   const [type, setType] = useState("");
   const [toDelete, setToDelete] = useState(null);
   const table = useServerTable((p, s, q, f) => CustomerServices.getCustomersData(p, s, q, f), { filters: { customer_type: type }, idField: "customer_id" });
@@ -69,21 +71,27 @@ export default function Customers() {
       sortable: false,
       renderCell: ({ row }) => (
         <span onClick={(e) => e.stopPropagation()}>
+          {can("invoices", "add") && (
           <Tooltip title="New invoice">
             <IconButton size="small" color="success" onClick={() => navigate(`/invoices/new${row.customer_type === "B2B" ? "?type=tax" : ""}`)}>
               <ReceiptIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
+          {can("customers", "edit") && (
           <Tooltip title="Edit">
             <IconButton size="small" color="primary" onClick={() => navigate(`/customer?id=${row.customer_id}`)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
+          {can("customers", "delete") && (
           <Tooltip title="Delete">
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
         </span>
       ),
     },
@@ -94,9 +102,11 @@ export default function Customers() {
       <PageHeader
         title="Customers"
         actions={
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/customer")}>
-            Add Customer
-          </Button>
+          can("customers", "add") && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/customer")}>
+              Add Customer
+            </Button>
+          )
         }
       />
       <Toolbar>

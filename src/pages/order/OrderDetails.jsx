@@ -19,6 +19,7 @@ import CheckIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import Loader from "../../components/common/Loader";
 import StatusChip from "../../components/common/StatusChip";
@@ -27,6 +28,7 @@ import GenerateInvoiceDialog from "../../components/billing/GenerateInvoiceDialo
 import { OrderServices } from "../../services/OrderServices";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError, formatCurrency, formatDate, formatNumber } from "../../utils/format";
+import { formatQty, rateSuffix } from "../../utils/weight";
 
 const Info = ({ label, children }) => (
   <Box sx={{ mb: 1.5 }}>
@@ -44,6 +46,7 @@ export default function OrderDetails() {
   const location = useLocation();
   const navigate = useNavigate();
   const notify = useNotify();
+  const { can } = useAuth();
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -98,27 +101,27 @@ export default function OrderDetails() {
         back="/orders"
         actions={
           <>
-            {order.status === "Pending" && (
+            {order.status === "Pending" && can("orders", "edit") && (
               <Button variant="outlined" color="primary" startIcon={<CheckIcon />} onClick={() => setStatus("Approved")} disabled={busy}>
                 Approve
               </Button>
             )}
-            {open && (
+            {open && can("orders", "edit") && (
               <Button variant="outlined" startIcon={<EditIcon />} onClick={() => navigate(`/order?id=${order.order_id}`)}>
                 Edit
               </Button>
             )}
-            {open && (
+            {open && can("orders", "edit") && (
               <Button variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => setConfirmCancel(true)} disabled={busy}>
                 Cancel
               </Button>
             )}
-            {order.status === "Cancelled" && (
+            {order.status === "Cancelled" && can("orders", "edit") && (
               <Button variant="outlined" startIcon={<ReplayIcon />} onClick={() => setStatus("Pending")} disabled={busy}>
                 Re-open
               </Button>
             )}
-            {open && (
+            {open && can("invoices", "add") && (
               <Button variant="contained" color="success" startIcon={<ReceiptIcon />} onClick={() => setInvoiceOpen(true)}>
                 Generate Invoice
               </Button>
@@ -185,10 +188,11 @@ export default function OrderDetails() {
                         )}
                       </TableCell>
                       <TableCell align="right">
-                        {formatNumber(it.quantity, 3)} {it.unit}
+                        {formatQty(it.quantity, it.unit)}
                       </TableCell>
                       <TableCell align="right">
                         {formatCurrency(it.unit_price)}
+                        {rateSuffix(it.unit)}
                         {Number(it.discount_amount) > 0 && (
                           <Typography variant="caption" display="block" color="success.main">
                             − {formatCurrency(it.discount_amount)}

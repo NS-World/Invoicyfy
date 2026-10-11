@@ -6,6 +6,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
@@ -23,6 +24,7 @@ const STATUSES = ["Pending", "Approved", "Invoiced", "Cancelled"];
 export default function Orders() {
   const navigate = useNavigate();
   const notify = useNotify();
+  const { can } = useAuth();
   const [status, setStatus] = useState("");
   const [toDelete, setToDelete] = useState(null);
   const [toInvoice, setToInvoice] = useState(null);
@@ -77,14 +79,14 @@ export default function Orders() {
                 <VisibilityIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            {open && (
+            {open && can("orders", "edit") && (
               <Tooltip title="Edit">
                 <IconButton size="small" color="primary" onClick={() => navigate(`/order?id=${row.order_id}`)}>
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
-            {open && (
+            {open && can("invoices", "add") && (
               <Tooltip title="Generate invoice">
                 <IconButton size="small" color="success" onClick={() => setToInvoice(row)}>
                   <ReceiptIcon fontSize="small" />
@@ -98,7 +100,7 @@ export default function Orders() {
                 </IconButton>
               </Tooltip>
             )}
-            {!row.invoice_id && (
+            {!row.invoice_id && can("orders", "delete") && (
               <Tooltip title="Delete">
                 <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
                   <DeleteIcon fontSize="small" />
@@ -116,9 +118,11 @@ export default function Orders() {
       <PageHeader
         title="Orders"
         actions={
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/order")}>
-            New Order
-          </Button>
+          can("orders", "add") && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/order")}>
+              New Order
+            </Button>
+          )
         }
       />
       <Toolbar>

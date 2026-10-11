@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Autocomplete, Box, Button, Divider, FormControlLabel, Grid, InputAdornment, MenuItem, Paper, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, Chip, Divider, FormControlLabel, Grid, InputAdornment, MenuItem, Paper, Switch, TextField, Typography } from "@mui/material";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import Loader from "../../components/common/Loader";
@@ -10,6 +10,7 @@ import useMeta from "../../hooks/useMeta";
 import useStores from "../../hooks/useStores";
 import { apiError, formatCurrency } from "../../utils/format";
 import { calcLine } from "../../utils/gst";
+import { DEFAULT_WEIGHT_PRESETS, gramsLabel, isWeightUnit, parsePresets } from "../../utils/weight";
 
 const blank = {
   name: "",
@@ -27,6 +28,7 @@ const blank = {
   low_stock_threshold: "",
   status: "Active",
   store_id: "",
+  weight_presets: "",
 };
 
 export default function ProductForm() {
@@ -71,6 +73,10 @@ export default function ProductForm() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setBool = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.checked }));
   const preview = calcLine({ quantity: 1, unit_price: form.price, gst_rate: form.gst_rate, price_includes_tax: form.price_includes_tax }, false);
+  const byWeight = isWeightUnit(form.unit);
+  const presets = parsePresets(form.weight_presets);
+  const [newPreset, setNewPreset] = useState("");
+  const setPresets = (list) => setForm((f) => ({ ...f, weight_presets: list.join(",") }));
   const margin = Number(form.cost_price) > 0 ? preview.taxable - Number(form.cost_price) : null;
 
   const submit = async (e) => {
@@ -133,7 +139,7 @@ export default function ProductForm() {
             </Divider>
           </Grid>
           <Grid size={{ xs: 6, sm: 4 }}>
-            <TextField fullWidth required type="number" label="Selling price" value={form.price} onChange={set("price")} slotProps={rupee} />
+            <TextField fullWidth required type="number" label={byWeight ? `Selling price per ${form.unit}` : "Selling price"} value={form.price} onChange={set("price")} slotProps={rupee} />
           </Grid>
           <Grid size={{ xs: 6, sm: 4 }}>
             <TextField select fullWidth label="GST rate" value={Number(form.gst_rate)} onChange={set("gst_rate")}>
@@ -158,6 +164,44 @@ export default function ProductForm() {
           <Grid size={{ xs: 12, sm: 4 }}>
             <TextField fullWidth type="number" label="Purchase / cost price" value={form.cost_price} onChange={set("cost_price")} slotProps={rupee} helperText={margin !== null ? `Margin ${formatCurrency(margin)} per ${form.unit}` : "Used for profit reports"} />
           </Grid>
+
+          {byWeight && (
+            <Grid size={12}>
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: "action.hover" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  Sold by weight (loose)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  While billing, tap a weight or type grams / kg — the price is calculated from the price per {form.unit}.
+                  {Number(form.price) > 0 && ` e.g. 250 g = ${formatCurrency((Number(form.price) * 250) / (form.unit.startsWith("k") ? 1000 : 1))}`}
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+                  {presets.map((g) => (
+                    <Chip key={g} label={gramsLabel(g)} onDelete={presets.length > 1 ? () => setPresets(presets.filter((x) => x !== g)) : undefined} color="primary" variant="outlined" />
+                  ))}
+                  <TextField
+                    size="small"
+                    type="number"
+                    placeholder="Add grams"
+                    value={newPreset}
+                    onChange={(e) => setNewPreset(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (Number(newPreset) > 0) setPresets([...presets, Number(newPreset)].sort((a, b) => a - b));
+                        setNewPreset("");
+                      }
+                    }}
+                    sx={{ width: 130 }}
+                    slotProps={{ input: { endAdornment: <InputAdornment position="end">g</InputAdornment> } }}
+                  />
+                  <Button size="small" onClick={() => setPresets(DEFAULT_WEIGHT_PRESETS)}>
+                    Reset
+                  </Button>
+                </Box>
+              </Box>
+            </Grid>
+          )}
 
           <Grid size={12}>
             <Divider textAlign="left">
