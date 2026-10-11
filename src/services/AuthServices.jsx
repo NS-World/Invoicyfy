@@ -1,9 +1,7 @@
 import API from "./axios";
 
 export const AuthServices = {
-
-postLoginData: async (email, password) => {
-        const response = await API.post("/auth/signin.php", {email, password });
-        return response;
-    }
+  postLoginData: (email, password) => API.post("/auth/signin.php", { email, password }),
+  me: async () => (await API.get("/auth/me.php")).data,
+  changePassword: async (data) => (await API.post("/auth/change-password.php", data)).data,
 };

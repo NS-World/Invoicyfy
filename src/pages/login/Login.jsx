@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Card,
@@ -13,13 +13,13 @@ import {
   Email,
   Lock,
 } from "@mui/icons-material";
-import { CircularProgress } from "@mui/material";
+import { Alert, CircularProgress } from "@mui/material";
 import { useAuth } from "../../context/useAuth";
-import API from "../../services/axios";
-import Lottie from "lottie-react";
-import robotAnimation from "../../assets/robot-invoice.json"; // 👈 download from LottieFiles
 import { AuthServices } from "../../services/AuthServices";
 import "./Login.css";
+
+// The animation (and its player) load after the form so login is usable immediately.
+const Lottie = lazy(() => import("lottie-react"));
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -27,7 +27,15 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const [params] = useSearchParams();
+  const { login, auth } = useAuth();
+  const [animation, setAnimation] = useState(null);
+
+  useEffect(() => {
+    import("../../assets/robot-invoice.json").then((m) => setAnimation(m.default)).catch(() => {});
+  }, []);
+
+  if (auth.token) return <Navigate to="/dashboard" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,19 +50,16 @@ export default function Login() {
       }
 
       const res = await AuthServices.postLoginData(email, password);
-      console.log("Login Response:", res);
-
       if (res.data?.status === "success" && res.data?.access_token && res.data?.refresh_token) {
-        login(null, res.data.access_token, res.data.refresh_token);
+        login(res.data.user || null, res.data.access_token, res.data.refresh_token);
         setEmail("");
         setPassword("");
-        navigate("/");
+        navigate("/dashboard", { replace: true });
       } else {
         setError(res.data?.message || "Invalid credentials. Please try again.");
       }
     } catch (err) {
-      console.error("Login error:", err);
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+      setError(err.response?.data?.message || (err.message === "Network Error" ? "Cannot reach the server. Check your connection." : "Login failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -65,7 +70,11 @@ export default function Login() {
       <Fade in timeout={600}>
         <Card className="login-card" elevation={10}>
           <Box className="robot-animation">
-            <Lottie animationData={robotAnimation} loop={true} />
+            {animation && (
+              <Suspense fallback={null}>
+                <Lottie animationData={animation} loop />
+              </Suspense>
+            )}
           </Box>
 
           <Typography variant="h4" align="center" className="login-title">
@@ -75,12 +84,18 @@ export default function Login() {
             Get your invoice in just 2 minutes.
           </Typography>
 
+          {params.get("expired") && !error && (
+            <Alert severity="info" sx={{ mb: 1 }}>
+              Your session expired. Please login again.
+            </Alert>
+          )}
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
               margin="normal"
               label="Email"
               type="email"
+              autoComplete="email"
               required
               disabled={loading}
               value={email}
@@ -98,6 +113,7 @@ export default function Login() {
               margin="normal"
               type="password"
               label="Password"
+              autoComplete="current-password"
               required
               disabled={loading}
               value={password}

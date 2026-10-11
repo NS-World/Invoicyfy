@@ -1,253 +1,84 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Snackbar,
-  Alert,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-} from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { useState } from "react";
+import { Button, IconButton, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ConfirmationDialog from "../../components/ConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import PageHeader from "../../components/common/PageHeader";
+import SearchField from "../../components/common/SearchField";
+import Toolbar from "../../components/common/Toolbar";
+import DataTable from "../../components/common/DataTable";
+import ConfirmationDialog from "../../components/ConfirmationDialog";
 import { RoleServices } from "../../services/RoleServices";
-import { useAuth } from "../../context/useAuth";
+import { useNotify } from "../../context/NotifyProvider";
+import useServerTable from "../../hooks/useServerTable";
+import { apiError, formatDate } from "../../utils/format";
 
-const Roles = () => {
+export default function Roles() {
+  const navigate = useNavigate();
+  const notify = useNotify();
+  const [toDelete, setToDelete] = useState(null);
+  const table = useServerTable((p, s, q) => RoleServices.getRolesData(p, s, q), { idField: "role_id" });
 
-  const [rolesData, setRolesData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [totalElements, setTotalElements] = useState();
-  const navigation = useNavigate();
-  const access_token = useAuth();
-  const navigationUrl = "/role";
-
-  // Search filter
-  const [searchFilter, setSearchFilter] = useState("");
-
-  // Snackbar
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-
-  // Delete confirmation dialog
-  const [openDialog, setOpenDialog] = useState(false);
-  const [roleToDelete, setRoleToDelete] = useState(null);
-
-  // Pagination
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 5, // ✅ Correct field
-  });
-
-  const pageSizeOptions = [5, 10, 20];
-
-  useEffect(() => {
-      const message = localStorage.getItem("successMessage");
-      if(message){
-        setSnackbarMessage(message);
-        setSnackbarSeverity('success');
-        setOpenSnackbar(true);
-
-        setTimeout(() => {
-          setOpenSnackbar(false);
-          localStorage.removeItem("successMessage");
-        }, 5000);
-      }
-     
-  }, []);
-
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      fetchData();
-    }, 500); // wait 500ms after last keystroke
-
-    return () => clearTimeout(delayDebounce);
-  }, [searchFilter, paginationModel]);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const confirmDelete = async () => {
     try {
-        const response = await RoleServices.getRolesData(
-        paginationModel.page,
-        paginationModel.pageSize,
-        searchFilter
-        );
-
-          const roleList = response?.data || [];
-
-          const rowsWithId = roleList.map((item) => ({
-          ...item,
-           id: item.role_id,
-        }));
-
-         setRolesData(rowsWithId);
-         setTotalElements(response.data?.total || 0);
-         console.log("---roles data---",rolesData);
-    } catch (error) {
-        console.error("Error fetching Roles data:", error);
-    } finally {
-        setLoading(false);
+      await RoleServices.deleteRoleDataFromId({ role_id: toDelete.role_id });
+      notify("Role deleted");
+      table.reload();
+    } catch (err) {
+      notify(apiError(err), "error");
     }
+    setToDelete(null);
   };
 
-  // Columns with tooltip and actions
   const columns = [
-    { field: "id", headerName: "ID", width: 70 },
-    {
-      field: "role_name",
-      headerName: "Role Name",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
-    },
-    {
-      field: "created_at",
-      headerName: "Created At",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
-    },
+    { field: "role_name", headerName: "Role", minWidth: 160, flex: 1 },
+    { field: "created_at", headerName: "Created", minWidth: 130, valueFormatter: (v) => formatDate(v) },
     {
       field: "actions",
-      headerName: "Actions",
-      flex: 1,
-      renderCell: (params) => (
-        <div>
-          <IconButton
-            color="primary"
-            onClick={() => handleEditRole(params.row)}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            color="secondary"
-            onClick={() => handleDeleteRole(params.row.id)}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </div>
+      headerName: "",
+      minWidth: 90,
+      sortable: false,
+      renderCell: ({ row }) => (
+        <span>
+          <Tooltip title="Edit">
+            <IconButton size="small" color="primary" onClick={() => navigate(`/role?id=${row.role_id}`)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton size="small" color="error" onClick={() => setToDelete(row)} disabled={row.role_name === "Admin"}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </span>
       ),
     },
   ];
 
-  const handleCloseSnackbar = () => setOpenSnackbar(false);
-
-  const handlePaginationModelChange = (newPaginationModel) => {
-    setPaginationModel(newPaginationModel);
-  };
-
-  const handleAddCustomer = () => {
-    navigation(navigationUrl)
-  };
-
-  const handleEditRole = (role) => {
-    if(access_token){
-      navigation(navigationUrl, {state: { roleData: role}});
-    }
-  };
-
-  const handleDeleteRole = (id) => {
-    setRoleToDelete(id);
-    setOpenDialog(true);
-  };
-
-  const confirmDelete = async () => {
-      if (roleToDelete) {
-        try {
-          const data = { role_id: roleToDelete };
-          await RoleServices.deleteRoleDataFromId(data);  // wait for API delete
-          
-          setRolesData((prevData) =>
-            prevData.filter((role) => role.id !== roleToDelete)
-          );
-
-          setSnackbarMessage("Role deleted successfully!");
-          setSnackbarSeverity("success");
-          setOpenSnackbar(true);
-        } catch (error) {
-          setSnackbarMessage("Failed to delete Role.",error);
-          setSnackbarSeverity("error");
-          setOpenSnackbar(true);
-        }
-      }
-      setOpenDialog(false);
-      setRoleToDelete(null);
-    };
-
-
   return (
-    <Box>
-      <Typography variant="h5" sx={{ mb: 2, fontWeight: "bold" }}>
-        Roles
-      </Typography>
-
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-
-      {/* Add + Search */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-        <Button variant="contained" onClick={handleAddCustomer} startIcon={<AddIcon />}>
-          Add
-        </Button>
-        <input
-          type="text"
-          placeholder="Search..."
-          value={searchFilter}
-          onChange={(e) => setSearchFilter(e.target.value)}
-          style={{
-            padding: "6px 10px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-          }}
-        />
-      </div>
-
-      {/* DataGrid */}
-      {loading ? (
-        <Typography variant="body1" color="textSecondary" sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <CircularProgress />
-        </Typography>
-
-      ) : (
-        <Paper sx={{ height: 500, width: "100%" }}>
-          <DataGrid
-            rows={rolesData}
-            columns={columns}
-            paginationMode="server"
-            paginationModel={paginationModel}
-            rowCount={totalElements}
-            onPaginationModelChange={handlePaginationModelChange}
-            pageSizeOptions={pageSizeOptions}
-            loading={loading}
-          />
-        </Paper>
-      )}
-
-      {/* Delete Confirmation */}
+    <>
+      <PageHeader
+        title="Roles"
+        actions={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/role")}>
+            Add Role
+          </Button>
+        }
+      />
+      <Toolbar>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder="Search roles" />
+      </Toolbar>
+      <DataTable table={table} columns={columns} height={420} />
       <ConfirmationDialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        open={Boolean(toDelete)}
+        onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete Confirmation"
-        message="Are you sure you want to delete this role?"
+        title="Delete role?"
+        message={`Role ${toDelete?.role_name || ""} will be deleted.`}
         cancelLabel="Cancel"
         confirmLabel="Delete"
       />
-    </Box>
+    </>
   );
-};
-
-export default Roles;
+}

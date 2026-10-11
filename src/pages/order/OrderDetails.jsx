@@ -1,721 +1,247 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   Box,
-  Paper,
-  Typography,
   Button,
   Grid,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Divider,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Snackbar,
+  Typography,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import AddIcon from "@mui/icons-material/Add";
-import { useNavigate, useLocation } from "react-router-dom";
-import { OrderServices } from "../../services/OrderServices";
-import { CustomerServices } from "../../services/CustomerServices";
-import { ProductServices } from "../../services/ProductServices";
-import ConfirmationDialog from "../../components/ConfirmationDialog";
 import ReceiptIcon from "@mui/icons-material/Receipt";
-import { InvoiceServices } from "../../services/InvoiceServices";
+import CheckIcon from "@mui/icons-material/CheckCircleOutline";
+import CancelIcon from "@mui/icons-material/CancelOutlined";
+import ReplayIcon from "@mui/icons-material/Replay";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import PageHeader from "../../components/common/PageHeader";
+import Loader from "../../components/common/Loader";
+import StatusChip from "../../components/common/StatusChip";
+import ConfirmationDialog from "../../components/ConfirmationDialog";
+import GenerateInvoiceDialog from "../../components/billing/GenerateInvoiceDialog";
+import { OrderServices } from "../../services/OrderServices";
+import { useNotify } from "../../context/NotifyProvider";
+import { apiError, formatCurrency, formatDate, formatNumber } from "../../utils/format";
+
+const Info = ({ label, children }) => (
+  <Box sx={{ mb: 1.5 }}>
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+      {children || "—"}
+    </Typography>
+  </Box>
+);
 
 export default function OrderDetails() {
-  const navigate = useNavigate();
+  const { id } = useParams();
   const location = useLocation();
-  const order_id = location.state?.order_id;
-
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const notify = useNotify();
+  const [order, setOrder] = useState(null);
+  const [items, setItems] = useState([]);
   const [error, setError] = useState("");
-  const [orderDetails, setOrderDetails] = useState(null);
-  const [customerDetails, setCustomerDetails] = useState(null);
-  const [orderItems, setOrderItems] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
-  // Dialog states
-  const [openItemDialog, setOpenItemDialog] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [itemForm, setItemForm] = useState({ product_id: "", quantity: "", unit_price: "" });
-  const [products, setProducts] = useState([]);
-
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-
-  // Delete confirmation
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
-
-  // Status update
-  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const load = useCallback(async () => {
+    try {
+      const res = await OrderServices.getOrderDataFromId(id);
+      setOrder(res.order);
+      setItems(res.items || []);
+    } catch (err) {
+      setError(apiError(err));
+    }
+  }, [id]);
 
   useEffect(() => {
-  if (order_id) {
-    fetchProducts().then(() => {
-      fetchOrderDetails();
-    });
+    if (id) load();
+  }, [id, load]);
+
+  // Old links used router state: /order-details with { order_id }
+  if (!id) {
+    const legacy = location.state?.order_id;
+    return <Navigate to={legacy ? `/orders/${legacy}` : "/orders"} replace />;
   }
-}, [order_id]);
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (!order) return <Loader />;
 
-  const fetchOrderDetails = async () => {
-    setLoading(true);
-    setError("");
+  const setStatus = async (status) => {
+    setBusy(true);
     try {
-      const response = await OrderServices.getOrderDataFromId(order_id);
-      if (response.status === "success" && response.order) {
-        setOrderDetails(response.order);
-
-        // Fetch customer details
-        if (response.order.customer_id) {
-          try {
-            const customerResponse = await CustomerServices.getCustomerDataFromId(
-              response.order.customer_id
-            );
-            if (customerResponse.status === "success" && customerResponse.data) {
-              setCustomerDetails(customerResponse.data);
-            }
-          } catch (custErr) {
-            console.error("Error fetching customer details:", custErr);
-          }
-        }
-
-        // Fetch order items
-        try {
-          const itemsResponse = await OrderServices.getOrderItems(order_id);
-          console.log("=== Order Items Response ===");
-          console.log("Full Response:", itemsResponse);
-          console.log("Response Type:", typeof itemsResponse);
-          console.log("Is Array:", Array.isArray(itemsResponse));
-          console.log("Keys:", itemsResponse ? Object.keys(itemsResponse) : "N/A");
-          
-          if (itemsResponse && itemsResponse.status === "success") {
-            console.log("✓ Response status is success");
-            // New API format: { status, summary, items: [] }
-            const itemsData = itemsResponse.items || [];
-            console.log("Items data extracted:", itemsData);
-            console.log("Items count:", itemsData.length);
-            if (Array.isArray(itemsData)) {
-              setOrderItems(itemsData);
-              console.log("✓ Items set successfully, count:", itemsData.length);
-            } else {
-              console.warn("❌ Items is not an array:", typeof itemsData, itemsData);
-              setOrderItems([]);
-            }
-          } else if (Array.isArray(itemsResponse)) {
-            // Fallback: direct array response
-            console.log("✓ Using direct array fallback, count:", itemsResponse.length);
-            setOrderItems(itemsResponse);
-          } else {
-            console.warn("❌ Unexpected response format:", itemsResponse);
-            setOrderItems([]);
-          }
-        } catch (itemsErr) {
-          console.error("❌ Error fetching order items:", itemsErr);
-          setOrderItems([]);
-        }
-      } else {
-        setError(response.message || "Failed to load order details");
-      }
+      await OrderServices.updateOrderStatus({ order_id: order.order_id, status });
+      notify(`Order ${status.toLowerCase()}`);
+      await load();
     } catch (err) {
-      setError("Error fetching order details");
-      console.error(err);
+      notify(apiError(err), "error");
     } finally {
-      setLoading(false);
+      setBusy(false);
+      setConfirmCancel(false);
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      const response = await ProductServices.getProductsData(0, 100, "");
-      console.log("Products response:", response);
-      if (response.data) {
-        setProducts(response.data);
-      } else if (Array.isArray(response)) {
-        setProducts(response);
-      }
-    } catch (err) {
-      console.error("Error fetching products:", err);
-    }
-  };
-
-  const handleAddItem = () => {
-    setEditingItem(null);
-    setItemForm({ product_id: "", quantity: "", unit_price: "" });
-    setOpenItemDialog(true);
-  };
-
-  const handleEditItem = (item) => {
-    setEditingItem(item);
-    setItemForm({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-    });
-    setOpenItemDialog(true);
-  };
-
-  const handleSaveItem = async () => {
-    if (!itemForm.product_id || !itemForm.quantity || !itemForm.unit_price) {
-      setSnackbar({ open: true, message: "Please fill all fields", severity: "error" });
-      return;
-    }
-
-    try {
-      if (editingItem) {
-        // Update existing item
-        console.log("Updating item:", editingItem.order_item_id);
-        const updateResponse = await OrderServices.updateOrderItems({
-          items: [
-            {
-              order_item_id: editingItem.order_item_id,
-              quantity: parseInt(itemForm.quantity),
-              unit_price: parseFloat(itemForm.unit_price),
-            },
-          ],
-        });
-        console.log("Item update response:", updateResponse);
-        setSnackbar({ open: true, message: "Item updated successfully", severity: "success" });
-      } else {
-        // Add new item
-        console.log("Creating new item for order:", order_id);
-        const createResponse = await OrderServices.createOrderItems({
-          order_id: order_id,
-          items: [
-            {
-              product_id: parseInt(itemForm.product_id),
-              quantity: parseInt(itemForm.quantity),
-              unit_price: parseFloat(itemForm.unit_price),
-            },
-          ],
-        });
-        console.log("Item create response:", createResponse);
-        setSnackbar({ open: true, message: "Item added successfully", severity: "success" });
-      }
-      
-      setOpenItemDialog(false);
-      await fetchOrderDetails();
-    } catch (err) {
-      console.error("Error saving item:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Error saving item";
-      setSnackbar({ open: true, message: errorMessage, severity: "error" });
-    }
-  };
-
-  const handlePrintInvoice = async (order) => {
-  const res = await InvoiceServices.generateInvoice(order.order_id);
-
-  const pdfWindow = window.open("");
-  pdfWindow.document.write(
-    `<iframe width='100%' height='100%' src='data:application/pdf;base64,${res.file}'></iframe>`
-  );
-};
-
-const handleGenerateInvoice = async (order) => {
-  try {
-    if (order.status?.toLowerCase() !== "approved") {
-      alert("Only approved orders allowed");
-      return;
-    }
-
-    const res = await InvoiceServices.generateInvoice(order.order_id);
-
-    if (res.status !== "success") {
-      throw new Error(res.message);
-    }
-
-    // ✅ BASE64 → BLOB
-    const byteCharacters = atob(res.file);
-    const byteNumbers = new Array(byteCharacters.length);
-
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: "application/pdf" });
-
-    const url = window.URL.createObjectURL(blob);
-
-    // ✅ DOWNLOAD
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = res.file_name;
-    link.click();
-
-  } catch (err) {
-    console.error(err);
-    alert("Invoice failed");
-  }
-};
-
-  const handleDeleteItem = (item) => {
-    setItemToDelete(item);
-    setOpenDeleteDialog(true);
-  };
-
-  const confirmDeleteItem = async () => {
-    try {
-      console.log("Deleting item:", itemToDelete.order_item_id);
-      const deleteResponse = await OrderServices.deleteOrderItems({
-        order_item_ids: [itemToDelete.order_item_id],
-      });
-      console.log("Item delete response:", deleteResponse);
-      setSnackbar({ open: true, message: "Item deleted successfully", severity: "success" });
-      await fetchOrderDetails();
-    } catch (err) {
-      console.error("Error deleting item:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Error deleting item";
-      setSnackbar({ open: true, message: errorMessage, severity: "error" });
-    } finally {
-      setOpenDeleteDialog(false);
-      setItemToDelete(null);
-    }
-  };
-
-  const handleStatusChange = async (newStatus) => {
-    setUpdatingStatus(true);
-    try {
-      console.log("Updating status to:", newStatus);
-      const response = await OrderServices.updateOrderStatus({
-        order_id: order_id,
-        status: newStatus,
-      });
-      console.log("Status update response:", response);
-      setSnackbar({ open: true, message: "Status updated successfully", severity: "success" });
-      await fetchOrderDetails();
-    } catch (err) {
-      console.error("Error updating status:", err);
-      setSnackbar({ open: true, message: err.response?.data?.message || "Error updating status", severity: "error" });
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    const statusLower = status?.toLowerCase() || "";
-    if (statusLower === "invoiced" || statusLower === "approved") return "success";
-    if (statusLower === "pending") return "warning";
-    if (statusLower === "cancelled") return "error";
-    return "default";
-  };
-
-  const getStatusBackground = (status) => {
-    const statusLower = status?.toLowerCase() || "";
-    if (statusLower === "invoiced" || statusLower === "approved") return "#4caf50";
-    if (statusLower === "pending") return "#ff9800";
-    if (statusLower === "cancelled") return "#f44336";
-    return "#858585";
-  };
-
-  const calculateTotal = () => {
-    return orderItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-  };
-
-  const getProductName = (productId) => {
-  const product = products.find(
-    (p) => String(p.product_id) === String(productId)
-  );
-   return product?.name || "Unknown Product";
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-        <Button
-          variant="contained"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/orders")}
-        >
-          Back to Orders
-        </Button>
-      </Box>
-    );
-  }
-
-  if (!orderDetails) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="info">No order details found</Alert>
-        <Button
-          variant="contained"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/orders")}
-          sx={{ mt: 2 }}
-        >
-          Back to Orders
-        </Button>
-      </Box>
-    );
-  }
+  const open = ["Pending", "Approved"].includes(order.status);
+  const interstate = Boolean(order.is_interstate);
 
   return (
-    <Box sx={{ pb: 4 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/orders")}
-            variant="outlined"
-          >
-            Back
-          </Button>
-          <Typography variant="h4" sx={{ fontWeight: "bold", color: "#1976d2" }}>
-            Order Details
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={() => navigate("/order", { state: { productData: orderDetails } })}
-        >
-          Edit Order
-        </Button>
-        <Button
-        variant="contained"
-        color="success"
-        onClick={() => handleGenerateInvoice(order)}
-        >
-        Download Invoice
-        </Button>
+    <>
+      <PageHeader
+        title={`Order ${order.order_number}`}
+        subtitle={`${formatDate(order.order_date)} · ${order.order_type}`}
+        back="/orders"
+        actions={
+          <>
+            {order.status === "Pending" && (
+              <Button variant="outlined" color="primary" startIcon={<CheckIcon />} onClick={() => setStatus("Approved")} disabled={busy}>
+                Approve
+              </Button>
+            )}
+            {open && (
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => navigate(`/order?id=${order.order_id}`)}>
+                Edit
+              </Button>
+            )}
+            {open && (
+              <Button variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => setConfirmCancel(true)} disabled={busy}>
+                Cancel
+              </Button>
+            )}
+            {order.status === "Cancelled" && (
+              <Button variant="outlined" startIcon={<ReplayIcon />} onClick={() => setStatus("Pending")} disabled={busy}>
+                Re-open
+              </Button>
+            )}
+            {open && (
+              <Button variant="contained" color="success" startIcon={<ReceiptIcon />} onClick={() => setInvoiceOpen(true)}>
+                Generate Invoice
+              </Button>
+            )}
+            {order.invoice_id && (
+              <Button variant="contained" startIcon={<ReceiptIcon />} onClick={() => navigate(`/invoices/${order.invoice_id}`)}>
+                View Invoice {order.invoice_number}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-        <Button
-        variant="outlined"
-        onClick={() => handlePrintInvoice(order)}
-        >
-        Print Invoice
-        </Button>
-      </Box>
-
-      {/* Order Header Card */}
-      <Paper sx={{ p: 3, mb: 3, background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={4}>
-            <Typography sx={{ color: "#fff", fontSize: "0.9rem", mb: 0.5 }}>
-              Order Number
-            </Typography>
-            <Typography sx={{ color: "#fff", fontSize: "1.8rem", fontWeight: "bold" }}>
-              {orderDetails.order_number}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Typography sx={{ color: "#fff", fontSize: "0.9rem", mb: 0.5 }}>
-              Status
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-              <Chip
-                label={orderDetails.status?.charAt(0).toUpperCase() + orderDetails.status?.slice(1) || "Pending"}
-                color={getStatusColor(orderDetails.status)}
-                variant="filled"
-                sx={{ color: "#fff", fontWeight: "bold", fontSize: "0.95rem" }}
-              />
-              <FormControl sx={{ minWidth: 140 }} size="small" disabled={updatingStatus}>
-                <Select
-                  value={orderDetails.status || "pending"}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  sx={{
-                    color: "#fff",
-                    fontSize: "0.9rem",
-                    ".MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.7)" },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
-                    ".MuiSvgIcon-root": { color: "#fff" },
-                  }}
-                >
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="approved">Approved</MenuItem>
-                  <MenuItem value="invoiced">Invoiced</MenuItem>
-                  <MenuItem value="cancelled">Cancelled</MenuItem>
-                </Select>
-              </FormControl>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper sx={{ p: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Details
+              </Typography>
+              <StatusChip status={order.status} />
             </Box>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Typography sx={{ color: "#fff", fontSize: "0.9rem", mb: 0.5 }}>
-              Total Amount
-            </Typography>
-            <Typography sx={{ color: "#fff", fontSize: "1.8rem", fontWeight: "bold" }}>
-              Rs {(parseFloat(orderDetails.total_amount) || 0).toFixed(2)}
-            </Typography>
-          </Grid>
+            <Info label="Customer">{order.customer_name || "Walk-in"}</Info>
+            <Info label="Mobile">{order.customer_phone}</Info>
+            {order.customer_gstin && <Info label="GSTIN">{order.customer_gstin}</Info>}
+            <Info label="Store">{order.store_name}</Info>
+            <Info label="Created by">{order.user_name}</Info>
+            {order.notes && <Info label="Notes">{order.notes}</Info>}
+          </Paper>
         </Grid>
-      </Paper>
-
-      {/* Customer Information */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2, color: "#1976d2" }}>
-                Customer Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Customer Name:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {orderDetails.customer_name}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Email:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {customerDetails?.email || "N/A"}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Phone:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {customerDetails?.phone || "N/A"}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Address:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold", textAlign: "right" }}>
-                  {customerDetails?.address || "N/A"}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2, color: "#1976d2" }}>
-                Order Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Order Date:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {orderDetails.order_date}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Store:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {orderDetails.store_name}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Created By:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {orderDetails.user_name}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="body2" sx={{ color: "#666", fontWeight: "500" }}>
-                  Order ID:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                  {orderDetails.order_id}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Order Items Management */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1976d2" }}>
-              Order Items
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Paper sx={{ p: { xs: 1.5, sm: 2 } }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+              Items ({items.length})
             </Typography>
-          </Box>
-          <Divider sx={{ mb: 2 }} />
-
-          {orderItems && orderItems.length > 0 ? (
             <TableContainer>
-              <Table>
+              <Table size="small" sx={{ minWidth: 520 }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                    <TableCell sx={{ fontWeight: "bold" }}>Product</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: "bold" }}>
-                      Quantity
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Item</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="right">
+                      Qty
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: "bold" }}>
-                      Unit Price
+                    <TableCell sx={{ fontWeight: 700 }} align="right">
+                      Price
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: "bold" }}>
-                      Total
+                    <TableCell sx={{ fontWeight: 700 }} align="right">
+                      GST
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="right">
+                      Amount
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {orderItems.map((item) => (
-                    <TableRow key={item.order_item_id}>
-                      <TableCell>{getProductName(item.product_id)}</TableCell>
-                      <TableCell align="center">{item.quantity}</TableCell>
-                      <TableCell align="right">Rs {(parseFloat(item.unit_price) || 0).toFixed(2)}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: "bold" }}>
-                        Rs {((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}
+                  {items.map((it) => (
+                    <TableRow key={it.order_item_id}>
+                      <TableCell>
+                        {it.product_name}
+                        {it.item_note && (
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontStyle: "italic" }}>
+                            {it.item_note}
+                          </Typography>
+                        )}
                       </TableCell>
-                      {/* <TableCell align="center">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleEditItem(item)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteItem(item)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell> */}
+                      <TableCell align="right">
+                        {formatNumber(it.quantity, 3)} {it.unit}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(it.unit_price)}
+                        {Number(it.discount_amount) > 0 && (
+                          <Typography variant="caption" display="block" color="success.main">
+                            − {formatCurrency(it.discount_amount)}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumber(it.gst_rate)}%{Number(it.price_includes_tax) ? " incl." : ""}
+                      </TableCell>
+                      <TableCell align="right">{formatCurrency(it.line_total)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          ) : (
-            <Alert severity="info">No items in this order. Click "Add Item" to get started.</Alert>
-          )}
-
-          {orderItems && orderItems.length > 0 && (
-            <Box sx={{ mt: 2, pt: 2, borderTop: "2px solid #eee" }}>
-              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                <Box sx={{ textAlign: "right" }}>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    Order Items Total: <strong>Rs {calculateTotal().toFixed(2)}</strong>
-                  </Typography>
-                </Box>
+            <Box sx={{ maxWidth: 320, ml: "auto", mt: 2 }}>
+              {[
+                ["Sub total", order.subtotal],
+                order.discount_amount > 0 && ["Discount", -order.discount_amount],
+                ["Taxable value", order.taxable_amount],
+                [interstate ? "IGST" : "CGST + SGST", order.tax_amount],
+                order.round_off !== 0 && ["Round off", order.round_off],
+              ]
+                .filter(Boolean)
+                .map(([label, value]) => (
+                  <Box key={label} sx={{ display: "flex", justifyContent: "space-between", py: 0.3 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {label}
+                    </Typography>
+                    <Typography variant="body2">{formatCurrency(value)}</Typography>
+                  </Box>
+                ))}
+              <Box sx={{ display: "flex", justifyContent: "space-between", borderTop: 1, borderColor: "divider", pt: 1, mt: 1 }}>
+                <Typography sx={{ fontWeight: 700 }}>Total</Typography>
+                <Typography variant="h6" color="primary" sx={{ fontWeight: 800 }}>
+                  {formatCurrency(order.total_amount)}
+                </Typography>
               </Box>
             </Box>
-          )}
-        </CardContent>
-      </Card>
+          </Paper>
+        </Grid>
+      </Grid>
 
-      {/* Add/Edit Item Dialog */}
-      <Dialog open={openItemDialog} onClose={() => setOpenItemDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingItem ? "Edit Item" : "Add New Item"}</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Product</InputLabel>
-            <Select
-              value={itemForm.product_id}
-              label="Product"
-              onChange={(e) => setItemForm({ ...itemForm, product_id: e.target.value })}
-            >
-              {products.map((product) => (
-                <MenuItem key={product.product_id} value={product.product_id}>
-                  {product.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <TextField
-            fullWidth
-            label="Quantity"
-            type="number"
-            value={itemForm.quantity}
-            onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })}
-            sx={{ mb: 2 }}
-            inputProps={{ min: "1" }}
-          />
-
-          <TextField
-            fullWidth
-            label="Unit Price"
-            type="number"
-            value={itemForm.unit_price}
-            onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })}
-            inputProps={{ min: "0", step: "0.01" }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenItemDialog(false)}>Cancel</Button>
-          <Button onClick={handleSaveItem} variant="contained">
-            {editingItem ? "Update" : "Add"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-        onConfirm={confirmDeleteItem}
-        title="Delete Item"
-        message="Are you sure you want to remove this item from the order?"
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        open={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        onConfirm={() => setStatus("Cancelled")}
+        title="Cancel order?"
+        message="The order will be marked Cancelled. You can re-open it later."
+        cancelLabel="Keep"
+        confirmLabel="Cancel Order"
       />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        {snackbar.severity === "error" ? (
-          <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity="error">
-            {snackbar.message}
-          </Alert>
-        ) : (
-          <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity="success">
-            {snackbar.message}
-          </Alert>
-        )}
-      </Snackbar>
-    </Box>
+      <GenerateInvoiceDialog order={order} open={invoiceOpen} onClose={() => setInvoiceOpen(false)} />
+    </>
   );
 }

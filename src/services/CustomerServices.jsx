@@ -1,29 +1,11 @@
-import API from "./axios";
+import API, { qs } from "./axios";
 
 export const CustomerServices = {
-
-    getCustomersData:async (page, size, search) => {
-        const response = await API.get( `/master/customer/customers.php?page=${page + 1}&limit=${size}&search=${search}`);
-        return response.data;
-    },
-
-    postCustomerData: async (data) => {
-        const response = await API.post("/master/customer/add-customer.php",data);
-        return response.data;
-    },
-
-    updateCustomerData: async (data) => {
-        const response = await API.put("/master/customer/update-customer.php",data);
-        return response.data;
-    },
-
-    getCustomerDataFromId: async (customer_id) => {
-        const response = await API.get(`/master/customer/get_customer_by_id.php?customer_id=${customer_id}`);
-        return response.data;
-    },
-
-     deleteCustomerDataFromId: async (data) => {
-        const response = await API.put("/master/customer/delete-customer.php",data);
-        return response.data;
-    },
+  // page is 0-based (DataGrid), API is 1-based
+  getCustomersData: async (page, size, search, extra = {}) =>
+    (await API.get(`/master/customer/customers.php${qs({ page: page + 1, limit: size, search, ...extra })}`)).data,
+  postCustomerData: async (data) => (await API.post("/master/customer/add-customer.php", data)).data,
+  updateCustomerData: async (data) => (await API.put("/master/customer/update-customer.php", data)).data,
+  getCustomerDataFromId: async (customer_id) => (await API.get(`/master/customer/get_customer_by_id.php${qs({ customer_id })}`)).data,
+  deleteCustomerDataFromId: async (data) => (await API.put("/master/customer/delete-customer.php", data)).data,
 };

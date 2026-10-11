@@ -1,168 +1,67 @@
-import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Box,
-  Alert,
-} from "@mui/material";
+import { useEffect, useState } from "react";
+import { Alert, Box, Button, Paper } from "@mui/material";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import PageHeader from "../../components/common/PageHeader";
+import Loader from "../../components/common/Loader";
+import StoreFields from "../../components/forms/StoreFields";
+import { blankStore, storeFromApi, storeInvalid } from "../../components/forms/storeForm";
 import { StoreServices } from "../../services/StoreServices";
-import { useNavigate, useLocation } from "react-router-dom";
+import { clearStoreCache } from "../../hooks/useStores";
+import { useNotify } from "../../context/NotifyProvider";
+import { apiError } from "../../utils/format";
 
 export default function StoreForm() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [params] = useSearchParams();
+  const notify = useNotify();
+  const storeId = params.get("id") || location.state?.storeData?.store_id || null;
+  const [form, setForm] = useState(blankStore);
+  const [loading, setLoading] = useState(Boolean(storeId));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const store = location.state?.storeData;
-  const store_id = store?.store_id || store?.id; // ✅ SAFE
-
-  const storesUrl = "/stores";
-
-  const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [createdAt, setCreatedAt] = useState("");
-  const [message, setMessage] = useState({ type: "", text: "" });
-
-  /* ======================
-     LOAD STORE (EDIT MODE)
-     ====================== */
   useEffect(() => {
-    if (!store_id) return;
-
-    setLoading(true);
-    StoreServices.getStoreDataFromId(store_id)
-      .then((res) => {
-        const data = res.data;
-        setName(data.name || "");
-        setAddress(data.address || "");
-        setPhone(data.phone || "");
-        setLogoUrl(data.logo_url || "");
-        setCreatedAt(data.created_at || "");
-      })
-      .catch(() => {
-        setMessage({ type: "error", text: "Failed to load store data" });
-      })
+    if (!storeId) return;
+    StoreServices.getStoreDataFromId(storeId)
+      .then((res) => setForm(storeFromApi(res.data)))
+      .catch((err) => setError(apiError(err)))
       .finally(() => setLoading(false));
-  }, [store_id]);
+  }, [storeId]);
 
-  /* ======================
-     SUBMIT
-     ====================== */
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    const payload = {
-      store_id,
-      name,
-      address,
-      phone,
-      logo_url: logoUrl,
-    };
-
+    setSaving(true);
+    setError("");
     try {
-      const res = store_id
-        ? await StoreServices.updateStoreData(payload)
-        : await StoreServices.postStoreData(payload);
-
-      if (res.status === "success") {
-        localStorage.setItem(
-          "successMessage",
-          store_id ? "Store updated successfully" : "Store added successfully"
-        );
-        navigate(storesUrl);
-      } else {
-        setMessage({ type: "error", text: res.message });
-      }
+      if (storeId) await StoreServices.updateStoreData({ ...form, store_id: storeId });
+      else await StoreServices.postStoreData(form);
+      clearStoreCache();
+      notify(storeId ? "Store updated" : "Store added");
+      navigate("/stores");
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err.response?.data?.message || "Something went wrong",
-      });
+      setError(apiError(err));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  /* ======================
-     UI
-     ====================== */
+  if (loading) return <Loader />;
   return (
-    <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          {store_id ? "Edit Store" : "Add Store"}
-        </Typography>
-
-        {message.text && (
-          <Alert severity={message.type} sx={{ mb: 2 }}>
-            {message.text}
-          </Alert>
-        )}
-
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Store Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            margin="normal"
-            required
-          />
-
-          <TextField
-            fullWidth
-            label="Address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            margin="normal"
-            required
-          />
-
-          <TextField
-            fullWidth
-            label="Phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            margin="normal"
-            required
-          />
-
-          <TextField
-            fullWidth
-            label="Logo URL"
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            margin="normal"
-          />
-
-          {store_id && (
-            <TextField
-              fullWidth
-              label="Created At"
-              value={createdAt}
-              margin="normal"
-              disabled
-            />
-          )}
-
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ mt: 3 }}
-            disabled={loading}
-          >
-            {loading ? "Saving..." : store_id ? "Update Store" : "Add Store"}
+    <Box component="form" onSubmit={submit} sx={{ maxWidth: 900, mx: "auto" }}>
+      <PageHeader title={storeId ? "Edit Store" : "Add Store"} back="/stores" />
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <StoreFields form={form} setForm={setForm} />
+        <Box sx={{ display: "flex", gap: 1, mt: 3, justifyContent: "flex-end" }}>
+          <Button variant="outlined" onClick={() => navigate("/stores")}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="contained" disabled={saving || storeInvalid(form)}>
+            {saving ? "Saving..." : storeId ? "Update Store" : "Add Store"}
           </Button>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   );
 }

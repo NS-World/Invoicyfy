@@ -1,290 +1,212 @@
-import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Box,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from "@mui/material";
+import { useEffect, useState } from "react";
+import { Alert, Autocomplete, Box, Button, Divider, FormControlLabel, Grid, InputAdornment, MenuItem, Paper, Switch, TextField, Typography } from "@mui/material";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import PageHeader from "../../components/common/PageHeader";
+import Loader from "../../components/common/Loader";
 import { ProductServices } from "../../services/ProductServices";
-import { StoreServices } from "../../services/StoreServices";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNotify } from "../../context/NotifyProvider";
+import { useAuth } from "../../context/useAuth";
+import useMeta from "../../hooks/useMeta";
+import useStores from "../../hooks/useStores";
+import { apiError, formatCurrency } from "../../utils/format";
+import { calcLine } from "../../utils/gst";
+
+const blank = {
+  name: "",
+  sku: "",
+  category: "",
+  description: "",
+  hsn_code: "",
+  unit: "pcs",
+  price: "",
+  cost_price: "",
+  gst_rate: 0,
+  price_includes_tax: true,
+  track_inventory: true,
+  stock_qty: "",
+  low_stock_threshold: "",
+  status: "Active",
+  store_id: "",
+};
 
 export default function ProductForm() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [params] = useSearchParams();
+  const notify = useNotify();
+  const meta = useMeta();
+  const { isAdmin } = useAuth();
+  const { stores, defaultStoreId } = useStores();
+  const productId = params.get("id") || location.state?.productData?.product_id || location.state?.productData?.id || null;
 
-  const product = location.state?.productData;
-  const product_id = product?.product_id || product?.id; // ✅ SAFE
+  const [form, setForm] = useState(blank);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(Boolean(productId));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const productsUrl = "/products";
-
-  const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [unit, setUnit] = useState("");
-  const [storeId, setStoreId] = useState("");
-  const [stores, setStores] = useState([]);
-  const [message, setMessage] = useState({ type: "", text: "" });
-  const [priceError, setPriceError] = useState("");
-    // STATUS
-  const [status, setStatus] = useState("Active");
-  const [sku, setSku] = useState("");
-
-  const units = ["Kg", "Gram", "Piece", "Box", "Liter"];
-
-
-  /* ======================
-     LOAD PRODUCT (EDIT MODE)
-     ====================== */
   useEffect(() => {
-    if (!product_id) return;
-
-    setLoading(true);
-    ProductServices.getProductDataFromId(product_id)
-      .then((res) => {
-        const data = res.data;
-        setName(data.name || "");
-         setSku(data.sku || "");
-        setDescription(data.description || "");
-        setPrice(data.price || "");
-        setUnit(data.unit || "");
-        setStoreId(data.store_id || "");
-        setStatus(data.status || "Active");
-      })
-      .catch(() => {
-        setMessage({ type: "error", text: "Failed to load product data" });
-      })
-      .finally(() => setLoading(false));
-  }, [product_id]);
-
-  /* ======================
-     LOAD STORES (Master Data)
-     ====================== */
-  useEffect(() => {
-    const fetchStores = async () => {
-      try {
-        const res = await StoreServices.getStoresData(0, 100, "");
-
-        if (res.status === "success") {
-          setStores(res.data);
-        }
-      } catch (error) {
-        console.error("Failed to load stores", error);
-      }
-    };
-
-    fetchStores();
+    ProductServices.getCategories().then((r) => setCategories(r.data || [])).catch(() => {});
   }, []);
 
-  const selectedStore = stores.find(
-  (store) => store.store_id === storeId
-   );
+  useEffect(() => {
+    if (!productId) return;
+    ProductServices.getProductDataFromId(productId)
+      .then((res) => {
+        const d = res.data;
+        setForm({
+          ...Object.fromEntries(Object.keys(blank).map((k) => [k, d[k] ?? blank[k]])),
+          price_includes_tax: Boolean(d.price_includes_tax),
+          track_inventory: Boolean(d.track_inventory),
+        });
+      })
+      .catch((err) => setError(apiError(err)))
+      .finally(() => setLoading(false));
+  }, [productId]);
 
+  useEffect(() => {
+    if (!form.store_id && defaultStoreId) setForm((f) => ({ ...f, store_id: defaultStoreId }));
+  }, [defaultStoreId, form.store_id]);
 
-  /* ======================
-     SUBMIT
-     ====================== */
-  const handleSubmit = async (e) => {
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setBool = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.checked }));
+  const preview = calcLine({ quantity: 1, unit_price: form.price, gst_rate: form.gst_rate, price_includes_tax: form.price_includes_tax }, false);
+  const margin = Number(form.cost_price) > 0 ? preview.taxable - Number(form.cost_price) : null;
+
+  const submit = async (e) => {
     e.preventDefault();
-
-    const priceValidation = validatePrice(price);
-
-    if (priceValidation) {
-    setPriceError(priceValidation);
-    setLoading(false);
-    return;
-    }
-
-
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    const payload = {
-        product_id,
-        name,
-        description,
-        sku,
-        price: price.toString(),
-        unit,
-        store_id: storeId,
-        store_name: selectedStore?.name || "",
-        status,
-    };
-
+    setSaving(true);
+    setError("");
     try {
-      const res = product_id
-        ? await ProductServices.updateProductData(payload)
-        : await ProductServices.postProductData(payload);
-
-      if (res.status === "success") {
-        localStorage.setItem(
-          "successMessage",
-          product_id ? "Product updated successfully" : "Product added successfully"
-        );
-        navigate(productsUrl);
-      } else {
-        setMessage({ type: "error", text: res.message });
-      }
+      const payload = { ...form, product_id: productId || undefined };
+      if (productId) await ProductServices.updateProductData(payload);
+      else await ProductServices.postProductData(payload);
+      notify(productId ? "Product updated" : "Product added");
+      navigate("/products");
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err.response?.data?.message || "Something went wrong",
-      });
+      setError(apiError(err));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-    const validatePrice = (value) => {
-        if (!value) return "Price is required";
+  if (loading) return <Loader />;
+  const rupee = { input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> }, htmlInput: { min: 0, step: "any", inputMode: "decimal" } };
 
-        if (!/^\d+(\.\d{1,2})?$/.test(value)) {
-            return "Enter valid price (max 2 decimal)";
-        }
-
-        return "";
-    };
-
-    const handlePriceChange = (e) => {
-    const value = e.target.value;
-    setPrice(value);
-    setPriceError(validatePrice(value));
-    };
-
-
-
-
-  /* ======================
-     UI
-     ====================== */
   return (
-    <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          {product_id ? "Edit Product" : "Add Product"}
-        </Typography>
-
-        {message.text && (
-          <Alert severity={message.type} sx={{ mb: 2 }}>
-            {message.text}
-          </Alert>
-        )}
-
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Product Name"
-            placeholder="Example: Kaju Katli"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            margin="normal"
-            required
-          />
-
-          <TextField
-                fullWidth
-                label="SKU / Product Code"
-                placeholder="Example: KAJU001"
-                value={sku}
-                margin="normal"
-                onChange={(e) => setSku(e.target.value)}
-                 required
-              />
-
-          <TextField
-            fullWidth
-            label="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            margin="normal"
-            required
-          />
-
-          <TextField
-            fullWidth
-            label="Price"
-            type="number"
-            value={price}
-            margin="normal"
-            onChange={handlePriceChange}
-            error={Boolean(priceError)}
-            helperText={priceError}
-            slotProps={{
-                htmlInput: {
-                step: "0.01",
-                min: 0
-                }
-            }}
-            />
-
-
-          <FormControl fullWidth margin="normal" required>
-            <InputLabel>Unit</InputLabel>
-            <Select
-                value={unit}
-                label="Unit"
-                onChange={(e) => setUnit(e.target.value)}
-            >
-                {units.map((u) => (
+    <Box component="form" onSubmit={submit} sx={{ maxWidth: 900, mx: "auto" }}>
+      <PageHeader title={productId ? "Edit Product" : "Add Product"} back="/products" />
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 8 }}>
+            <TextField fullWidth required label="Product / service name" placeholder="Example: Kaju Katli" value={form.name} onChange={set("name")} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField fullWidth label="SKU / Code" value={form.sku || ""} onChange={set("sku")} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Autocomplete freeSolo options={categories} value={form.category || ""} onInputChange={(_, v) => setForm((f) => ({ ...f, category: v }))} renderInput={(p) => <TextField {...p} label="Category" />} />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField select fullWidth label="Unit" value={form.unit} onChange={set("unit")}>
+              {[...new Set([...meta.units, form.unit])].filter(Boolean).map((u) => (
                 <MenuItem key={u} value={u}>
-                    {u}
-                </MenuItem>
-                ))}
-            </Select>
-            </FormControl>
-
-            {/* STATUS */}
-          <FormControl fullWidth sx={{ mt: 3 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={status}
-              label="Status"
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <MenuItem value="Active">Active</MenuItem>
-              <MenuItem value="Inactive">Inactive</MenuItem>
-            </Select>
-          </FormControl>
-
-
-
-          {/* Store Dropdown */}
-          <FormControl fullWidth margin="normal" required>
-            <InputLabel id="store-label">Store</InputLabel>
-
-            <Select
-              labelId="store-label"
-              value={storeId}
-              label="Store"
-              onChange={(e) => setStoreId(e.target.value)}
-            >
-              {stores.map((store) => (
-                <MenuItem key={store.store_id} value={store.store_id}>
-                  {store.name}
+                  {u}
                 </MenuItem>
               ))}
-            </Select>
-          </FormControl>
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField select fullWidth label="Status" value={form.status} onChange={set("status")}>
+              <MenuItem value="Active">Active</MenuItem>
+              <MenuItem value="Inactive">Inactive</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid size={12}>
+            <TextField fullWidth label="Description" value={form.description || ""} onChange={set("description")} />
+          </Grid>
 
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ mt: 3 }}
-            disabled={loading}
-          >
-            {loading ? "Saving..." : product_id ? "Update Product" : "Add Product"}
+          <Grid size={12}>
+            <Divider textAlign="left">
+              <Typography variant="overline">Price & GST</Typography>
+            </Divider>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField fullWidth required type="number" label="Selling price" value={form.price} onChange={set("price")} slotProps={rupee} />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField select fullWidth label="GST rate" value={Number(form.gst_rate)} onChange={set("gst_rate")}>
+              {[...new Set([...meta.gst_rates, Number(form.gst_rate)])].sort((a, b) => a - b).map((r) => (
+                <MenuItem key={r} value={r}>
+                  {r}%
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField fullWidth label="HSN / SAC code" value={form.hsn_code || ""} onChange={(e) => setForm((f) => ({ ...f, hsn_code: e.target.value.replace(/\D/g, "") }))} slotProps={{ htmlInput: { maxLength: 8, inputMode: "numeric" } }} helperText="Required on B2B tax invoices" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 8 }}>
+            <FormControlLabel control={<Switch checked={form.price_includes_tax} onChange={setBool("price_includes_tax")} />} label="Selling price includes GST (MRP style)" />
+            {Number(form.price) > 0 && (
+              <Typography variant="caption" color="text.secondary" display="block">
+                Customer pays {formatCurrency(preview.total)} · taxable {formatCurrency(preview.taxable)} + GST {formatCurrency(preview.tax)}
+              </Typography>
+            )}
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField fullWidth type="number" label="Purchase / cost price" value={form.cost_price} onChange={set("cost_price")} slotProps={rupee} helperText={margin !== null ? `Margin ${formatCurrency(margin)} per ${form.unit}` : "Used for profit reports"} />
+          </Grid>
+
+          <Grid size={12}>
+            <Divider textAlign="left">
+              <Typography variant="overline">Inventory</Typography>
+            </Divider>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControlLabel control={<Switch checked={form.track_inventory} onChange={setBool("track_inventory")} />} label="Track stock" />
+          </Grid>
+          {form.track_inventory && (
+            <>
+              {!productId && (
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <TextField fullWidth type="number" label="Opening stock" value={form.stock_qty} onChange={set("stock_qty")} slotProps={{ htmlInput: { min: 0, step: "any" } }} />
+                </Grid>
+              )}
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <TextField fullWidth type="number" label="Low stock alert at" value={form.low_stock_threshold} onChange={set("low_stock_threshold")} slotProps={{ htmlInput: { min: 0, step: "any" } }} />
+              </Grid>
+              {productId && (
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ pt: 1 }}>
+                    Current stock: <b>{form.stock_qty}</b> — use Inventory to add or reduce stock.
+                  </Typography>
+                </Grid>
+              )}
+            </>
+          )}
+          {isAdmin && stores.length > 1 && (
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField select fullWidth label="Store" value={form.store_id} onChange={set("store_id")}>
+                {stores.map((s) => (
+                  <MenuItem key={s.store_id} value={s.store_id}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          )}
+        </Grid>
+        <Box sx={{ display: "flex", gap: 1, mt: 3, justifyContent: "flex-end" }}>
+          <Button variant="outlined" onClick={() => navigate("/products")}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="contained" disabled={saving}>
+            {saving ? "Saving..." : productId ? "Update Product" : "Add Product"}
           </Button>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   );
 }

@@ -1,48 +1,68 @@
-import React from "react";
-import { DataGrid } from "@mui/x-data-grid";
-import { Box, Typography, Paper } from "@mui/material";
+import { useState } from "react";
+import { Box, Chip, MenuItem, TextField } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import PageHeader from "../../components/common/PageHeader";
+import SearchField from "../../components/common/SearchField";
+import Toolbar from "../../components/common/Toolbar";
+import DataTable from "../../components/common/DataTable";
+import DateRangeFilter from "../../components/common/DateRangeFilter";
+import { PaymentServices } from "../../services/PaymentServices";
+import useServerTable from "../../hooks/useServerTable";
+import useMeta from "../../hooks/useMeta";
+import { datePresets, formatCurrency, formatDate } from "../../utils/format";
 
-const Payments = () => {
-  // Dummy customer data
-  const rows = [
-    { id: 1, name: "John Doe", email: "john@example.com", phone: "9876543210", city: "New York" },
-    { id: 2, name: "Jane Smith", email: "jane@example.com", phone: "9876501234", city: "Los Angeles" },
-    { id: 3, name: "Robert Brown", email: "robert@example.com", phone: "8765432109", city: "Chicago" },
-    { id: 4, name: "Emily Johnson", email: "emily@example.com", phone: "7654321098", city: "Houston" },
-    { id: 5, name: "Michael Green", email: "michael@example.com", phone: "6543210987", city: "Phoenix" },
-    { id: 6, name: "Sophia Wilson", email: "sophia@example.com", phone: "5432109876", city: "Dallas" },
-    { id: 7, name: "Daniel White", email: "daniel@example.com", phone: "4321098765", city: "San Diego" },
-    { id: 8, name: "Olivia Taylor", email: "olivia@example.com", phone: "3210987654", city: "San Jose" },
-    { id: 9, name: "James Hall", email: "james@example.com", phone: "2109876543", city: "Austin" },
-    { id: 10, name: "Ava Martinez", email: "ava@example.com", phone: "1098765432", city: "San Francisco" },
-  ];
+export default function Payments() {
+  const navigate = useNavigate();
+  const meta = useMeta();
+  const [method, setMethod] = useState("");
+  const [range, setRange] = useState(() => {
+    const p = datePresets().find((x) => x.key === "month");
+    return { from: p.from, to: p.to };
+  });
+  const table = useServerTable((p, s, q, f) => PaymentServices.getPayments(p, s, q, f), {
+    filters: { payment_method: method, ...range },
+    idField: "payment_id",
+  });
+  const summary = table.response?.summary;
 
-  // Column configuration
   const columns = [
-    { field: "id", headerName: "ID", width: 70 },
-    { field: "name", headerName: "Name", width: 200 },
-    { field: "email", headerName: "Email", width: 250 },
-    { field: "phone", headerName: "Phone", width: 150 },
-    { field: "city", headerName: "City", width: 180 },
+    { field: "payment_date", headerName: "Date", minWidth: 110, valueFormatter: (v) => formatDate(v) },
+    { field: "invoice_number", headerName: "Invoice", minWidth: 130, flex: 1 },
+    { field: "customer_name", headerName: "Customer", minWidth: 160, flex: 1.2, valueFormatter: (v) => v || "Walk-in" },
+    { field: "payment_method", headerName: "Mode", minWidth: 110 },
+    { field: "reference_no", headerName: "Reference", minWidth: 130, flex: 1 },
+    { field: "amount", headerName: "Amount", minWidth: 120, type: "number", renderCell: ({ value }) => <strong>{formatCurrency(value)}</strong> },
+    { field: "received_by", headerName: "Received By", minWidth: 120 },
   ];
 
   return (
-    <Box>
-      <Typography variant="h5" sx={{ mb: 2, fontWeight: "bold" }}>
-        Customers
-      </Typography>
-
-      <Paper sx={{ height: 500, width: "100%" }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          pageSize={5}        // rows per page
-          rowsPerPageOptions={[5, 10, 20]}
-          pagination
-        />
-      </Paper>
-    </Box>
+    <>
+      <PageHeader title="Payments Received" subtitle={summary ? `Total ${formatCurrency(summary.total_amount)}` : " "} />
+      {summary?.by_method?.length > 0 && (
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+          {summary.by_method.map((m) => (
+            <Chip key={m.payment_method} label={`${m.payment_method}: ${formatCurrency(m.amount)}`} variant="outlined" color="primary" />
+          ))}
+        </Box>
+      )}
+      <Toolbar>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder="Invoice, customer, reference" />
+        <TextField select label="Mode" value={method} onChange={(e) => setMethod(e.target.value)} sx={{ minWidth: 140 }}>
+          <MenuItem value="">All</MenuItem>
+          {meta.payment_methods.map((m) => (
+            <MenuItem key={m} value={m}>
+              {m}
+            </MenuItem>
+          ))}
+        </TextField>
+        <DateRangeFilter value={range} onChange={setRange} />
+      </Toolbar>
+      <DataTable
+        table={table}
+        columns={columns}
+        mobileHidden={["reference_no", "received_by", "payment_method"]}
+        onRowClick={({ row }) => row.invoice_id && navigate(`/invoices/${row.invoice_id}`)}
+      />
+    </>
   );
-};
-
-export default Payments;
+}

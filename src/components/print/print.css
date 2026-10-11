@@ -1,0 +1,271 @@
+/* ---------- Thermal receipt ---------- */
+.receipt {
+  font-family: "DejaVu Sans", Arial, Helvetica, sans-serif;
+  color: #000;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 3mm 3mm 6mm;
+}
+.receipt-80 {
+  width: 76mm;
+}
+.receipt-58 {
+  width: 54mm;
+  font-size: 10.5px;
+}
+.receipt .center {
+  text-align: center;
+}
+.receipt .bold {
+  font-weight: 700;
+}
+.receipt .big {
+  font-size: 1.25em;
+}
+.receipt .store-name {
+  font-size: 1.35em;
+  margin-top: 2px;
+}
+.receipt .small {
+  font-size: 0.85em;
+}
+.receipt hr {
+  border: 0;
+  border-top: 1.5px solid #000;
+  margin: 5px 0;
+}
+.receipt .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.receipt .row.right-only {
+  justify-content: flex-end;
+}
+.receipt .grand {
+  font-weight: 800;
+  font-size: 1.2em;
+}
+.receipt table.items {
+  width: 100%;
+  border-collapse: collapse;
+}
+.receipt table.items th {
+  font-weight: 400;
+  text-align: right;
+  padding: 0 0 2px;
+}
+.receipt table.items th.left,
+.receipt table.items td.left {
+  text-align: left;
+}
+.receipt table.items td {
+  padding: 3px 0 0;
+}
+.receipt .item-line {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 6px;
+  align-items: baseline;
+}
+.receipt-58 .item-line {
+  grid-template-columns: 1fr auto auto;
+}
+.receipt-58 .item-line .num:nth-of-type(3) {
+  display: none;
+}
+.receipt .item-line .num {
+  text-align: right;
+  min-width: 3.2em;
+}
+.receipt .item-line .qty {
+  min-width: 1.5em;
+}
+.receipt .note {
+  font-style: italic;
+  padding-left: 10px;
+  font-size: 0.95em;
+}
+
+/* ---------- A4 tax invoice ---------- */
+.a4 {
+  position: relative;
+  width: 194mm;
+  margin: 0 auto;
+  color: #000;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+.a4 .watermark {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 72px;
+  font-weight: 800;
+  color: rgba(211, 47, 47, 0.18);
+  transform: rotate(-25deg);
+  pointer-events: none;
+}
+.a4-title {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  margin-bottom: 4px;
+}
+.a4-title h1 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+}
+.a4-title .copy {
+  text-align: right;
+  font-style: italic;
+  font-size: 10px;
+}
+.a4 .box {
+  border: 1px solid #000;
+  border-top: 0;
+}
+.a4 > .box:first-of-type,
+.a4 .irn {
+  border-top: 1px solid #000;
+}
+.a4 .irn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  gap: 8px;
+}
+.a4 .irn + .grid2 {
+  border-top: 0;
+}
+.a4 .mono {
+  font-family: "Courier New", monospace;
+  font-size: 9px;
+  word-break: break-all;
+}
+.a4 .grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.a4 .grid2 > .cell + .cell {
+  border-left: 1px solid #000;
+}
+.a4 .cell {
+  padding: 5px 6px;
+}
+.a4 .seller-name {
+  font-size: 14px;
+  font-weight: 800;
+}
+.a4 .party-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+.a4 .label {
+  font-weight: 700;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  color: #333;
+  margin-bottom: 2px;
+}
+.a4 .meta table,
+.a4 table.totals {
+  width: 100%;
+  border-collapse: collapse;
+}
+.a4 .meta td {
+  padding: 1px 0;
+  vertical-align: top;
+}
+.a4 .meta td:first-child {
+  width: 42%;
+  color: #333;
+}
+.a4 table.lines {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+  border-top: 0;
+}
+.a4 table.lines th,
+.a4 table.lines td {
+  border: 1px solid #000;
+  padding: 3px 4px;
+  text-align: center;
+  vertical-align: top;
+}
+.a4 table.lines th {
+  background: #f0f0f0;
+  font-size: 9.5px;
+}
+.a4 table.lines .left {
+  text-align: left;
+}
+.a4 table.lines .num,
+.a4 table.totals .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.a4 table.lines .note {
+  font-style: italic;
+  font-size: 9px;
+  color: #333;
+}
+.a4 table.lines .total-row td {
+  font-weight: 700;
+  background: #fafafa;
+}
+.a4 table.hsn {
+  margin-top: 0;
+}
+.a4 table.totals td {
+  padding: 2px 0;
+}
+.a4 table.totals .grand-row td {
+  border-top: 1px solid #000;
+  font-weight: 800;
+  font-size: 12.5px;
+  padding-top: 4px;
+}
+.a4 .upi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.a4 .sign {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+}
+.a4 .sign-space {
+  flex: 1;
+  min-height: 50px;
+}
+.a4 .pre {
+  white-space: pre-line;
+}
+.a4 .center {
+  text-align: center;
+}
+.a4 .bold {
+  font-weight: 700;
+}
+.a4 .small {
+  font-size: 9px;
+}
+
+/* Keep table rows together across printed pages */
+@media print {
+  .a4 tr {
+    page-break-inside: avoid;
+  }
+}

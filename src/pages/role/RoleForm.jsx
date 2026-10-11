@@ -1,161 +1,59 @@
-import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Box,
-  Alert,
-} from "@mui/material";
+import { useEffect, useState } from "react";
+import { Alert, Box, Button, Paper, TextField } from "@mui/material";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import PageHeader from "../../components/common/PageHeader";
 import { RoleServices } from "../../services/RoleServices";
-import { useNavigate} from "react-router-dom";
-import { useLocation } from "react-router-dom";
-
+import { useNotify } from "../../context/NotifyProvider";
+import { apiError } from "../../utils/format";
 
 export default function RoleForm() {
- 
-  const [loading, setLoading] = useState(false);
-  const [roleName, setRoleName] = useState('');
-  const [createdAt, setCreatedAt] = useState('');
-  const [message, setMessage] = useState({ type: "", text: "" });
-  const navigation = useNavigate();
+  const navigate = useNavigate();
   const location = useLocation();
-  const role = location.state?.roleData;
-  const role_id = role?.id;
-  const rolesUrl = "/roles";
-
+  const [params] = useSearchParams();
+  const notify = useNotify();
+  const roleId = params.get("id") || location.state?.roleData?.role_id || null;
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-  if (role_id) {
-    setLoading(true);
-    RoleServices.getRoleDataFromId(role_id)
-      .then((response) => {
-        const roleData = response.data;
-        setRoleName(roleData.role_name);
-        setCreatedAt(roleData.created_at);
-      })
-      .catch((error) => {
-        setMessage({ type: "error", text: error.message });
-        setTimeout(() => {
-          setMessage(null);
-        }, 4000);
-      })
-      .finally(() => {
-        setLoading(false); // important to reset loading here
-      });
-  } else {
-    // For new customer add, ensure loading is false
-    setLoading(false);
-  }
-}, [role_id]);
+    if (!roleId) return;
+    RoleServices.getRoleDataFromId(roleId)
+      .then((res) => setName(res.data?.role_name || ""))
+      .catch((err) => setError(apiError(err)));
+  }, [roleId]);
 
-
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    const formData = {
-      role_id,
-      role_name: roleName,
-    }
-
-    if(role_id){
-        try {
-          const res = await RoleServices.updateRoleData(formData); 
-
-          if (res.status === "success") {
-            localStorage.setItem("successMessage","Role Data updated successfully");
-            //setFormData({ name: "", phone: "", email: "", address: "" }); // clear form
-            setRoleName('');
-            setCreatedAt('');
-            navigation(rolesUrl);
-          } else {
-            setMessage({ type: "error", text: res.message });
-          }
-        } catch (err) {
-          setMessage({
-            type: "error",
-            text: err.response?.data?.message || "Something went wrong",
-          });
-        } finally {
-          setLoading(false);
-        }   
-    } else {
-        try {
-          const res = await RoleServices.postRoleData(formData); 
-          // 👆 Adjust path if your backend route is different
-
-          if (res.status === "success") {
-            localStorage.setItem("successMessage","Customer added successfully");
-            //setMessage({ type: "success", text: res.message });
-            setRoleName('');
-            setCreatedAt('');
-            navigation(rolesUrl);
-          } else {
-            setMessage({ type: "error", text: res.message });
-          }
-        } catch (err) {
-          setMessage({
-            type: "error",
-            text: err.response?.data?.message || "Something went wrong",
-          });
-        } finally {
-          setLoading(false);
-        } 
+    setSaving(true);
+    setError("");
+    try {
+      if (roleId) await RoleServices.updateRoleData({ role_id: roleId, role_name: name });
+      else await RoleServices.postRoleData({ role_name: name });
+      notify(roleId ? "Role updated" : "Role added");
+      navigate("/roles");
+    } catch (err) {
+      setError(apiError(err));
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
-        <Typography variant="h5" gutterBottom>
-           {role_id ? "Edit Role" : "Add Role"}
-        </Typography>
-
-
-        {message.text && (
-          <Alert
-            severity={message.type}
-            sx={{ mb: 2 }}
-          >
-            {message.text}
-          </Alert>
-        )}
-
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Role Name"
-            name="roleName"
-            value={roleName}
-            onChange={(e) => setRoleName(e.target.value)}
-            margin="normal"
-            required
-          />
-          <TextField
-            fullWidth
-            label="Created At"
-            name="creastedAt"
-            value={createdAt}
-            onChange={(e) => setCreatedAt(e.target.value)}
-            margin="normal"
-            disabled
-          />
-          
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ mt: 3 }}
-            disabled={loading}
-          >
-            {loading ? "Saving..." : role_id ? "Update Role" : "Add Role"}
+    <Box component="form" onSubmit={submit} sx={{ maxWidth: 520, mx: "auto" }}>
+      <PageHeader title={roleId ? "Edit Role" : "Add Role"} back="/roles" />
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <TextField fullWidth required label="Role name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Box sx={{ display: "flex", gap: 1, mt: 3, justifyContent: "flex-end" }}>
+          <Button variant="outlined" onClick={() => navigate("/roles")}>
+            Cancel
           </Button>
-
+          <Button type="submit" variant="contained" disabled={saving || !name.trim()}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   );
 }

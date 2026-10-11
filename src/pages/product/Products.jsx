@@ -1,294 +1,133 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Snackbar,
-  Alert,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-} from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { useState } from "react";
+import { Box, Button, IconButton, MenuItem, TextField, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ConfirmationDialog from "../../components/ConfirmationDialog";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/useAuth";
+import PageHeader from "../../components/common/PageHeader";
+import SearchField from "../../components/common/SearchField";
+import Toolbar from "../../components/common/Toolbar";
+import DataTable from "../../components/common/DataTable";
+import StatusChip from "../../components/common/StatusChip";
+import ConfirmationDialog from "../../components/ConfirmationDialog";
 import { ProductServices } from "../../services/ProductServices";
+import { useNotify } from "../../context/NotifyProvider";
+import useServerTable from "../../hooks/useServerTable";
+import { apiError, formatCurrency, formatNumber } from "../../utils/format";
 
-const Products = () => {
+export default function Products() {
+  const navigate = useNavigate();
+  const notify = useNotify();
+  const [status, setStatus] = useState("Active");
+  const [toDelete, setToDelete] = useState(null);
+  const table = useServerTable((p, s, q, f) => ProductServices.getProductsData(p, s, q, f), { filters: { status }, idField: "product_id" });
 
-  const [productsData, setProductsData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [totalElements, setTotalElements] = useState();
-  const navigation = useNavigate();
-  const access_token = useAuth();
-  const navigationUrl = "/product";
-
-  // Search filter
-  const [searchFilter, setSearchFilter] = useState("");
-
-  // Snackbar
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-
-  // Delete confirmation dialog
-  const [openDialog, setOpenDialog] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
-
-  // Pagination
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,                    
-    pageSize: 5, // ✅ Correct field
-  });
-
-  const pageSizeOptions = [5, 10, 20];
-
-  useEffect(() => {
-      const message = localStorage.getItem("successMessage");
-      if(message){
-        setSnackbarMessage(message);
-        setSnackbarSeverity('success');
-        setOpenSnackbar(true);
-
-        setTimeout(() => {
-          setOpenSnackbar(false);
-          localStorage.removeItem("successMessage");
-        }, 5000);
-      }
-     
-  }, []);
-
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      fetchData();
-    }, 500); // wait 500ms after last keystroke
-
-    return () => clearTimeout(delayDebounce);
-  }, [searchFilter, paginationModel]);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const confirmDelete = async () => {
     try {
-        const response = await ProductServices.getProductsData(
-        paginationModel.page,
-        paginationModel.pageSize,
-        searchFilter
-        );
-
-          const productList = response?.data || [];
-
-          const rowsWithId = productList.map((item) => ({
-          ...item,
-           id: item.product_id,
-        }));
-
-         setProductsData(rowsWithId);
-         setTotalElements(response.total || 0);
-         console.log("---products data---",productsData);
-    } catch (error) {
-        console.error("Error fetching Products data:", error);
-    } finally {
-        setLoading(false);
+      const res = await ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id });
+      notify(res.message);
+      table.reload();
+    } catch (err) {
+      notify(apiError(err), "error");
     }
+    setToDelete(null);
   };
 
-  // Columns with tooltip and actions
   const columns = [
-    { field: "id", headerName: "ID", width: 70 },
     {
       field: "name",
-      headerName: "Product Name",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
+      headerName: "Product",
+      minWidth: 180,
+      flex: 1.5,
+      renderCell: ({ row }) => (
+        <Box sx={{ lineHeight: 1.2, py: 0.5 }}>
+          <div>{row.name}</div>
+          <Typography variant="caption" color="text.secondary">
+            {[row.sku, row.category].filter(Boolean).join(" · ")}
+          </Typography>
+        </Box>
+      ),
+    },
+    { field: "hsn_code", headerName: "HSN/SAC", minWidth: 100 },
+    { field: "price", headerName: "Price", minWidth: 110, type: "number", valueFormatter: (v) => formatCurrency(v) },
+    {
+      field: "gst_rate",
+      headerName: "GST",
+      minWidth: 90,
+      valueGetter: (v, row) => `${formatNumber(v)}%${row.price_includes_tax ? " incl." : ""}`,
     },
     {
-      field: "sku",
-      headerName: "SKU",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
+      field: "stock_qty",
+      headerName: "Stock",
+      minWidth: 100,
+      type: "number",
+      renderCell: ({ row }) =>
+        row.track_inventory ? (
+          <Typography variant="body2" sx={{ lineHeight: "inherit", fontWeight: 600 }} color={row.stock_qty <= row.low_stock_threshold ? "error" : "inherit"}>
+            {formatNumber(row.stock_qty, 3)} {row.unit}
+          </Typography>
+        ) : (
+          "—"
+        ),
     },
-    {
-      field: "description",
-      headerName: "Description",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
-    },
-    {
-      field: "price",
-      headerName: "Price",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
-    },
-    {
-      field: "unit",
-      headerName: "Unit",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
-    },
-    {
-      field: "store_name",
-      headerName: "Store",
-      flex: 1,
-      renderCell: (params) => <Tooltip title={params.value}><span>{params.value}</span></Tooltip>,
-    },
+    { field: "status", headerName: "Status", minWidth: 100, renderCell: ({ value }) => <StatusChip status={value} /> },
+    { field: "store_name", headerName: "Store", minWidth: 120 },
     {
       field: "actions",
-      headerName: "Actions",
-      flex: 1,
-      renderCell: (params) => (
-        <div>
-          <IconButton
-            color="primary"
-            onClick={() => handleEditProduct(params.row)}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            color="secondary"
-            onClick={() => handleDeleteProduct(params.row.id)}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </div>
+      headerName: "",
+      minWidth: 90,
+      sortable: false,
+      renderCell: ({ row }) => (
+        <span onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Edit">
+            <IconButton size="small" color="primary" onClick={() => navigate(`/product?id=${row.product_id}`)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </span>
       ),
     },
   ];
 
-  const handleCloseSnackbar = () => setOpenSnackbar(false);
-
-  const handlePaginationModelChange = (newPaginationModel) => {
-    setPaginationModel(newPaginationModel);
-  };
-
-  const handleAddCustomer = () => {
-    navigation(navigationUrl)
-  };
-
-  const handleViewProduct = (product) => {
-    navigation("/product-details", { state: { productData: product } });
-  };
-
-  const handleEditProduct = (product) => {
-    if(access_token){
-      navigation(navigationUrl, {state: { productData: product}});
-    }
-  };
-
-  const handleDeleteProduct = (id) => {
-    setProductToDelete(id);
-    setOpenDialog(true);
-  };
-
-  const confirmDelete = async () => {
-      if (productToDelete) {
-        try {
-          const data = { product_id: productToDelete };
-          await ProductServices.deleteProductDataFromId(data);  // wait for API delete
-
-          setProductsData((prevData) =>
-            prevData.filter((product) => product.id !== productToDelete)
-          );
-
-          setSnackbarMessage("Product deleted successfully!");
-          setSnackbarSeverity("success");
-          setOpenSnackbar(true);
-        } catch (error) {
-          setSnackbarMessage("Failed to delete Product.",error);
-          setSnackbarSeverity("error");
-          setOpenSnackbar(true);
-        }
-      }
-      setOpenDialog(false);
-      setProductToDelete(null);
-    };
-
-
   return (
-    <Box>
-      <Typography variant="h5" sx={{ mb: 2, fontWeight: "bold" }}>
-        Products
-      </Typography>
-
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-
-      {/* Add + Search */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-        <Button variant="contained" onClick={handleAddCustomer} startIcon={<AddIcon />}>
-          Add
-        </Button>
-        <input
-          type="text"
-          placeholder="Search..."
-          value={searchFilter}
-          onChange={(e) => setSearchFilter(e.target.value)}
-          style={{
-            padding: "6px 10px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-          }}
-        />
-      </div>
-
-      {/* DataGrid */}
-      {loading ? (
-        <Typography variant="body1" color="textSecondary" sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <CircularProgress />
-        </Typography>
-
-      ) : (
-        <Paper sx={{ height: 500, width: "100%" }}>
-          <DataGrid
-            rows={productsData}
-            columns={columns}
-            paginationMode="server"
-            paginationModel={paginationModel}
-            rowCount={totalElements}
-            onPaginationModelChange={handlePaginationModelChange}
-            pageSizeOptions={pageSizeOptions}
-            loading={loading}
-            onRowClick={(params) => handleViewProduct(params.row)}
-            sx={{
-              cursor: "pointer",
-              "& .MuiDataGrid-row:hover": {
-                backgroundColor: "#f5f5f5",
-              },
-            }}
-          />
-        </Paper>
-      )}
-
-      {/* Delete Confirmation */}
+    <>
+      <PageHeader
+        title="Products"
+        actions={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
+            Add Product
+          </Button>
+        }
+      />
+      <Toolbar>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder="Name, SKU, category, HSN" />
+        <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 130 }}>
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="Active">Active</MenuItem>
+          <MenuItem value="Inactive">Inactive</MenuItem>
+        </TextField>
+      </Toolbar>
+      <DataTable
+        table={table}
+        columns={columns}
+        mobileHidden={["hsn_code", "gst_rate", "status", "store_name"]}
+        getRowHeight={() => "auto"}
+        onRowClick={({ row }) => navigate(`/product-details?id=${row.product_id}`)}
+      />
       <ConfirmationDialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        open={Boolean(toDelete)}
+        onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete Confirmation"
-        message="Are you sure you want to delete this product?"
+        title="Delete product?"
+        message={`${toDelete?.name || ""} will be deleted (or marked Inactive if it was already billed).`}
         cancelLabel="Cancel"
         confirmLabel="Delete"
       />
-    </Box>
+    </>
   );
-};
-
-export default Products;
+}

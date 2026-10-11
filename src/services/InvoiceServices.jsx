@@ -1,31 +1,11 @@
-import axios from "axios";
-
-import API from "./axios";
+import API, { qs } from "./axios";
 
 export const InvoiceServices = {
-
-    createInvoice: async (data) => {
-    const response = await API.post(
-      "/master/invoice/create_invoice.php",
-      data
-    );
-    return response.data;
-  },
-
-  downloadInvoice: async (invoice_id, token) => {
-    const res = await API.get(`/download-invoice.php?invoice_id=${invoice_id}`,
-      {
-        responseType: "blob", // IMPORTANT for PDF
-      }
-    );
-    return res;
-  },
-
-  generateInvoice: async (order_id) => {
-    const res = await API.get(
-      `/master/invoice/generate-invoice.php?order_id=${order_id}`
-    );
-    return res.data;
-  },
-
+  getInvoices: async (page, size, search, extra = {}) =>
+    (await API.get(`/master/invoice/invoices.php${qs({ page: page + 1, limit: size, search, ...extra })}`)).data,
+  getInvoice: async (invoice_id) => (await API.get(`/master/invoice/get-invoice-by-id.php${qs({ invoice_id })}`)).data,
+  /** { order_id, invoice_type } or a direct invoice with items. Optional payment: { amount, payment_method } */
+  createInvoice: async (data) => (await API.post("/master/invoice/create-invoice.php", data)).data,
+  cancelInvoice: async (invoice_id, reason) => (await API.post("/master/invoice/cancel-invoice.php", { invoice_id, reason })).data,
+  saveEInvoice: async (data) => (await API.post("/master/invoice/update-einvoice.php", data)).data,
 };

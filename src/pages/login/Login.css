@@ -3,7 +3,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  padding: 16px;
 }
 
 .login-card {
@@ -44,10 +45,6 @@
 
 @media (max-width: 600px) {
   .login-card {
-    padding: 2rem;
-  }
-
-  .robot-animation {
-    width: 120px;
+    padding: 1.5rem;
   }
 }
