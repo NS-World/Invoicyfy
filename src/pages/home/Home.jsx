@@ -27,6 +27,8 @@ import {
   Payment,
   Logout,
   Menu as MenuIcon,
+  CloudSync,
+  Campaign,
   Store,
   Inventory2,
   AccountBalanceWallet,
@@ -56,6 +58,7 @@ const menu = [
       { text: "Invoices", icon: <Receipt />, path: "/invoices", perm: "invoices" },
       { text: "Payments", icon: <Payment />, path: "/payments", perm: "payments" },
       { text: "Customers", icon: <People />, path: "/customers", perm: "customers" },
+      { text: "Offers & Messages", icon: <Campaign />, path: "/offers", perm: "marketing" },
     ],
   },
   {
@@ -75,6 +78,7 @@ const menu = [
       { text: "Stores", icon: <Store />, path: "/stores", admin: true },
       { text: "Users", icon: <People />, path: "/users", perm: "users" },
       { text: "Roles & Permissions", icon: <AdminPanelSettings />, path: "/roles", perm: "users" },
+      { text: "Backup & Restore", icon: <CloudSync />, path: "/backup", perm: "backup" },
     ],
   },
 ];

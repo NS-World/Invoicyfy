@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import useDebounce from "./useDebounce";
 import { apiError } from "../utils/format";
+import { fetchAllPages } from "../utils/fetchAll";
 
 /**
  * Server-side paginated list state for DataGrid pages.
@@ -47,5 +48,8 @@ export default function useServerTable(fetcher, { pageSize = 10, filters = {}, i
     load();
   }, [load]);
 
-  return { rows, setRows, total, response, loading, error, paginationModel, setPaginationModel, search, setSearch, reload: load };
+  // Every row matching the current search and filters (for Excel / Word downloads).
+  const fetchAll = useCallback(() => fetchAllPages((page, size) => fetcherRef.current(page, size, search, JSON.parse(filterKey))), [search, filterKey]);
+
+  return { rows, setRows, total, response, loading, error, paginationModel, setPaginationModel, search, setSearch, reload: load, fetchAll };
 }

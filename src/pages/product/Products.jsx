@@ -6,6 +6,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
+import ListExport from "../../components/common/ListExport";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
@@ -119,6 +120,24 @@ export default function Products() {
           <MenuItem value="Active">Active</MenuItem>
           <MenuItem value="Inactive">Inactive</MenuItem>
         </TextField>
+        <ListExport
+          table={table}
+          title="Products"
+          filename="products"
+          columns={[
+            { label: "Product", key: "name" },
+            { label: "SKU", key: "sku" },
+            { label: "Category", key: "category" },
+            { label: "HSN/SAC", key: "hsn_code" },
+            { label: "Unit", key: "unit" },
+            { label: "Price", key: "price", type: "money", total: false },
+            { label: "Cost", key: "cost_price", type: "money", total: false },
+            { label: "GST %", key: "gst_rate", type: "number" },
+            { label: "Price incl. GST", value: (r) => (Number(r.price_includes_tax) ? "Yes" : "No") },
+            { label: "Stock", key: "stock_qty", type: "qty", total: false },
+            { label: "Status", key: "status" },
+          ]}
+        />
       </Toolbar>
       <DataTable
         table={table}

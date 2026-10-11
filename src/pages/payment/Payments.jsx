@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Chip, MenuItem, TextField } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
+import ListExport from "../../components/common/ListExport";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
@@ -56,6 +57,21 @@ export default function Payments() {
           ))}
         </TextField>
         <DateRangeFilter value={range} onChange={setRange} />
+        <ListExport
+          table={table}
+          title="Payments Received"
+          filename="payments"
+          subtitle={`${formatDate(range.from)} – ${formatDate(range.to)}`}
+          columns={[
+            { label: "Date", key: "payment_date", type: "date" },
+            { label: "Invoice", key: "invoice_number" },
+            { label: "Customer", value: (r) => r.customer_name || "Walk-in" },
+            { label: "Mode", key: "payment_method" },
+            { label: "Reference", key: "reference_no" },
+            { label: "Amount", key: "amount", type: "money" },
+            { label: "Received by", key: "received_by" },
+          ]}
+        />
       </Toolbar>
       <DataTable
         table={table}

@@ -6,6 +6,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
+import ListExport from "../../components/common/ListExport";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
@@ -135,6 +136,27 @@ export default function Invoices() {
           <MenuItem value="tax">GST invoice</MenuItem>
         </TextField>
         <DateRangeFilter value={range} onChange={setRange} />
+        <ListExport
+          table={table}
+          title="Invoices"
+          filename="invoices"
+          subtitle={`${formatDate(range.from)} – ${formatDate(range.to)}`}
+          columns={[
+            { label: "Invoice No", key: "invoice_number" },
+            { label: "Date", key: "invoice_date", type: "date" },
+            { label: "Type", value: (r) => (r.invoice_type === "tax" ? "GST" : "Retail") },
+            { label: "Customer", value: (r) => r.customer_name || "Walk-in" },
+            { label: "Mobile", key: "customer_phone" },
+            { label: "GSTIN", key: "customer_gstin" },
+            { label: "Taxable", key: "taxable_amount", type: "money" },
+            { label: "GST", key: "tax_amount", type: "money" },
+            { label: "Total", key: "total_amount", type: "money" },
+            { label: "Paid", key: "amount_paid", type: "money" },
+            { label: "Due", key: "balance_due", type: "money" },
+            { label: "Status", key: "status" },
+            { label: "Billed by", key: "user_name" },
+          ]}
+        />
       </Toolbar>
       <DataTable
         table={table}

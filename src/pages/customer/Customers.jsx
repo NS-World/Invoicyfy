@@ -7,6 +7,7 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
+import ListExport from "../../components/common/ListExport";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
@@ -116,6 +117,25 @@ export default function Customers() {
           <MenuItem value="B2C">B2C (consumer)</MenuItem>
           <MenuItem value="B2B">B2B (business)</MenuItem>
         </TextField>
+        <ListExport
+          table={table}
+          title="Customers"
+          filename="customers"
+          columns={[
+            { label: "Name", key: "name" },
+            { label: "Company", key: "company_name" },
+            { label: "Type", key: "customer_type" },
+            { label: "Mobile", key: "phone" },
+            { label: "Email", key: "email" },
+            { label: "GSTIN", key: "gstin" },
+            { label: "Address", key: "address" },
+            { label: "City", key: "city" },
+            { label: "State", key: "state" },
+            { label: "PIN", key: "pincode" },
+            { label: "Offers on WhatsApp", value: (r) => (Number(r.marketing_opt_in) ? "Yes" : "No") },
+            { label: "Outstanding", key: "outstanding", type: "money" },
+          ]}
+        />
       </Toolbar>
       <DataTable
         table={table}

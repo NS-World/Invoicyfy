@@ -39,6 +39,21 @@ RewriteRule ^ index.html [L]
 * Fill shop details once in **Business Settings** (GSTIN, FSSAI, bank, UPI, prefixes, terms, receipt footer).
 * For thermal printers set the printer's paper size to 80 mm (or 58 mm) and margins to *None*.
 
+## Backup, offers & downloads
+
+* **Backup & Restore** (`/backup`) — one click downloads all data as an Excel file; *Import backup* adds only
+  new records, skips existing ones and gives a downloadable error file listing every skipped row and why.
+  A reminder shows when the last backup is older than 7 days.
+* **Offers & Messages** (`/offers`) — write an offer (ready-made starters, `{name}` / `{shop}` placeholders),
+  pick customers (all, recent buyers, not visited in N days, top buyers, city, type), preview it as a
+  WhatsApp message and send automatically through the WhatsApp Business API or one tap per customer from
+  your own WhatsApp. History shows sent / failed per customer with retry.
+* **Reports → Annual Report** — financial-year summary with last-year comparison, month-wise sales / GST /
+  collections / expenses / profit, top products & customers, payment modes, GST rate-wise and weekdays.
+* Every report tab and every list screen (invoices, orders, payments, customers, products, stock, expenses)
+  has **Download → Excel (.xlsx) / Word (.docx)**, exporting all rows that match the current filters.
+  Excel and Word libraries load only when a file is downloaded.
+
 ## Code structure
 
 | Folder | Contents |
@@ -49,6 +64,6 @@ RewriteRule ^ index.html [L]
 | `src/components/print` | `ThermalReceipt`, `TaxInvoiceA4`, `PrintPortal` + print CSS |
 | `src/services` | Axios API layer (token refresh built in) |
 | `src/hooks` | `useServerTable`, `useMeta`, `useStores`, `useDebounce` |
-| `src/utils` | Formatting (₹, dates, amount in words, CSV) and GST maths mirroring the backend |
+| `src/utils` | Formatting (₹, dates, amount in words, CSV), GST maths mirroring the backend, `exporters.js` (Excel / Word) |
 
 Pages are lazy-loaded; heavy libraries (data grid, charts, login animation) are separate chunks.

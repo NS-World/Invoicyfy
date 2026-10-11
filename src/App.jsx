@@ -36,6 +36,8 @@ const Stores = lazy(() => import("./pages/store/Stores"));
 const StoreForm = lazy(() => import("./pages/store/StoreForm"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const InvoiceDesigner = lazy(() => import("./pages/settings/InvoiceDesigner"));
+const Backup = lazy(() => import("./pages/backup/Backup"));
+const Offers = lazy(() => import("./pages/marketing/Offers"));
 
 const admin = (el) => <PrivateRoute admin>{el}</PrivateRoute>;
 const guard = (perm, el) => <PrivateRoute perm={perm}>{el}</PrivateRoute>;
@@ -81,6 +83,8 @@ function App() {
                   <Route path="reports" element={guard("reports", <Reports />)} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="settings/invoice-design" element={guard("settings", <InvoiceDesigner />)} />
+                  <Route path="backup" element={guard("backup", <Backup />)} />
+                  <Route path="offers" element={guard("marketing", <Offers />)} />
 
                   <Route path="users" element={guard("users", <Users />)} />
                   <Route path="user" element={guard("users", <UserForm />)} />

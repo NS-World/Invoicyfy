@@ -1,86 +1,22 @@
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Grid,
-  MenuItem,
-  Paper,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tabs,
-  TextField,
-  Typography,
-} from "@mui/material";
-import DownloadIcon from "@mui/icons-material/Download";
+import { Alert, Box, Grid, MenuItem, Paper, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { Bar, BarChart, CartesianGrid, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, ComposedChart } from "recharts";
 import PageHeader from "../../components/common/PageHeader";
 import StatCard from "../../components/common/StatCard";
 import Loader from "../../components/common/Loader";
 import DateRangeFilter from "../../components/common/DateRangeFilter";
 import { ReportServices } from "../../services/ReportServices";
-import { apiError, datePresets, downloadCsv, formatCompact, formatCurrency, formatDate, formatNumber } from "../../utils/format";
+import ExportMenu from "../../components/common/ExportMenu";
+import ReportTable from "../../components/report/ReportTable";
+import { useAuth } from "../../context/useAuth";
+import { apiError, datePresets, formatCompact, formatCurrency, formatDate, formatNumber } from "../../utils/format";
+import { monthLabel, toExportCols } from "../../utils/reportHelpers";
+import AnnualReport from "./AnnualReport";
 
-const monthLabel = (m) => {
-  const [y, mo] = m.split("-");
-  return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-};
+const periodText = (range) => `${formatDate(range.from)} – ${formatDate(range.to)}`;
+const sec = (heading, cols, rows, totals) => ({ heading, columns: toExportCols(cols), rows, totals });
 
-/** Simple responsive table with optional totals row. cols: [{ key, label, money?, align?, format? }] */
-function ReportTable({ cols, rows, totals, emptyText = "No data for this period" }) {
-  const fmt = (c, v) => (c.format ? c.format(v) : c.money ? formatCurrency(v, { symbol: false }) : v ?? "");
-  return (
-    <TableContainer component={Paper} variant="outlined">
-      <Table size="small" sx={{ minWidth: Math.max(500, cols.length * 110) }}>
-        <TableHead sx={{ bgcolor: "#f8fafc" }}>
-          <TableRow>
-            {cols.map((c) => (
-              <TableCell key={c.key} align={c.money || c.align === "right" ? "right" : "left"} sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
-                {c.label}
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={cols.length} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                {emptyText}
-              </TableCell>
-            </TableRow>
-          )}
-          {rows.map((r, i) => (
-            <TableRow key={i} hover>
-              {cols.map((c) => (
-                <TableCell key={c.key} align={c.money || c.align === "right" ? "right" : "left"} sx={{ whiteSpace: "nowrap" }}>
-                  {fmt(c, r[c.key])}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-          {totals && rows.length > 0 && (
-            <TableRow sx={{ "& td": { fontWeight: 800, bgcolor: "#fafafa" } }}>
-              {cols.map((c, i) => (
-                <TableCell key={c.key} align={c.money || c.align === "right" ? "right" : "left"}>
-                  {i === 0 ? "Total" : totals[c.key] !== undefined ? fmt(c, totals[c.key]) : ""}
-                </TableCell>
-              ))}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-}
-
-const csv = (name, cols, rows) => downloadCsv(name, cols.map((c) => ({ label: c.label, key: c.key })), rows);
-
-function ProfitLoss({ range }) {
+function ProfitLoss({ range, shop }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -140,9 +76,30 @@ function ProfitLoss({ range }) {
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               Month-wise
             </Typography>
-            <Button size="small" startIcon={<DownloadIcon />} onClick={() => csv(`profit_loss_${range.from}_${range.to}.csv`, cols, rows)}>
-              CSV
-            </Button>
+            <ExportMenu
+              size="small"
+              build={() => ({
+                title: `${shop} — Profit & Loss`,
+                subtitle: periodText(range),
+                filename: `profit-loss-${range.from}-${range.to}`,
+                sections: [
+                  {
+                    heading: "Summary",
+                    summary: [
+                      { label: "Sales (incl. GST)", value: t.sales, type: "money" },
+                      { label: "Income (net of GST)", value: t.net_sales, type: "money" },
+                      { label: "Cost of goods", value: t.cost_of_goods, type: "money" },
+                      { label: "Gross profit", value: t.gross_profit, type: "money" },
+                      { label: "Expenses", value: t.expenses, type: "money" },
+                      { label: "Net profit", value: t.profit, type: "money" },
+                      { label: "Margin %", value: t.margin_percent, type: "percent" },
+                    ],
+                  },
+                  sec("Month-wise", cols, rows, true),
+                  sec("Expenses by category", [{ key: "category", label: "Category" }, { key: "amount", label: "Amount", money: true }], data.expenses_by_category, true),
+                ],
+              })}
+            />
           </Box>
           <ReportTable cols={cols} rows={rows} totals={t} />
         </Grid>
@@ -160,11 +117,11 @@ function ProfitLoss({ range }) {
 const SALES_COLS = {
   day: [{ key: "label", label: "Date", format: (v) => formatDate(v) }],
   month: [{ key: "label", label: "Month", format: monthLabel }],
-  product: [{ key: "label", label: "Product" }, { key: "quantity", label: "Qty", align: "right", format: (v) => formatNumber(v, 3) }],
+  product: [{ key: "label", label: "Product" }, { key: "quantity", label: "Qty", align: "right", type: "qty", format: (v) => formatNumber(v, 3) }],
   customer: [{ key: "label", label: "Customer" }, { key: "gstin", label: "GSTIN" }],
 };
 
-function SalesRegister({ range }) {
+function SalesRegister({ range, shop }) {
   const [group, setGroup] = useState("day");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -174,7 +131,7 @@ function SalesRegister({ range }) {
   }, [range, group]);
   const cols = [
     ...SALES_COLS[group],
-    { key: "invoices", label: "Bills", align: "right" },
+    { key: "invoices", label: "Bills", align: "right", type: "number", total: true },
     { key: "taxable_value", label: "Taxable", money: true },
     { key: "tax_amount", label: "GST", money: true },
     { key: "total_amount", label: "Total", money: true },
@@ -189,9 +146,15 @@ function SalesRegister({ range }) {
           <MenuItem value="product">Product</MenuItem>
           <MenuItem value="customer">Customer</MenuItem>
         </TextField>
-        <Button startIcon={<DownloadIcon />} disabled={!data} onClick={() => csv(`sales_${group}_${range.from}_${range.to}.csv`, cols, data.data)}>
-          Export CSV
-        </Button>
+        <ExportMenu
+          disabled={!data}
+          build={() => ({
+            title: `${shop} — Sales Register (by ${group})`,
+            subtitle: periodText(range),
+            filename: `sales-${group}-${range.from}-${range.to}`,
+            sections: [sec(`Sales by ${group}`, cols, data.data, true)],
+          })}
+        />
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
       {!data ? <Loader /> : <ReportTable cols={cols} rows={data.data} totals={data.totals} />}
@@ -199,7 +162,7 @@ function SalesRegister({ range }) {
   );
 }
 
-function GstSummary({ range }) {
+function GstSummary({ range, shop }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -225,30 +188,50 @@ function GstSummary({ range }) {
     ...taxCols,
     { key: "total_amount", label: "Invoice Value", money: true },
   ];
-  const b2cCols = [{ key: "place_of_supply", label: "Place of Supply" }, { key: "gst_rate", label: "Rate %", align: "right" }, ...taxCols];
+  const b2cCols = [{ key: "place_of_supply", label: "Place of Supply" }, { key: "gst_rate", label: "Rate %", align: "right", type: "number" }, ...taxCols];
   const hsnCols = [
     { key: "hsn_code", label: "HSN/SAC" },
     { key: "description", label: "Description" },
     { key: "unit", label: "UQC" },
-    { key: "quantity", label: "Qty", align: "right", format: (v) => formatNumber(v, 3) },
-    { key: "gst_rate", label: "Rate %", align: "right" },
+    { key: "quantity", label: "Qty", align: "right", type: "qty", format: (v) => formatNumber(v, 3) },
+    { key: "gst_rate", label: "Rate %", align: "right", type: "number" },
     { key: "total_amount", label: "Total Value", money: true },
     ...taxCols,
   ];
   const sum = (rows, cols) => Object.fromEntries(cols.filter((c) => c.money).map((c) => [c.key, rows.reduce((s, r) => s + Number(r[c.key] || 0), 0)]));
-  const Section = ({ title, cols, rows, file }) => (
+  const rateCols = [{ key: "gst_rate", label: "GST Rate %", type: "number" }, ...taxCols];
+  const Section = ({ title, cols, rows }) => (
     <Box sx={{ mb: 3 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          {title}
-        </Typography>
-        <Button size="small" startIcon={<DownloadIcon />} onClick={() => csv(`${file}_${range.from}_${range.to}.csv`, cols, rows)} disabled={!rows.length}>
-          CSV
-        </Button>
-      </Box>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+        {title}
+      </Typography>
       <ReportTable cols={cols} rows={rows} totals={sum(rows, cols)} />
     </Box>
   );
+  const build = () => ({
+    title: `${shop} — GST Summary`,
+    subtitle: periodText(range),
+    filename: `gst-summary-${range.from}-${range.to}`,
+    sections: [
+      {
+        heading: "Summary",
+        summary: [
+          { label: "Taxable turnover", value: t.taxable_value, type: "money" },
+          { label: "CGST", value: t.cgst_amount, type: "money" },
+          { label: "SGST", value: t.sgst_amount, type: "money" },
+          { label: "IGST", value: t.igst_amount, type: "money" },
+          { label: "Output GST", value: t.tax_amount, type: "money" },
+          { label: "Input tax credit (expenses)", value: data.input_tax_credit, type: "money" },
+          { label: "Estimated GST payable", value: data.net_gst_payable, type: "money" },
+          { label: "Invoices", value: t.invoices, type: "number" },
+        ],
+      },
+      sec("Rate-wise summary", rateCols, data.by_rate, true),
+      { ...sec("GSTR-1 B2B", b2bCols, data.b2b, true), sheet: "B2B" },
+      { ...sec("GSTR-1 B2C", b2cCols, data.b2c, true), sheet: "B2C" },
+      { ...sec("HSN summary", hsnCols, data.hsn, true), sheet: "HSN" },
+    ],
+  });
   return (
     <>
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
@@ -265,18 +248,23 @@ function GstSummary({ range }) {
           <StatCard label="Estimated GST payable" value={formatCurrency(data.net_gst_payable)} color="error.main" />
         </Grid>
       </Grid>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+        <ExportMenu build={build} label="Download GST report" />
+      </Box>
       <Alert severity="info" sx={{ mb: 2 }}>
         Use these tables to fill GSTR-1 (B2B, B2C, HSN) and GSTR-3B. Please verify with your CA before filing.
       </Alert>
-      <Section title="Rate-wise summary" cols={[{ key: "gst_rate", label: "GST Rate %" }, ...taxCols]} rows={data.by_rate} file="gst_rate_wise" />
-      <Section title="B2B invoices (registered buyers)" cols={b2bCols} rows={data.b2b} file="gstr1_b2b" />
-      <Section title="B2C summary (unregistered buyers)" cols={b2cCols} rows={data.b2c} file="gstr1_b2c" />
-      <Section title="HSN-wise summary" cols={hsnCols} rows={data.hsn} file="gstr1_hsn" />
+      <Section title="Rate-wise summary" cols={rateCols} rows={data.by_rate} />
+      <Section title="B2B invoices (registered buyers)" cols={b2bCols} rows={data.b2b} />
+      <Section title="B2C summary (unregistered buyers)" cols={b2cCols} rows={data.b2c} />
+      <Section title="HSN-wise summary" cols={hsnCols} rows={data.hsn} />
     </>
   );
 }
 
 export default function Reports() {
+  const { user } = useAuth();
+  const shop = user?.store_name || "Business";
   const [tab, setTab] = useState("pl");
   const [range, setRange] = useState(() => {
     const p = datePresets().find((x) => x.key === "month");
@@ -284,15 +272,17 @@ export default function Reports() {
   });
   return (
     <>
-      <PageHeader title="Reports" actions={<DateRangeFilter value={range} onChange={setRange} />} />
+      <PageHeader title="Reports" actions={tab === "annual" ? null : <DateRangeFilter value={range} onChange={setRange} />} />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mb: 2 }}>
         <Tab value="pl" label="Profit & Loss" />
         <Tab value="sales" label="Sales Register" />
         <Tab value="gst" label="GST Summary" />
+        <Tab value="annual" label="Annual Report" />
       </Tabs>
-      {tab === "pl" && <ProfitLoss range={range} />}
-      {tab === "sales" && <SalesRegister range={range} />}
-      {tab === "gst" && <GstSummary range={range} />}
+      {tab === "pl" && <ProfitLoss range={range} shop={shop} />}
+      {tab === "sales" && <SalesRegister range={range} shop={shop} />}
+      {tab === "gst" && <GstSummary range={range} shop={shop} />}
+      {tab === "annual" && <AnnualReport />}
     </>
   );
 }

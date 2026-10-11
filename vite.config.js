@@ -17,6 +17,6 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 900,
+    chunkSizeWarningLimit: 1000, // exceljs is ~940 kB but only loads when a file is downloaded
   },
 });

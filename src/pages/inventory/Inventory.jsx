@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
+import ListExport from "../../components/common/ListExport";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
@@ -104,6 +105,22 @@ export default function Inventory() {
       </Tabs>
       <Toolbar>
         <SearchField value={table.search} onChange={table.setSearch} placeholder="Search product, SKU, category" />
+        <ListExport
+          table={table}
+          title="Stock Report"
+          filename="stock"
+          columns={[
+            { label: "Product", key: "name" },
+            { label: "SKU", key: "sku" },
+            { label: "Category", key: "category" },
+            { label: "Unit", key: "unit" },
+            { label: "In stock", key: "stock_qty", type: "qty", total: false },
+            { label: "Reorder at", key: "low_stock_threshold", type: "qty", total: false },
+            { label: "Cost", key: "cost_price", type: "money", total: false },
+            { label: "Stock value", key: "stock_value", type: "money" },
+            { label: "Last movement", key: "last_movement_at" },
+          ]}
+        />
       </Toolbar>
       <DataTable table={table} columns={columns} mobileHidden={["category", "low_stock_threshold", "cost_price", "stock_value"]} />
       <StockAdjustDialog

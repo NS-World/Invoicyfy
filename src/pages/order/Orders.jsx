@@ -8,6 +8,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
+import ListExport from "../../components/common/ListExport";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
@@ -135,6 +136,24 @@ export default function Orders() {
             </MenuItem>
           ))}
         </TextField>
+        <ListExport
+          table={table}
+          title="Orders"
+          filename="orders"
+          columns={[
+            { label: "Order No", key: "order_number" },
+            { label: "Date", key: "order_date", type: "date" },
+            { label: "Customer", value: (r) => r.customer_name || "Walk-in" },
+            { label: "Mobile", key: "customer_phone" },
+            { label: "Type", key: "order_type" },
+            { label: "Items", key: "item_count", type: "number", total: true },
+            { label: "Taxable", key: "taxable_amount", type: "money" },
+            { label: "GST", key: "tax_amount", type: "money" },
+            { label: "Total", key: "total_amount", type: "money" },
+            { label: "Status", key: "status" },
+            { label: "Created by", key: "user_name" },
+          ]}
+        />
       </Toolbar>
       <DataTable
         table={table}

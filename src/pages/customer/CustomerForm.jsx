@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, Grid, MenuItem, Paper, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Alert, Box, Button, FormControlLabel, Grid, MenuItem, Paper, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import Loader from "../../components/common/Loader";
@@ -23,6 +23,7 @@ const blank = {
   pincode: "",
   shipping_address: "",
   notes: "",
+  marketing_opt_in: true,
 };
 
 export default function CustomerForm() {
@@ -44,7 +45,7 @@ export default function CustomerForm() {
     CustomerServices.getCustomerDataFromId(customerId)
       .then((res) => {
         const d = res.data;
-        setForm(Object.fromEntries(Object.keys(blank).map((k) => [k, d[k] ?? ""])));
+        setForm({ ...Object.fromEntries(Object.keys(blank).map((k) => [k, d[k] ?? ""])), marketing_opt_in: d.marketing_opt_in === undefined ? true : Boolean(Number(d.marketing_opt_in)) });
         setSummary(d.summary);
       })
       .catch((err) => setError(apiError(err)))
@@ -156,6 +157,12 @@ export default function CustomerForm() {
           )}
           <Grid size={12}>
             <TextField fullWidth label="Notes" value={form.notes} onChange={set("notes")} />
+          </Grid>
+          <Grid size={12}>
+            <FormControlLabel
+              control={<Switch checked={form.marketing_opt_in} onChange={(e) => setForm((f) => ({ ...f, marketing_opt_in: e.target.checked }))} />}
+              label="Send offers & new flavour updates on WhatsApp"
+            />
           </Grid>
         </Grid>
         <Box sx={{ display: "flex", gap: 1, mt: 3, justifyContent: "flex-end" }}>

@@ -3,9 +3,9 @@ import { Box, Button, Chip, IconButton, MenuItem, TextField, Tooltip } from "@mu
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DownloadIcon from "@mui/icons-material/Download";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
+import ListExport from "../../components/common/ListExport";
 import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
@@ -15,7 +15,7 @@ import ExpenseDialog from "./ExpenseDialog";
 import { ExpenseServices } from "../../services/ExpenseServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
-import { apiError, datePresets, downloadCsv, formatCurrency, formatDate } from "../../utils/format";
+import { apiError, datePresets, formatCurrency, formatDate } from "../../utils/format";
 
 export default function Expenses() {
   const notify = useNotify();
@@ -34,20 +34,6 @@ export default function Expenses() {
   useEffect(() => {
     ExpenseServices.getCategories().then((r) => setCategories(r.data || [])).catch(() => {});
   }, []);
-
-  const exportCsv = async () => {
-    const res = await ExpenseServices.getExpenses(0, 500, table.search, { category, ...range });
-    downloadCsv(`expenses_${range.from}_${range.to}.csv`, [
-      { label: "Date", key: "expense_date" },
-      { label: "Category", key: "category" },
-      { label: "Description", key: "description" },
-      { label: "Vendor", key: "vendor" },
-      { label: "Mode", key: "payment_method" },
-      { label: "Reference", key: "reference_no" },
-      { label: "GST", key: "tax_amount" },
-      { label: "Amount", key: "amount" },
-    ], res.data || []);
-  };
 
   const confirmDelete = async () => {
     try {
@@ -100,9 +86,6 @@ export default function Expenses() {
         subtitle={summary ? `Total ${formatCurrency(summary.total_amount)} in this period` : " "}
         actions={
           <>
-            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv}>
-              Export
-            </Button>
             {can("expenses", "add") && (
               <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ open: true, expense: null })}>
                 Add Expense
@@ -129,6 +112,22 @@ export default function Expenses() {
           ))}
         </TextField>
         <DateRangeFilter value={range} onChange={setRange} />
+        <ListExport
+          table={table}
+          title="Expenses"
+          filename="expenses"
+          subtitle={`${formatDate(range.from)} – ${formatDate(range.to)}`}
+          columns={[
+            { label: "Date", key: "expense_date", type: "date" },
+            { label: "Category", key: "category" },
+            { label: "Description", key: "description" },
+            { label: "Paid to", key: "vendor" },
+            { label: "Mode", key: "payment_method" },
+            { label: "Reference", key: "reference_no" },
+            { label: "GST", key: "tax_amount", type: "money" },
+            { label: "Amount", key: "amount", type: "money" },
+          ]}
+        />
       </Toolbar>
       <DataTable table={table} columns={columns} mobileHidden={["description", "vendor", "payment_method"]} />
       <ExpenseDialog
