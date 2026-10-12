@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import KitchenIcon from "@mui/icons-material/SoupKitchenOutlined";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import ShareIcon from "@mui/icons-material/Share";
@@ -39,6 +40,7 @@ import PaymentDialog from "../../components/billing/PaymentDialog";
 import ThermalReceipt from "../../components/print/ThermalReceipt";
 import TaxInvoiceA4 from "../../components/print/TaxInvoiceA4";
 import PrintPortal from "../../components/print/PrintPortal";
+import KotTicket from "../../components/print/KotTicket";
 import { InvoiceServices } from "../../services/InvoiceServices";
 import { PaymentServices } from "../../services/PaymentServices";
 import { useNotify } from "../../context/NotifyProvider";
@@ -204,7 +206,7 @@ export default function InvoiceView() {
     if (invoice && kind && !autoPrinted.current) {
       autoPrinted.current = true;
       setParams({}, { replace: true });
-      print(kind === "a4" ? "a4" : "receipt");
+      print(kind === "a4" ? "a4" : params.get("kot") ? "receipt+kot" : "receipt");
     }
   }, [invoice, params, setParams, print]);
 
@@ -265,6 +267,9 @@ export default function InvoiceView() {
             <Button variant="contained" startIcon={<ReceiptLongIcon />} onClick={() => print("receipt")}>
               {t("Print Receipt")}
             </Button>
+            <Button variant="outlined" startIcon={<KitchenIcon />} onClick={() => print("kot")}>
+              {t("Print KOT")}
+            </Button>
             <Button variant="contained" color="secondary" startIcon={<PrintIcon />} onClick={() => print("a4")}>
               {t("Print A4 / PDF")}
             </Button>
@@ -284,9 +289,14 @@ export default function InvoiceView() {
             <Tabs value={preview} onChange={(_, v) => setPreview(v)} sx={{ mb: 2 }}>
               <Tab value="receipt" label={t("Thermal receipt")} />
               <Tab value="a4" label={t("A4 invoice")} />
+              <Tab value="kot" label={t("KOT")} />
             </Tabs>
             <Box sx={{ overflowX: "auto", bgcolor: previewCanvas, p: { xs: 1, sm: 2 }, borderRadius: 2 }}>
-              {preview === "receipt" ? (
+              {preview === "kot" ? (
+                <Box sx={{ width: "fit-content", mx: "auto", boxShadow: 2 }}>
+                  <KotTicket doc={invoice} width={receiptWidth} settings={design} />
+                </Box>
+              ) : preview === "receipt" ? (
                 <Box sx={{ width: "fit-content", mx: "auto", boxShadow: 2 }}>
                   <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} settings={design} template={receiptTpl} />
                 </Box>
@@ -440,8 +450,18 @@ export default function InvoiceView() {
         <PrintPortal pageSize={printing === "a4" ? "A4" : receiptWidth}>
           {printing === "a4" ? (
             <TaxInvoiceA4 invoice={invoice} copyLabel={copyA4} settings={design} template={a4Tpl} />
+          ) : printing === "kot" ? (
+            <KotTicket doc={invoice} width={receiptWidth} settings={design} />
           ) : (
-            <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} settings={design} template={receiptTpl} />
+            <>
+              <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} settings={design} template={receiptTpl} />
+              {printing === "receipt+kot" && (
+                <>
+                  <div className="print-break" />
+                  <KotTicket doc={invoice} width={receiptWidth} settings={design} />
+                </>
+              )}
+            </>
           )}
         </PrintPortal>
       )}

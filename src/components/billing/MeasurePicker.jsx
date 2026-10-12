@@ -13,7 +13,7 @@ const r = (n, d) => Math.round((Number(n) + Number.EPSILON) * 10 ** d) / 10 ** d
  *   kg     -> grams and amount         e.g. 0.25 kg = 250 g = ₹100
  * plus one-tap presets (100 g, 250 g ...). The box being typed in keeps exactly what was typed.
  */
-export default function MeasurePicker({ item, onChange, autoFocus }) {
+export default function MeasurePicker({ item, onChange, autoFocus, onPreset }) {
   const t = useT();
   const factor = gramsPerUnit(item.unit);
   const [small, big] = measureUnits(item.unit);
@@ -71,6 +71,7 @@ export default function MeasurePicker({ item, onChange, autoFocus }) {
               onClick={() => {
                 setDraft(null);
                 setQty(g / factor);
+                onPreset?.(r(g / factor, 3));
               }}
               sx={{ fontWeight: 700, minWidth: 64 }}
             />

@@ -48,6 +48,12 @@ export const DEFAULT_INVOICE_SETTINGS = {
   a4_title_size: null,
   a4_logo_height: null,
   custom_blocks: [],
+  // KOT (kitchen order ticket)
+  kot_auto: true,
+  kot_auto_order: true,
+  kot_show_customer: true,
+  kot_show_store: true,
+  kot_large_text: false,
 };
 
 /** Where a custom text block can be printed. */

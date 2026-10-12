@@ -32,6 +32,7 @@ import Loader from "../../components/common/Loader";
 import ImageUpload from "../../components/forms/ImageUpload";
 import ThermalReceipt from "../../components/print/ThermalReceipt";
 import TaxInvoiceA4 from "../../components/print/TaxInvoiceA4";
+import KotTicket from "../../components/print/KotTicket";
 import { StoreServices } from "../../services/StoreServices";
 import { InvoiceServices } from "../../services/InvoiceServices";
 import { clearStoreCache } from "../../hooks/useStores";
@@ -78,7 +79,13 @@ function Preview({ kind, invoice, settings, template, zoom }) {
   return (
     <Box sx={{ overflow: "auto", bgcolor: previewCanvas, p: { xs: 1, sm: 2 }, borderRadius: 2 }}>
       <Box sx={{ width: "fit-content", mx: "auto", bgcolor: "#fff", boxShadow: 2, zoom, p: kind === "a4" ? 1 : 0 }}>
-        {kind === "a4" ? <TaxInvoiceA4 invoice={invoice} settings={settings} template={template} /> : <ThermalReceipt invoice={invoice} settings={settings} template={template} />}
+        {kind === "a4" ? (
+          <TaxInvoiceA4 invoice={invoice} settings={settings} template={template} />
+        ) : kind === "kot" ? (
+          <KotTicket doc={invoice} settings={settings} />
+        ) : (
+          <ThermalReceipt invoice={invoice} settings={settings} template={template} />
+        )}
       </Box>
     </Box>
   );
@@ -244,6 +251,7 @@ export default function InvoiceDesigner() {
         <Tabs value={kind} onChange={(_, v) => setKind(v)}>
           <Tab value="a4" label={t("A4 invoice")} />
           <Tab value="receipt" label={t("Thermal receipt")} />
+          <Tab value="kot" label={t("KOT (kitchen)")} />
         </Tabs>
         {isAdmin && stores.length > 1 && (
           <TextField select label={t("Store")} value={storeId} onChange={(e) => setStoreId(e.target.value)} sx={{ minWidth: 200 }}>
@@ -259,189 +267,219 @@ export default function InvoiceDesigner() {
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, lg: 5 }}>
           <fieldset disabled={!canEdit} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <Paper sx={{ p: 2, mb: 2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                {t("Template")}
-              </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", sm: `repeat(${templates.length}, minmax(0, 1fr))`, lg: "repeat(2, minmax(0, 1fr))" }, gap: 1.5 }}>
-                {templates.map((t) => (
-                  <TemplateCard key={t.key} tpl={t} kind={kind} invoice={invoice} settings={settings} selected={settings[templateKey] === t.key} onSelect={() => canEdit && set({ [templateKey]: t.key })} />
-                ))}
-              </Box>
-            </Paper>
-
-            <Accordion defaultExpanded disableGutters sx={{ mb: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>{t("Logo & colour")}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <ImageUpload
-                  value={logo}
-                  onChange={(v) => {
-                    setLogo(v);
-                    setDirty(true);
-                  }}
-                  label={t("Logo")}
-                  hint="Optional · PNG or JPG, resized automatically"
-                  disabled={!canEdit}
-                />
-                <FormControlLabel sx={{ mt: 1 }} control={<Switch checked={settings.show_logo} onChange={(e) => set({ show_logo: e.target.checked })} />} label={t("Print logo on bills")} />
-                {kind === "a4" && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {t("Accent colour (Modern, Minimal and Bold templates)")}
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-                      {ACCENT_COLORS.map((c) => (
-                        <Tooltip key={c} title={c}>
-                          <Box
-                            component="button"
-                            type="button"
-                            onClick={() => set({ accent_color: c })}
-                            aria-label={`Colour ${c}`}
-                            sx={{ width: 30, height: 30, borderRadius: "50%", bgcolor: c, border: "3px solid", borderColor: settings.accent_color === c ? "#000" : "#fff", boxShadow: 1, cursor: "pointer" }}
-                          />
-                        </Tooltip>
-                      ))}
-                      <TextField type="color" value={settings.accent_color} onChange={(e) => set({ accent_color: e.target.value })} sx={{ width: 64 }} slotProps={{ htmlInput: { "aria-label": "Custom colour" } }} />
-                    </Box>
-                  </Box>
-                )}
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion disableGutters sx={{ mb: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>{t("Sections to print")}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
-                  {sections.map(([key, label]) => (
-                    <FormControlLabel key={key} control={<Switch size="small" checked={Boolean(settings[key])} onChange={(e) => set({ [key]: e.target.checked })} />} label={<Typography variant="body2">{t(label)}</Typography>} />
-                  ))}
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion disableGutters sx={{ mb: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>{t("Text & headings")}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  {kind === "a4" ? (
-                    <>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label={t("Title (GST registered)")} value={settings.title_tax} onChange={(e) => set({ title_tax: e.target.value })} />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label={t("Title (no GSTIN)")} value={settings.title_retail} onChange={(e) => set({ title_retail: e.target.value })} />
-                      </Grid>
-                      <Grid size={12}>
-                        <TextField fullWidth label={t("Line under the title")} placeholder={t("e.g. Wholesale & party orders")} value={settings.header_note} onChange={(e) => set({ header_note: e.target.value })} />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label={t("Signature label")} value={settings.signature_label} onChange={(e) => set({ signature_label: e.target.value })} />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label={t("Footer line")} value={settings.footer_note} onChange={(e) => set({ footer_note: e.target.value })} />
-                      </Grid>
-                    </>
-                  ) : (
-                    <>
-                      <Grid size={12}>
-                        <TextField fullWidth label={t("Line under shop name")} placeholder="e.g. Pure veg · Home delivery 9am–11pm" value={settings.receipt_header_note} onChange={(e) => set({ receipt_header_note: e.target.value })} />
-                      </Grid>
-                      <Grid size={12}>
-                        <TextField fullWidth label={t("Message above footer")} placeholder={t("e.g. Get 10% off on your next visit!")} value={settings.receipt_footer_note} onChange={(e) => set({ receipt_footer_note: e.target.value })} />
-                      </Grid>
-                    </>
-                  )}
-                </Grid>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-                  Shop name, address, GSTIN, FSSAI, bank details, terms and the receipt footer (&quot;Thanks&quot;) are edited in Settings → Business details.
+            {kind === "kot" ? (
+              <Paper sx={{ p: 2, mb: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {t("KOT — kitchen order ticket")}
                 </Typography>
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion disableGutters sx={{ mb: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>{t("Layout, size & spacing")}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <LayoutControls kind={kind} settings={settings} set={set} />
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion disableGutters sx={{ mb: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>
-                  {t("Custom text & emoji")} ({settings.custom_blocks.length})
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <BlocksEditor settings={settings} set={set} />
-              </AccordionDetails>
-            </Accordion>
-
-            <Accordion disableGutters sx={{ mb: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>{t("QR codes")} ({settings.qr_codes.length}/4)</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  Add QR codes for a Google review, Instagram, online ordering, menu… Paste a link (we make the QR) or upload a QR image you already have.
+                  {t("KOT is for your staff: items, quantity and notes, without prices. The bill is for the customer.")}
                 </Typography>
-                {settings.qr_codes.map((q, i) => {
-                  const mode = q.mode || (q.image ? "image" : "link");
-                  return (
-                  <Paper key={i} variant="outlined" sx={{ p: 1.5, mb: 1.5 }}>
-                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, flex: 1 }}>
-                        QR {i + 1}
-                      </Typography>
-                      <ToggleButtonGroup size="small" exclusive value={mode} onChange={(_, v) => v && setQr(i, v === "link" ? { mode: "link", image: null } : { mode: "image", url: "" })}>
-                        <ToggleButton value="link">{t("Link")}</ToggleButton>
-                        <ToggleButton value="image">{t("Image")}</ToggleButton>
-                      </ToggleButtonGroup>
-                      <IconButton size="small" color="error" onClick={() => set({ qr_codes: settings.qr_codes.filter((_, j) => j !== i) })} aria-label="Remove QR">
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                    <Grid container spacing={1.5}>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label={t("Text under QR")} value={q.label || ""} onChange={(e) => setQr(i, { label: e.target.value })} slotProps={{ htmlInput: { maxLength: 40 } }} />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField select fullWidth label={t("Print on")} value={q.show_on || "both"} onChange={(e) => setQr(i, { show_on: e.target.value })}>
-                          <MenuItem value="both">{t("A4 and receipt")}</MenuItem>
-                          <MenuItem value="a4">{t("A4 invoice only")}</MenuItem>
-                          <MenuItem value="receipt">{t("Receipt only")}</MenuItem>
-                        </TextField>
-                      </Grid>
-                      <Grid size={12}>
-                        {mode === "image" ? (
-                          <ImageUpload value={q.image} onChange={(v) => setQr(i, { image: v })} label={t("QR image")} maxSize={300} disabled={!canEdit} />
-                        ) : (
-                          <TextField fullWidth label={t("Link")} placeholder={t("https://g.page/r/your-shop/review")} value={q.url || ""} onChange={(e) => setQr(i, { url: e.target.value.trim() })} />
-                        )}
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                  );
-                })}
-                {settings.qr_codes.length < 4 && (
-                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                    <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => set({ qr_codes: [...settings.qr_codes, { label: "", url: "", show_on: "both" }] })}>
-                      {t("Add QR code")}
-                    </Button>
-                    {QR_SUGGESTIONS.filter((label) => !settings.qr_codes.some((q) => q.label === label)).slice(0, 3).map((label) => (
-                      <Chip key={label} label={`+ ${label}`} variant="outlined" onClick={() => set({ qr_codes: [...settings.qr_codes, { label, url: "", show_on: "both" }] })} />
+                {[
+                  ["kot_auto", "Print KOT with every Quick Bill (can be switched off per bill)"],
+                  ["kot_auto_order", "Print KOT when a new order is saved"],
+                  ["kot_show_store", "Shop name on KOT"],
+                  ["kot_show_customer", "Customer name on KOT"],
+                  ["kot_large_text", "Large text (easy to read in the kitchen)"],
+                ].map(([key, label]) => (
+                  <FormControlLabel
+                    key={key}
+                    sx={{ display: "flex", mb: 0.5 }}
+                    control={<Switch checked={Boolean(settings[key])} onChange={(e) => set({ [key]: e.target.checked })} />}
+                    label={<Typography variant="body2">{t(label)}</Typography>}
+                  />
+                ))}
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                  {t("Item notes typed on the bill (e.g. less sugar, no nuts) print on the KOT. Print KOT any time from the bill or order screen.")}
+                </Typography>
+              </Paper>
+            ) : (
+              <>
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                    {t("Template")}
+                  </Typography>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", sm: `repeat(${templates.length}, minmax(0, 1fr))`, lg: "repeat(2, minmax(0, 1fr))" }, gap: 1.5 }}>
+                    {templates.map((t) => (
+                      <TemplateCard key={t.key} tpl={t} kind={kind} invoice={invoice} settings={settings} selected={settings[templateKey] === t.key} onSelect={() => canEdit && set({ [templateKey]: t.key })} />
                     ))}
                   </Box>
-                )}
-              </AccordionDetails>
-            </Accordion>
+                </Paper>
+
+                <Accordion defaultExpanded disableGutters sx={{ mb: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontWeight: 700 }}>{t("Logo & colour")}</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <ImageUpload
+                      value={logo}
+                      onChange={(v) => {
+                        setLogo(v);
+                        setDirty(true);
+                      }}
+                      label={t("Logo")}
+                      hint="Optional · PNG or JPG, resized automatically"
+                      disabled={!canEdit}
+                    />
+                    <FormControlLabel sx={{ mt: 1 }} control={<Switch checked={settings.show_logo} onChange={(e) => set({ show_logo: e.target.checked })} />} label={t("Print logo on bills")} />
+                    {kind === "a4" && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          {t("Accent colour (Modern, Minimal and Bold templates)")}
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+                          {ACCENT_COLORS.map((c) => (
+                            <Tooltip key={c} title={c}>
+                              <Box
+                                component="button"
+                                type="button"
+                                onClick={() => set({ accent_color: c })}
+                                aria-label={`Colour ${c}`}
+                                sx={{ width: 30, height: 30, borderRadius: "50%", bgcolor: c, border: "3px solid", borderColor: settings.accent_color === c ? "#000" : "#fff", boxShadow: 1, cursor: "pointer" }}
+                              />
+                            </Tooltip>
+                          ))}
+                          <TextField type="color" value={settings.accent_color} onChange={(e) => set({ accent_color: e.target.value })} sx={{ width: 64 }} slotProps={{ htmlInput: { "aria-label": "Custom colour" } }} />
+                        </Box>
+                      </Box>
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion disableGutters sx={{ mb: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontWeight: 700 }}>{t("Sections to print")}</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+                      {sections.map(([key, label]) => (
+                        <FormControlLabel key={key} control={<Switch size="small" checked={Boolean(settings[key])} onChange={(e) => set({ [key]: e.target.checked })} />} label={<Typography variant="body2">{t(label)}</Typography>} />
+                      ))}
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion disableGutters sx={{ mb: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontWeight: 700 }}>{t("Text & headings")}</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Grid container spacing={2}>
+                      {kind === "a4" ? (
+                        <>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField fullWidth label={t("Title (GST registered)")} value={settings.title_tax} onChange={(e) => set({ title_tax: e.target.value })} />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField fullWidth label={t("Title (no GSTIN)")} value={settings.title_retail} onChange={(e) => set({ title_retail: e.target.value })} />
+                          </Grid>
+                          <Grid size={12}>
+                            <TextField fullWidth label={t("Line under the title")} placeholder={t("e.g. Wholesale & party orders")} value={settings.header_note} onChange={(e) => set({ header_note: e.target.value })} />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField fullWidth label={t("Signature label")} value={settings.signature_label} onChange={(e) => set({ signature_label: e.target.value })} />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField fullWidth label={t("Footer line")} value={settings.footer_note} onChange={(e) => set({ footer_note: e.target.value })} />
+                          </Grid>
+                        </>
+                      ) : (
+                        <>
+                          <Grid size={12}>
+                            <TextField fullWidth label={t("Line under shop name")} placeholder="e.g. Pure veg · Home delivery 9am–11pm" value={settings.receipt_header_note} onChange={(e) => set({ receipt_header_note: e.target.value })} />
+                          </Grid>
+                          <Grid size={12}>
+                            <TextField fullWidth label={t("Message above footer")} placeholder={t("e.g. Get 10% off on your next visit!")} value={settings.receipt_footer_note} onChange={(e) => set({ receipt_footer_note: e.target.value })} />
+                          </Grid>
+                        </>
+                      )}
+                    </Grid>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                      Shop name, address, GSTIN, FSSAI, bank details, terms and the receipt footer (&quot;Thanks&quot;) are edited in Settings → Business details.
+                    </Typography>
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion disableGutters sx={{ mb: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontWeight: 700 }}>{t("Layout, size & spacing")}</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <LayoutControls kind={kind} settings={settings} set={set} />
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion disableGutters sx={{ mb: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontWeight: 700 }}>
+                      {t("Custom text & emoji")} ({settings.custom_blocks.length})
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <BlocksEditor settings={settings} set={set} />
+                  </AccordionDetails>
+                </Accordion>
+
+                <Accordion disableGutters sx={{ mb: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography sx={{ fontWeight: 700 }}>{t("QR codes")} ({settings.qr_codes.length}/4)</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                      Add QR codes for a Google review, Instagram, online ordering, menu… Paste a link (we make the QR) or upload a QR image you already have.
+                    </Typography>
+                    {settings.qr_codes.map((q, i) => {
+                      const mode = q.mode || (q.image ? "image" : "link");
+                      return (
+                      <Paper key={i} variant="outlined" sx={{ p: 1.5, mb: 1.5 }}>
+                        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, flex: 1 }}>
+                            QR {i + 1}
+                          </Typography>
+                          <ToggleButtonGroup size="small" exclusive value={mode} onChange={(_, v) => v && setQr(i, v === "link" ? { mode: "link", image: null } : { mode: "image", url: "" })}>
+                            <ToggleButton value="link">{t("Link")}</ToggleButton>
+                            <ToggleButton value="image">{t("Image")}</ToggleButton>
+                          </ToggleButtonGroup>
+                          <IconButton size="small" color="error" onClick={() => set({ qr_codes: settings.qr_codes.filter((_, j) => j !== i) })} aria-label="Remove QR">
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <Grid container spacing={1.5}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField fullWidth label={t("Text under QR")} value={q.label || ""} onChange={(e) => setQr(i, { label: e.target.value })} slotProps={{ htmlInput: { maxLength: 40 } }} />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField select fullWidth label={t("Print on")} value={q.show_on || "both"} onChange={(e) => setQr(i, { show_on: e.target.value })}>
+                              <MenuItem value="both">{t("A4 and receipt")}</MenuItem>
+                              <MenuItem value="a4">{t("A4 invoice only")}</MenuItem>
+                              <MenuItem value="receipt">{t("Receipt only")}</MenuItem>
+                            </TextField>
+                          </Grid>
+                          <Grid size={12}>
+                            {mode === "image" ? (
+                              <ImageUpload value={q.image} onChange={(v) => setQr(i, { image: v })} label={t("QR image")} maxSize={300} disabled={!canEdit} />
+                            ) : (
+                              <TextField fullWidth label={t("Link")} placeholder={t("https://g.page/r/your-shop/review")} value={q.url || ""} onChange={(e) => setQr(i, { url: e.target.value.trim() })} />
+                            )}
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                      );
+                    })}
+                    {settings.qr_codes.length < 4 && (
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => set({ qr_codes: [...settings.qr_codes, { label: "", url: "", show_on: "both" }] })}>
+                          {t("Add QR code")}
+                        </Button>
+                        {QR_SUGGESTIONS.filter((label) => !settings.qr_codes.some((q) => q.label === label)).slice(0, 3).map((label) => (
+                          <Chip key={label} label={`+ ${label}`} variant="outlined" onClick={() => set({ qr_codes: [...settings.qr_codes, { label, url: "", show_on: "both" }] })} />
+                        ))}
+                      </Box>
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+              </>
+            )}
           </fieldset>
         </Grid>
 

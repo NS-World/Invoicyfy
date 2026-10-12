@@ -29,11 +29,12 @@ API at `/api/` on the same domain). Step-by-step guide: [DEPLOY-HOSTINGER.md](DE
 ## Billing flow
 
 1. **Quick Bill** (`/invoices/new`) — counter / delivery sale in one screen: pick or type the customer,
-   add items, mark payment received, *Save & Print* → thermal receipt.
-2. **Orders** — create an order, approve it, then *Generate Invoice* as a **Retail bill** (thermal receipt)
+   tap products from the category tabs (or search / scan the SKU and press Enter), loose items ask for
+   weight, amount or kg, mark payment received, *Save & Print* → thermal receipt + KOT (kitchen copy).
+2. **Orders** — create an order (prints a KOT for the kitchen), approve it, then *Generate Invoice* as a **Retail bill** (thermal receipt)
    or **GST tax invoice** (A4, for B2B).
 3. **Invoice screen** — print 80 mm / 58 mm receipt, print / save A4 PDF (Original / Duplicate / Triplicate),
-   share on WhatsApp, record part payments, cancel (stock is restored), add e-invoice IRN + QR.
+   print the KOT again, share on WhatsApp, record part payments, cancel (stock is restored), add e-invoice IRN + QR.
 
 ## Printing
 

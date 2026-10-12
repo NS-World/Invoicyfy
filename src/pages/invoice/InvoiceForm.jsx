@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -20,7 +20,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import CustomerPicker from "../../components/billing/CustomerPicker";
-import ItemsEditor from "../../components/billing/ItemsEditor";
+import ProductCatalog from "../../components/billing/ProductCatalog";
+import BillCart from "../../components/billing/BillCart";
+import useBillPicker from "../../components/billing/useBillPicker";
+import useCatalog from "../../hooks/useCatalog";
+import { billLines } from "../../utils/billItems";
+import { getInvoiceSettings } from "../../utils/invoiceSettings";
 import TotalsSummary from "../../components/billing/TotalsSummary";
 import { InvoiceServices } from "../../services/InvoiceServices";
 import { useNotify } from "../../context/NotifyProvider";
@@ -28,7 +33,7 @@ import { useAuth } from "../../context/useAuth";
 import useMeta from "../../hooks/useMeta";
 import useStores from "../../hooks/useStores";
 import { apiError, formatCurrency, today } from "../../utils/format";
-import { calcTotals, emptyItem, GSTIN_REGEX, itemToApi } from "../../utils/gst";
+import { calcTotals, GSTIN_REGEX, itemToApi } from "../../utils/gst";
 import { isInterstate } from "../../utils/party";
 import { useT } from "../../context/PrefsContext";
 
@@ -50,7 +55,9 @@ export default function InvoiceForm() {
   const [invoiceDate, setInvoiceDate] = useState(today());
   const [dueDate, setDueDate] = useState("");
   const [orderType, setOrderType] = useState("Counter");
-  const [items, setItems] = useState([emptyItem()]);
+  const [items, setItems] = useState([]);
+  const [kot, setKot] = useState(null); // null = shop default from Invoice Design
+  const cartRef = useRef(null);
   const [paid, setPaid] = useState(params.get("type") !== "tax");
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("Cash");
@@ -66,7 +73,10 @@ export default function InvoiceForm() {
   const store = stores.find((s) => String(s.store_id) === String(storeId));
   const buyer = party.customer || (gstin ? { gstin } : posCode ? { state_code: posCode } : null);
   const interstate = isInterstate(store, buyer);
-  const validItems = items.filter((i) => i.product_name && Number(i.quantity) > 0);
+  const catalog = useCatalog(storeId);
+  const { pick, addCustom, dialog } = useBillPicker(setItems);
+  const kotOn = type === "retail" && (kot ?? getInvoiceSettings(store).kot_auto);
+  const validItems = billLines(items);
   const totals = useMemo(() => calcTotals(validItems, interstate), [validItems, interstate]);
   const gstinInvalid = gstin && !GSTIN_REGEX.test(gstin);
 
@@ -79,7 +89,7 @@ export default function InvoiceForm() {
   const submit = async (e) => {
     e.preventDefault();
     if (!validItems.length) {
-      setError("Add at least one item");
+      setError(t("Add at least one item"));
       return;
     }
     if (type === "tax" && !party.customer && !party.customer_name) {
@@ -108,7 +118,7 @@ export default function InvoiceForm() {
         terms: extra.terms || undefined,
       });
       notify(`Invoice ${res.invoice_number} created`);
-      navigate(`/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}`, { replace: true });
+      navigate(`/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}${kotOn ? "&kot=1" : ""}`, { replace: true });
     } catch (err) {
       setError(apiError(err));
     } finally {
@@ -140,7 +150,7 @@ export default function InvoiceForm() {
       )}
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, lg: 8 }}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
             <Grid container spacing={2}>
               <Grid size={12}>
@@ -204,10 +214,7 @@ export default function InvoiceForm() {
           </Paper>
 
           <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-              {t("Items")}
-            </Typography>
-            <ItemsEditor items={items} onChange={setItems} interstate={interstate} storeId={storeId} />
+            <ProductCatalog catalog={catalog} items={items} onPick={pick} onCustom={addCustom} />
           </Paper>
 
           {type === "tax" && (
@@ -238,64 +245,105 @@ export default function InvoiceForm() {
           )}
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper sx={{ p: 2, position: { lg: "sticky" }, top: { lg: 16 } }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-              {t("Summary")}
-            </Typography>
-            {interstate && (
-              <Alert severity="info" sx={{ mb: 1 }}>
-                {t("Inter-state supply — IGST applies")}
-              </Alert>
-            )}
-            <TotalsSummary t={totals} interstate={interstate} />
-
-            <Box sx={{ mt: 2, p: 1.5, bgcolor: "action.hover", borderRadius: 2 }}>
-              <FormControlLabel control={<Switch checked={paid} onChange={(e) => setPaid(e.target.checked)} />} label={t("Payment received")} />
-              {paid && (
-                <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
-                  <Grid size={6}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      label={t("Amount ₹")}
-                      value={payAmount === "" ? totals.total : payAmount}
-                      onChange={(e) => setPayAmount(e.target.value)}
-                      slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }}
-                    />
-                  </Grid>
-                  <Grid size={6}>
-                    <TextField select fullWidth label={t("Mode")} value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                      {meta.payment_methods.filter((m) => m !== "Credit").map((m) => (
-                        <MenuItem key={m} value={m}>
-                          {m}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  {payMethod !== "Cash" && (
-                    <Grid size={12}>
-                      <TextField fullWidth label={t("Reference / UTR")} value={payRef} onChange={(e) => setPayRef(e.target.value)} />
-                    </Grid>
-                  )}
-                  {payAmount !== "" && Number(payAmount) < totals.total && (
-                    <Grid size={12}>
-                      <Typography variant="caption" color="warning.main">
-                        Balance {formatCurrency(totals.total - Number(payAmount))} will stay due
-                      </Typography>
-                    </Grid>
-                  )}
-                </Grid>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Box sx={{ position: { lg: "sticky" }, top: { lg: 16 } }}>
+            <Paper ref={cartRef} sx={{ p: 2, mb: 2, scrollMarginTop: 72 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, flex: 1 }}>
+                  {t("Bill items")} {validItems.length > 0 && `(${validItems.length})`}
+                </Typography>
+                {items.length > 0 && (
+                  <Button size="small" color="inherit" onClick={() => setItems([])}>
+                    {t("Clear")}
+                  </Button>
+                )}
+              </Box>
+              <BillCart items={items} onChange={setItems} interstate={interstate} maxHeight={{ lg: "36vh" }} />
+            </Paper>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                {t("Summary")}
+              </Typography>
+              {interstate && (
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  {t("Inter-state supply — IGST applies")}
+                </Alert>
               )}
-            </Box>
+              <TotalsSummary t={totals} interstate={interstate} />
 
-            <TextField fullWidth multiline minRows={2} label={t("Notes")} value={extra.notes} onChange={(e) => setExtra({ ...extra, notes: e.target.value })} sx={{ mt: 2 }} />
-            <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 2 }} disabled={saving || !validItems.length || Boolean(gstinInvalid)}>
-              {saving ? "Saving..." : `Save & Print · ${formatCurrency(totals.total)}`}
-            </Button>
-          </Paper>
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: "action.hover", borderRadius: 2 }}>
+                <FormControlLabel control={<Switch checked={paid} onChange={(e) => setPaid(e.target.checked)} />} label={t("Payment received")} />
+                {paid && (
+                  <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
+                    <Grid size={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label={t("Amount ₹")}
+                        value={payAmount === "" ? totals.total : payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }}
+                      />
+                    </Grid>
+                    <Grid size={6}>
+                      <TextField select fullWidth label={t("Mode")} value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+                        {meta.payment_methods.filter((m) => m !== "Credit").map((m) => (
+                          <MenuItem key={m} value={m}>
+                            {m}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    {payMethod !== "Cash" && (
+                      <Grid size={12}>
+                        <TextField fullWidth label={t("Reference / UTR")} value={payRef} onChange={(e) => setPayRef(e.target.value)} />
+                      </Grid>
+                    )}
+                    {payAmount !== "" && Number(payAmount) < totals.total && (
+                      <Grid size={12}>
+                        <Typography variant="caption" color="warning.main">
+                          Balance {formatCurrency(totals.total - Number(payAmount))} will stay due
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+                )}
+              </Box>
+
+              <TextField fullWidth multiline minRows={1} label={t("Notes")} value={extra.notes} onChange={(e) => setExtra({ ...extra, notes: e.target.value })} sx={{ mt: 2 }} />
+              {type === "retail" && (
+                <FormControlLabel
+                  sx={{ mt: 1 }}
+                  control={<Switch checked={Boolean(kotOn)} onChange={(e) => setKot(e.target.checked)} />}
+                  label={t("Also print KOT (kitchen copy)")}
+                />
+              )}
+              <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 1 }} disabled={saving || !validItems.length || Boolean(gstinInvalid)}>
+                {saving ? t("Saving...") : `${t("Save & Print")} · ${formatCurrency(totals.total)}`}
+              </Button>
+            </Paper>
+          </Box>
         </Grid>
       </Grid>
+      {dialog}
+      {/* Phones / tablets: total and save stay in reach while picking items. */}
+      <Paper
+        elevation={8}
+        sx={{ display: { xs: validItems.length ? "flex" : "none", lg: "none" }, position: "sticky", bottom: 8, mt: 2, p: 1, pl: 2, gap: 1, alignItems: "center", zIndex: 5, borderRadius: 3 }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" component="div">
+            {t("{n} item(s)", { n: validItems.length })}
+          </Typography>
+          <Typography sx={{ fontWeight: 800 }}>{formatCurrency(totals.total)}</Typography>
+        </Box>
+        <Button variant="outlined" onClick={() => cartRef.current?.scrollIntoView({ behavior: "smooth" })}>
+          {t("View bill")}
+        </Button>
+        <Button type="submit" variant="contained" disabled={saving || Boolean(gstinInvalid)}>
+          {t("Save")}
+        </Button>
+      </Paper>
     </Box>
   );
 }

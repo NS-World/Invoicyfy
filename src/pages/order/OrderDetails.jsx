@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -18,13 +18,18 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import CheckIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelIcon from "@mui/icons-material/CancelOutlined";
 import ReplayIcon from "@mui/icons-material/Replay";
-import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import KitchenIcon from "@mui/icons-material/SoupKitchenOutlined";
+import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import Loader from "../../components/common/Loader";
 import StatusChip from "../../components/common/StatusChip";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
 import GenerateInvoiceDialog from "../../components/billing/GenerateInvoiceDialog";
+import PrintPortal from "../../components/print/PrintPortal";
+import KotTicket from "../../components/print/KotTicket";
+import useStores from "../../hooks/useStores";
+import { getInvoiceSettings } from "../../utils/invoiceSettings";
 import { OrderServices } from "../../services/OrderServices";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError, formatCurrency, formatDate, formatNumber } from "../../utils/format";
@@ -55,6 +60,10 @@ export default function OrderDetails() {
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const autoPrinted = useRef(false);
+  const { stores } = useStores();
 
   const load = useCallback(async () => {
     try {
@@ -69,6 +78,25 @@ export default function OrderDetails() {
   useEffect(() => {
     if (id) load();
   }, [id, load]);
+
+  // KOT: open the print dialog once the ticket has rendered (?print=kot right after saving an order).
+  useEffect(() => {
+    if (order && params.get("print") === "kot" && !autoPrinted.current) {
+      autoPrinted.current = true;
+      setParams({}, { replace: true });
+      setPrinting(true);
+    }
+  }, [order, params, setParams]);
+  useEffect(() => {
+    if (!printing) return undefined;
+    const done = () => setPrinting(false);
+    window.addEventListener("afterprint", done);
+    const timer = setTimeout(() => window.print(), 250);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("afterprint", done);
+    };
+  }, [printing]);
 
   // Old links used router state: /order-details with { order_id }
   if (!id) {
@@ -93,6 +121,8 @@ export default function OrderDetails() {
   };
 
   const open = ["Pending", "Approved"].includes(order.status);
+  const store = stores.find((s) => Number(s.store_id) === Number(order.store_id));
+  const kotWidth = localStorage.getItem("receiptWidth") || "80mm";
   const interstate = Boolean(order.is_interstate);
 
   return (
@@ -103,6 +133,9 @@ export default function OrderDetails() {
         back="/orders"
         actions={
           <>
+            <Button variant="outlined" startIcon={<KitchenIcon />} onClick={() => setPrinting(true)}>
+              {t("Print KOT")}
+            </Button>
             {order.status === "Pending" && can("orders", "edit") && (
               <Button variant="outlined" color="primary" startIcon={<CheckIcon />} onClick={() => setStatus("Approved")} disabled={busy}>
                 {t("Approve")}
@@ -248,6 +281,11 @@ export default function OrderDetails() {
         confirmLabel="Cancel Order"
       />
       <GenerateInvoiceDialog order={order} open={invoiceOpen} onClose={() => setInvoiceOpen(false)} />
+      {printing && (
+        <PrintPortal pageSize={kotWidth}>
+          <KotTicket doc={{ ...order, items, store }} width={kotWidth} settings={getInvoiceSettings(store)} />
+        </PrintPortal>
+      )}
     </>
   );
 }

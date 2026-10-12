@@ -506,3 +506,56 @@
 .a4 .custom-block {
   margin: 4px 0;
 }
+
+/* ---------- KOT (kitchen order ticket) ---------- */
+.receipt.kot .kot-title {
+  font-size: 1.6em;
+  letter-spacing: 0.2em;
+}
+.receipt.kot .kot-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 8px;
+  align-items: baseline;
+}
+.receipt.kot .kot-row {
+  display: contents;
+}
+.receipt.kot .right {
+  text-align: right;
+}
+.receipt.kot .kot-name {
+  font-weight: 700;
+  font-size: 1.15em;
+  padding-top: 4px;
+  overflow-wrap: anywhere;
+}
+.receipt.kot .kot-qty {
+  font-weight: 800;
+  font-size: 1.25em;
+  text-align: right;
+  white-space: nowrap;
+  padding-top: 4px;
+}
+.receipt.kot .kot-note {
+  grid-column: 1 / -1;
+  font-style: italic;
+  padding-left: 6px;
+}
+.receipt.kot .kot-notes {
+  font-weight: 700;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.receipt.kot .kot-end {
+  margin-top: 6px;
+}
+.receipt.kot.kot-large {
+  font-size: 15px;
+}
+/* Bill and KOT in one print job: each starts on its own slip. */
+.print-break {
+  break-after: page;
+  page-break-after: always;
+  height: 0;
+}
