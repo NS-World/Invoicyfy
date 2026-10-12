@@ -13,8 +13,10 @@ import { RoleServices } from "../../services/RoleServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { apiError, formatDate } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Roles() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const [toDelete, setToDelete] = useState(null);
@@ -23,7 +25,7 @@ export default function Roles() {
   const confirmDelete = async () => {
     try {
       await RoleServices.deleteRoleDataFromId({ role_id: toDelete.role_id });
-      notify("Role deleted");
+      notify(t("Role deleted"));
       table.reload();
     } catch (err) {
       notify(apiError(err), "error");
@@ -50,12 +52,12 @@ export default function Roles() {
       sortable: false,
       renderCell: ({ row }) => (
         <span>
-          <Tooltip title="Edit">
+          <Tooltip title={t("Edit")}>
             <IconButton size="small" color="primary" onClick={() => navigate(`/role?id=${row.role_id}`)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
+          <Tooltip title={t("Delete")}>
             <IconButton size="small" color="error" onClick={() => setToDelete(row)} disabled={row.role_name === "Admin"}>
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -68,22 +70,22 @@ export default function Roles() {
   return (
     <>
       <PageHeader
-        title="Roles & Permissions"
+        title={t("Roles & Permissions")}
         actions={
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/role")}>
-            Add Role
+            {t("Add Role")}
           </Button>
         }
       />
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Search roles" />
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Search roles")} />
       </Toolbar>
       <DataTable table={table} columns={columns} height={420} mobileHidden={["created_at", "user_count"]} onRowClick={({ row }) => navigate(`/role?id=${row.role_id}`)} />
       <ConfirmationDialog
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete role?"
+        title={t("Delete role?")}
         message={`Role ${toDelete?.role_name || ""} will be deleted.`}
         cancelLabel="Cancel"
         confirmLabel="Delete"

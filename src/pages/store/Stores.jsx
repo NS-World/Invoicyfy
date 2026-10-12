@@ -14,8 +14,10 @@ import { clearStoreCache } from "../../hooks/useStores";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { apiError } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Stores() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const [toDelete, setToDelete] = useState(null);
@@ -25,7 +27,7 @@ export default function Stores() {
     try {
       await StoreServices.deleteStoreDataFromId({ store_id: toDelete.store_id });
       clearStoreCache();
-      notify("Store deleted");
+      notify(t("Store deleted"));
       table.reload();
     } catch (err) {
       notify(apiError(err), "error");
@@ -47,12 +49,12 @@ export default function Stores() {
       sortable: false,
       renderCell: ({ row }) => (
         <span onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="Edit">
+          <Tooltip title={t("Edit")}>
             <IconButton size="small" color="primary" onClick={() => navigate(`/store?id=${row.store_id}`)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
+          <Tooltip title={t("Delete")}>
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -65,22 +67,22 @@ export default function Stores() {
   return (
     <>
       <PageHeader
-        title="Stores"
+        title={t("Stores")}
         actions={
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/store")}>
-            Add Store
+            {t("Add Store")}
           </Button>
         }
       />
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Name, city, GSTIN" />
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Name, city, GSTIN")} />
       </Toolbar>
       <DataTable table={table} columns={columns} mobileHidden={["state", "phone", "invoice_prefix", "city"]} onRowClick={({ row }) => navigate(`/store?id=${row.store_id}`)} />
       <ConfirmationDialog
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete store?"
+        title={t("Delete store?")}
         message={`${toDelete?.name || ""} will be deleted.`}
         cancelLabel="Cancel"
         confirmLabel="Delete"

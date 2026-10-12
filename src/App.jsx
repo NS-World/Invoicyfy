@@ -1,7 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
-import { CssBaseline, ThemeProvider } from "@mui/material";
-import theme from "./theme";
+import { PreferencesProvider } from "./context/PreferencesProvider";
 import { AuthProvider } from "./context/AuthProvider";
 import { NotifyProvider } from "./context/NotifyProvider";
 import PrivateRoute from "./routes/PrivateRoute";
@@ -38,14 +37,14 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const InvoiceDesigner = lazy(() => import("./pages/settings/InvoiceDesigner"));
 const Backup = lazy(() => import("./pages/backup/Backup"));
 const Offers = lazy(() => import("./pages/marketing/Offers"));
+const Categories = lazy(() => import("./pages/category/Categories"));
 
 const admin = (el) => <PrivateRoute admin>{el}</PrivateRoute>;
 const guard = (perm, el) => <PrivateRoute perm={perm}>{el}</PrivateRoute>;
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <PreferencesProvider>
       <NotifyProvider>
         <AuthProvider>
           <Router>
@@ -77,6 +76,7 @@ function App() {
                   <Route path="customer" element={guard("customers", <CustomerForm />)} />
                   <Route path="products" element={guard("products", <Products />)} />
                   <Route path="product" element={guard("products", <ProductForm />)} />
+                  <Route path="categories" element={guard("products", <Categories />)} />
                   <Route path="product-details" element={guard("products", <ProductDetails />)} />
                   <Route path="inventory" element={guard("inventory", <Inventory />)} />
                   <Route path="expenses" element={guard("expenses", <Expenses />)} />
@@ -99,7 +99,7 @@ function App() {
           </Router>
         </AuthProvider>
       </NotifyProvider>
-    </ThemeProvider>
+    </PreferencesProvider>
   );
 }
 

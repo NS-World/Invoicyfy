@@ -1,3 +1,4 @@
+import { previewCanvas } from "../../theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -44,6 +45,7 @@ import { useNotify } from "../../context/NotifyProvider";
 import { useAuth } from "../../context/useAuth";
 import { apiError, formatCurrency, formatDate } from "../../utils/format";
 import { A4_TEMPLATES, RECEIPT_TEMPLATES, getInvoiceSettings } from "../../utils/invoiceSettings";
+import { useT } from "../../context/PrefsContext";
 
 const COPY_LABELS_A4 = ["Original for Recipient", "Duplicate for Transporter", "Triplicate for Supplier", ""];
 const COPY_LABELS_RECEIPT = ["", "Original", "Duplicate"];
@@ -66,6 +68,7 @@ const shareText = (inv) => {
 };
 
 function EInvoiceDialog({ invoice, open, onClose, onSaved }) {
+  const t = useT();
   const [form, setForm] = useState({});
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -105,29 +108,29 @@ function EInvoiceDialog({ invoice, open, onClose, onSaved }) {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Grid container spacing={2}>
           <Grid size={12}>
-            <TextField fullWidth label="IRN (64 characters)" value={form.irn || ""} onChange={set("irn")} slotProps={{ htmlInput: { maxLength: 64 } }} />
+            <TextField fullWidth label={t("IRN (64 characters)")} value={form.irn || ""} onChange={set("irn")} slotProps={{ htmlInput: { maxLength: 64 } }} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="Ack No." value={form.ack_no || ""} onChange={set("ack_no")} />
+            <TextField fullWidth label={t("Ack No.")} value={form.ack_no || ""} onChange={set("ack_no")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth type="datetime-local" label="Ack Date" value={form.ack_date || ""} onChange={set("ack_date")} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField fullWidth type="datetime-local" label={t("Ack Date")} value={form.ack_date || ""} onChange={set("ack_date")} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={12}>
-            <TextField fullWidth multiline minRows={3} label="Signed QR code text" value={form.signed_qr || ""} onChange={set("signed_qr")} />
+            <TextField fullWidth multiline minRows={3} label={t("Signed QR code text")} value={form.signed_qr || ""} onChange={set("signed_qr")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="E-way bill no." value={form.eway_bill_no || ""} onChange={set("eway_bill_no")} />
+            <TextField fullWidth label={t("E-way bill no.")} value={form.eway_bill_no || ""} onChange={set("eway_bill_no")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="Vehicle no." value={form.vehicle_no || ""} onChange={set("vehicle_no")} />
+            <TextField fullWidth label={t("Vehicle no.")} value={form.vehicle_no || ""} onChange={set("vehicle_no")} />
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t("Close")}</Button>
         <Button variant="contained" onClick={save} disabled={saving}>
-          Save
+          {t("Save")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -135,6 +138,7 @@ function EInvoiceDialog({ invoice, open, onClose, onSaved }) {
 }
 
 export default function InvoiceView() {
+  const t = useT();
   const { id } = useParams();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -224,7 +228,7 @@ export default function InvoiceView() {
       }
     } else {
       await navigator.clipboard?.writeText(text);
-      notify("Bill details copied to clipboard");
+      notify(t("Bill details copied to clipboard"));
     }
   };
 
@@ -242,7 +246,7 @@ export default function InvoiceView() {
   const removePayment = async () => {
     try {
       await PaymentServices.deletePayment(deletePayment.payment_id);
-      notify("Payment deleted");
+      notify(t("Payment deleted"));
       load();
     } catch (err) {
       notify(apiError(err), "error");
@@ -259,10 +263,10 @@ export default function InvoiceView() {
         actions={
           <>
             <Button variant="contained" startIcon={<ReceiptLongIcon />} onClick={() => print("receipt")}>
-              Print Receipt
+              {t("Print Receipt")}
             </Button>
             <Button variant="contained" color="secondary" startIcon={<PrintIcon />} onClick={() => print("a4")}>
-              Print A4 / PDF
+              {t("Print A4 / PDF")}
             </Button>
           </>
         }
@@ -278,10 +282,10 @@ export default function InvoiceView() {
         <Grid size={{ xs: 12, md: 8 }} sx={{ order: { xs: 2, md: 1 } }}>
           <Paper sx={{ p: { xs: 1, sm: 2 } }}>
             <Tabs value={preview} onChange={(_, v) => setPreview(v)} sx={{ mb: 2 }}>
-              <Tab value="receipt" label="Thermal receipt" />
-              <Tab value="a4" label="A4 invoice" />
+              <Tab value="receipt" label={t("Thermal receipt")} />
+              <Tab value="a4" label={t("A4 invoice")} />
             </Tabs>
-            <Box sx={{ overflowX: "auto", bgcolor: "#eef1f4", p: { xs: 1, sm: 2 }, borderRadius: 2 }}>
+            <Box sx={{ overflowX: "auto", bgcolor: previewCanvas, p: { xs: 1, sm: 2 }, borderRadius: 2 }}>
               {preview === "receipt" ? (
                 <Box sx={{ width: "fit-content", mx: "auto", boxShadow: 2 }}>
                   <ThermalReceipt invoice={invoice} copyLabel={copyReceipt} width={receiptWidth} settings={design} template={receiptTpl} />
@@ -314,14 +318,14 @@ export default function InvoiceView() {
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, mt: 2 }}>
               {!cancelled && invoice.balance_due > 0 && can("payments", "add") && (
                 <Button variant="contained" color="success" startIcon={<PaymentsIcon />} onClick={() => setPayOpen(true)} sx={{ gridColumn: "1 / -1" }}>
-                  Record Payment
+                  {t("Record Payment")}
                 </Button>
               )}
               <Button variant="outlined" startIcon={<WhatsAppIcon />} href={waLink} target="_blank" rel="noopener">
-                WhatsApp
+                {t("WhatsApp")}
               </Button>
               <Button variant="outlined" startIcon={<ShareIcon />} onClick={share}>
-                Share
+                {t("Share")}
               </Button>
               {invoice.invoice_type === "tax" && !cancelled && can("invoices", "edit") && (
                 <Button variant="outlined" startIcon={<QrCodeIcon />} onClick={() => setEinvOpen(true)} sx={{ gridColumn: "1 / -1" }}>
@@ -330,7 +334,7 @@ export default function InvoiceView() {
               )}
               {!cancelled && can("invoices", "delete") && (
                 <Button variant="outlined" color="error" startIcon={<BlockIcon />} onClick={() => setCancelOpen(true)} sx={{ gridColumn: "1 / -1" }}>
-                  Cancel Invoice
+                  {t("Cancel Invoice")}
                 </Button>
               )}
             </Box>
@@ -343,17 +347,17 @@ export default function InvoiceView() {
 
           <Paper sx={{ p: 2, mb: 2 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-              Print options
+              {t("Print options")}
             </Typography>
             <Grid container spacing={1.5}>
               <Grid size={6}>
-                <TextField select fullWidth label="Receipt width" value={receiptWidth} onChange={(e) => setReceiptWidth(e.target.value)}>
+                <TextField select fullWidth label={t("Receipt width")} value={receiptWidth} onChange={(e) => setReceiptWidth(e.target.value)}>
                   <MenuItem value="80mm">80 mm</MenuItem>
                   <MenuItem value="58mm">58 mm</MenuItem>
                 </TextField>
               </Grid>
               <Grid size={6}>
-                <TextField select fullWidth label="Receipt copy" value={copyReceipt} onChange={(e) => setCopyReceipt(e.target.value)}>
+                <TextField select fullWidth label={t("Receipt copy")} value={copyReceipt} onChange={(e) => setCopyReceipt(e.target.value)}>
                   {COPY_LABELS_RECEIPT.map((c) => (
                     <MenuItem key={c || "none"} value={c}>
                       {c || "None"}
@@ -362,25 +366,25 @@ export default function InvoiceView() {
                 </TextField>
               </Grid>
               <Grid size={6}>
-                <TextField select fullWidth label="Receipt design" value={receiptTpl} onChange={(e) => setReceiptTpl(e.target.value)}>
-                  {RECEIPT_TEMPLATES.map((t) => (
-                    <MenuItem key={t.key} value={t.key}>
-                      {t.name}
+                <TextField select fullWidth label={t("Receipt design")} value={receiptTpl} onChange={(e) => setReceiptTpl(e.target.value)}>
+                  {RECEIPT_TEMPLATES.map((tp) => (
+                    <MenuItem key={tp.key} value={tp.key}>
+                      {t(tp.name)}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
               <Grid size={6}>
-                <TextField select fullWidth label="A4 design" value={a4Tpl} onChange={(e) => setA4Tpl(e.target.value)}>
-                  {A4_TEMPLATES.map((t) => (
-                    <MenuItem key={t.key} value={t.key}>
-                      {t.name}
+                <TextField select fullWidth label={t("A4 design")} value={a4Tpl} onChange={(e) => setA4Tpl(e.target.value)}>
+                  {A4_TEMPLATES.map((tp) => (
+                    <MenuItem key={tp.key} value={tp.key}>
+                      {t(tp.name)}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
               <Grid size={12}>
-                <TextField select fullWidth label="A4 copy label" value={copyA4} onChange={(e) => setCopyA4(e.target.value)}>
+                <TextField select fullWidth label={t("A4 copy label")} value={copyA4} onChange={(e) => setCopyA4(e.target.value)}>
                   {COPY_LABELS_A4.map((c) => (
                     <MenuItem key={c || "none"} value={c}>
                       {c || "None"}
@@ -396,11 +400,11 @@ export default function InvoiceView() {
 
           <Paper sx={{ p: 2 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Payments
+              {t("Payments")}
             </Typography>
             {invoice.payments.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                No payments yet
+                {t("No payments yet")}
               </Typography>
             ) : (
               <List dense disablePadding>
@@ -411,7 +415,7 @@ export default function InvoiceView() {
                       disableGutters
                       secondaryAction={
                         can("payments", "delete") && (
-                          <Tooltip title="Delete payment">
+                          <Tooltip title={t("Delete payment")}>
                             <IconButton edge="end" size="small" onClick={() => setDeletePayment(p)}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -448,7 +452,7 @@ export default function InvoiceView() {
         onClose={() => setPayOpen(false)}
         onSaved={() => {
           setPayOpen(false);
-          notify("Payment recorded");
+          notify(t("Payment recorded"));
           load();
         }}
       />
@@ -459,21 +463,21 @@ export default function InvoiceView() {
         onSaved={(inv) => {
           setInvoice(inv);
           setEinvOpen(false);
-          notify("E-invoice details saved");
+          notify(t("E-invoice details saved"));
         }}
       />
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Cancel invoice {invoice.invoice_number}?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Stock will be added back. The invoice number stays in the register as cancelled (required for GST).
+            {t("Stock will be added back. The invoice number stays in the register as cancelled (required for GST).")}
           </Typography>
-          <TextField fullWidth autoFocus label="Reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+          <TextField fullWidth autoFocus label={t("Reason")} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCancelOpen(false)}>Keep</Button>
+          <Button onClick={() => setCancelOpen(false)}>{t("Keep")}</Button>
           <Button color="error" variant="contained" onClick={doCancel} disabled={!cancelReason.trim()}>
-            Cancel Invoice
+            {t("Cancel Invoice")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -481,7 +485,7 @@ export default function InvoiceView() {
         open={Boolean(deletePayment)}
         onClose={() => setDeletePayment(null)}
         onConfirm={removePayment}
-        title="Delete payment?"
+        title={t("Delete payment?")}
         message={deletePayment ? `${formatCurrency(deletePayment.amount)} received on ${formatDate(deletePayment.payment_date)} will be removed.` : ""}
         cancelLabel="Keep"
         confirmLabel="Delete"

@@ -16,8 +16,10 @@ import { ProductServices } from "../../services/ProductServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { apiError, formatCurrency, formatNumber } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Products() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const { can } = useAuth();
@@ -83,14 +85,14 @@ export default function Products() {
       renderCell: ({ row }) => (
         <span onClick={(e) => e.stopPropagation()}>
           {can("products", "edit") && (
-          <Tooltip title="Edit">
+          <Tooltip title={t("Edit")}>
             <IconButton size="small" color="primary" onClick={() => navigate(`/product?id=${row.product_id}`)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           )}
           {can("products", "delete") && (
-          <Tooltip title="Delete">
+          <Tooltip title={t("Delete")}>
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -104,25 +106,25 @@ export default function Products() {
   return (
     <>
       <PageHeader
-        title="Products"
+        title={t("Products")}
         actions={
           can("products", "add") && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
-              Add Product
+              {t("Add Product")}
             </Button>
           )
         }
       />
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Name, SKU, category, HSN" />
-        <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 130 }}>
-          <MenuItem value="">All</MenuItem>
-          <MenuItem value="Active">Active</MenuItem>
-          <MenuItem value="Inactive">Inactive</MenuItem>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Name, SKU, category, HSN")} />
+        <TextField select label={t("Status")} value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 130 }}>
+          <MenuItem value="">{t("All")}</MenuItem>
+          <MenuItem value="Active">{t("Active")}</MenuItem>
+          <MenuItem value="Inactive">{t("Inactive")}</MenuItem>
         </TextField>
         <ListExport
           table={table}
-          title="Products"
+          title={t("Products")}
           filename="products"
           columns={[
             { label: "Product", key: "name" },
@@ -150,7 +152,7 @@ export default function Products() {
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete product?"
+        title={t("Delete product?")}
         message={`${toDelete?.name || ""} will be deleted (or marked Inactive if it was already billed).`}
         cancelLabel="Cancel"
         confirmLabel="Delete"

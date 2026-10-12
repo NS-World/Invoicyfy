@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Alert, Paper, useMediaQuery, useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { useT } from "../../context/PrefsContext";
 
 /**
  * DataGrid with server pagination and phone-friendly defaults.
@@ -8,6 +9,9 @@ import { DataGrid } from "@mui/x-data-grid";
  * - table: the object returned by useServerTable
  */
 export default function DataTable({ table, columns, mobileHidden = [], onRowClick, height, pageSizeOptions = [10, 25, 50, 100], ...rest }) {
+  const t = useT();
+  // Column titles are translated here, so every list screen follows the chosen language.
+  const translated = useMemo(() => columns.map((c) => (c.headerName ? { ...c, headerName: t(c.headerName) } : c)), [columns, t]);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const visibility = useMemo(
@@ -21,14 +25,14 @@ export default function DataTable({ table, columns, mobileHidden = [], onRowClic
   return (
     <>
       {table.error && (
-        <Alert severity="error" sx={{ mb: 2 }} action={<span style={{ cursor: "pointer" }} onClick={table.reload}>Retry</span>}>
+        <Alert severity="error" sx={{ mb: 2 }} action={<span style={{ cursor: "pointer" }} onClick={table.reload}>{t("Retry")}</span>}>
           {table.error}
         </Alert>
       )}
       <Paper sx={{ height: height || { xs: "calc(100vh - 230px)", sm: 560 }, minHeight: 380, width: "100%", overflow: "hidden" }}>
         <DataGrid
           rows={table.rows}
-          columns={columns}
+          columns={translated}
           rowCount={table.total}
           loading={table.loading}
           paginationMode="server"
@@ -40,11 +44,11 @@ export default function DataTable({ table, columns, mobileHidden = [], onRowClic
           disableColumnMenu={isMobile}
           density={isMobile ? "compact" : "standard"}
           onRowClick={onRowClick}
-          localeText={{ noRowsLabel: "No records found" }}
+          localeText={{ noRowsLabel: t("No records found") }}
           sx={{
             border: 0,
             "& .MuiDataGrid-row": onRowClick ? { cursor: "pointer" } : undefined,
-            "& .MuiDataGrid-columnHeaders": { bgcolor: "#f8fafc" },
+            "& .MuiDataGrid-columnHeaders": { bgcolor: "action.hover" },
             "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 700 },
           }}
           {...rest}

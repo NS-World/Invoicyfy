@@ -17,8 +17,10 @@ import { InventoryServices } from "../../services/InventoryServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { formatCurrency, formatNumber } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Inventory() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const { can } = useAuth();
@@ -56,13 +58,13 @@ export default function Inventory() {
       renderCell: ({ row }) => (
         <span>
           {can("inventory", "add") && (
-          <Tooltip title="Stock in / out">
+          <Tooltip title={t("Stock in / out")}>
             <IconButton size="small" color="primary" onClick={() => setAdjust(row)}>
               <AddBoxIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           )}
-          <Tooltip title="History">
+          <Tooltip title={t("History")}>
             <IconButton size="small" onClick={() => setHistory(row)}>
               <HistoryIcon fontSize="small" />
             </IconButton>
@@ -75,39 +77,39 @@ export default function Inventory() {
   return (
     <>
       <PageHeader
-        title="Inventory"
+        title={t("Inventory")}
         actions={
           can("products", "add") && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
-              Add Product
+              {t("Add Product")}
             </Button>
           )
         }
       />
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Products tracked" value={summary?.products ?? "-"} loading={!summary} />
+          <StatCard label={t("Products tracked")} value={summary?.products ?? "-"} loading={!summary} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Low stock" value={summary?.low_stock ?? "-"} color="warning.main" loading={!summary} onClick={() => setFilter("low")} />
+          <StatCard label={t("Low stock")} value={summary?.low_stock ?? "-"} color="warning.main" loading={!summary} onClick={() => setFilter("low")} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Out of stock" value={summary?.out_of_stock ?? "-"} color="error.main" loading={!summary} onClick={() => setFilter("out")} />
+          <StatCard label={t("Out of stock")} value={summary?.out_of_stock ?? "-"} color="error.main" loading={!summary} onClick={() => setFilter("out")} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Stock value (cost)" value={formatCurrency(summary?.stock_value_cost)} hint={summary ? `Sale value ${formatCurrency(summary.stock_value_sale)}` : ""} loading={!summary} />
+          <StatCard label={t("Stock value (cost)")} value={formatCurrency(summary?.stock_value_cost)} hint={summary ? `Sale value ${formatCurrency(summary.stock_value_sale)}` : ""} loading={!summary} />
         </Grid>
       </Grid>
       <Tabs value={filter} onChange={(_, v) => setFilter(v)} variant="scrollable" sx={{ mb: 1 }}>
-        <Tab value="" label="All" />
-        <Tab value="low" label="Low stock" />
-        <Tab value="out" label="Out of stock" />
+        <Tab value="" label={t("All")} />
+        <Tab value="low" label={t("Low stock")} />
+        <Tab value="out" label={t("Out of stock")} />
       </Tabs>
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Search product, SKU, category" />
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Search product, SKU, category")} />
         <ListExport
           table={table}
-          title="Stock Report"
+          title={t("Stock Report")}
           filename="stock"
           columns={[
             { label: "Product", key: "name" },

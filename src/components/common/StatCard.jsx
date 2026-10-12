@@ -1,6 +1,8 @@
 import { Box, Paper, Skeleton, Typography } from "@mui/material";
+import { useT } from "../../context/PrefsContext";
 
 export default function StatCard({ label, value, hint, icon, color = "primary.main", loading, onClick }) {
+  const t = useT();
   return (
     <Paper
       elevation={0}
@@ -23,7 +25,7 @@ export default function StatCard({ label, value, hint, icon, color = "primary.ma
       )}
       <Box sx={{ minWidth: 0, overflow: "hidden" }}>
         <Typography variant="body2" color="text.secondary" noWrap>
-          {label}
+          {typeof label === "string" ? t(label) : label}
         </Typography>
         <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.3, whiteSpace: "nowrap", fontSize: { xs: "1rem", sm: "1.15rem" } }}>
           {loading ? <Skeleton width={90} /> : value}

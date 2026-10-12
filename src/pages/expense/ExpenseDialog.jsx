@@ -5,10 +5,12 @@ import useMeta from "../../hooks/useMeta";
 import useStores from "../../hooks/useStores";
 import { useAuth } from "../../context/useAuth";
 import { apiError, today } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const blank = () => ({ expense_date: today(), category: "", description: "", vendor: "", amount: "", tax_amount: "", payment_method: "Cash", reference_no: "", store_id: "" });
 
 export default function ExpenseDialog({ open, expense, categories, onClose, onSaved }) {
+  const t = useT();
   const meta = useMeta();
   const { isAdmin } = useAuth();
   const { stores, defaultStoreId } = useStores();
@@ -45,10 +47,10 @@ export default function ExpenseDialog({ open, expense, categories, onClose, onSa
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Grid container spacing={2}>
           <Grid size={{ xs: 6 }}>
-            <TextField fullWidth type="date" label="Date" value={form.expense_date} onChange={set("expense_date")} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField fullWidth type="date" label={t("Date")} value={form.expense_date} onChange={set("expense_date")} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <TextField fullWidth autoFocus type="number" label="Amount ₹ (incl. GST)" value={form.amount} onChange={set("amount")} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }} />
+            <TextField fullWidth autoFocus type="number" label={t("Amount ₹ (incl. GST)")} value={form.amount} onChange={set("amount")} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }} />
           </Grid>
           <Grid size={12}>
             <Autocomplete
@@ -56,17 +58,17 @@ export default function ExpenseDialog({ open, expense, categories, onClose, onSa
               options={categories}
               value={form.category}
               onInputChange={(_, v) => setForm((f) => ({ ...f, category: v }))}
-              renderInput={(params) => <TextField {...params} label="Category" required />}
+              renderInput={(params) => <TextField {...params} label={t("Category")} required />}
             />
           </Grid>
           <Grid size={12}>
-            <TextField fullWidth label="Description" value={form.description || ""} onChange={set("description")} />
+            <TextField fullWidth label={t("Description")} value={form.description || ""} onChange={set("description")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="Paid to (vendor)" value={form.vendor || ""} onChange={set("vendor")} />
+            <TextField fullWidth label={t("Paid to (vendor)")} value={form.vendor || ""} onChange={set("vendor")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField select fullWidth label="Paid by" value={form.payment_method} onChange={set("payment_method")}>
+            <TextField select fullWidth label={t("Paid by")} value={form.payment_method} onChange={set("payment_method")}>
               {meta.payment_methods.map((m) => (
                 <MenuItem key={m} value={m}>
                   {m}
@@ -75,14 +77,14 @@ export default function ExpenseDialog({ open, expense, categories, onClose, onSa
             </TextField>
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <TextField fullWidth type="number" label="GST paid ₹ (ITC)" helperText="Optional, for input tax credit" value={form.tax_amount} onChange={set("tax_amount")} slotProps={{ htmlInput: { min: 0, step: "any" } }} />
+            <TextField fullWidth type="number" label={t("GST paid ₹ (ITC)")} helperText={t("Optional, for input tax credit")} value={form.tax_amount} onChange={set("tax_amount")} slotProps={{ htmlInput: { min: 0, step: "any" } }} />
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <TextField fullWidth label="Bill / Ref no." value={form.reference_no || ""} onChange={set("reference_no")} />
+            <TextField fullWidth label={t("Bill / Ref no.")} value={form.reference_no || ""} onChange={set("reference_no")} />
           </Grid>
           {isAdmin && stores.length > 1 && (
             <Grid size={12}>
-              <TextField select fullWidth label="Store" value={form.store_id} onChange={set("store_id")}>
+              <TextField select fullWidth label={t("Store")} value={form.store_id} onChange={set("store_id")}>
                 {stores.map((s) => (
                   <MenuItem key={s.store_id} value={s.store_id}>
                     {s.name}
@@ -94,7 +96,7 @@ export default function ExpenseDialog({ open, expense, categories, onClose, onSa
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button variant="contained" onClick={save} disabled={saving || !form.category || !(Number(form.amount) > 0)}>
           {saving ? "Saving..." : "Save"}
         </Button>

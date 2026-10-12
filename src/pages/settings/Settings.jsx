@@ -12,8 +12,10 @@ import { clearStoreCache } from "../../hooks/useStores";
 import { useAuth } from "../../context/useAuth";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 function BusinessProfile() {
+  const t = useT();
   const { user, can } = useAuth();
   const isManager = can("settings", "edit");
   const notify = useNotify();
@@ -40,7 +42,7 @@ function BusinessProfile() {
     try {
       await StoreServices.updateStoreData({ ...form, store_id: user.store_id });
       clearStoreCache();
-      notify("Business details saved");
+      notify(t("Business details saved"));
     } catch (err) {
       setError(apiError(err));
     } finally {
@@ -69,6 +71,7 @@ function BusinessProfile() {
 }
 
 function ChangePassword() {
+  const t = useT();
   const notify = useNotify();
   const [form, setForm] = useState({ current_password: "", new_password: "", confirm: "" });
   const [error, setError] = useState("");
@@ -82,7 +85,7 @@ function ChangePassword() {
     setError("");
     try {
       await AuthServices.changePassword(form);
-      notify("Password changed");
+      notify(t("Password changed"));
       setForm({ current_password: "", new_password: "", confirm: "" });
     } catch (err) {
       setError(apiError(err));
@@ -96,29 +99,30 @@ function ChangePassword() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Grid container spacing={2}>
         <Grid size={12}>
-          <TextField fullWidth type="password" label="Current password" value={form.current_password} onChange={set("current_password")} autoComplete="current-password" />
+          <TextField fullWidth type="password" label={t("Current password")} value={form.current_password} onChange={set("current_password")} autoComplete="current-password" />
         </Grid>
         <Grid size={12}>
-          <TextField fullWidth type="password" label="New password" helperText="At least 8 characters" value={form.new_password} onChange={set("new_password")} autoComplete="new-password" />
+          <TextField fullWidth type="password" label={t("New password")} helperText={t("At least 8 characters")} value={form.new_password} onChange={set("new_password")} autoComplete="new-password" />
         </Grid>
         <Grid size={12}>
-          <TextField fullWidth type="password" label="Confirm new password" value={form.confirm} onChange={set("confirm")} error={Boolean(mismatch)} helperText={mismatch ? "Passwords do not match" : " "} autoComplete="new-password" />
+          <TextField fullWidth type="password" label={t("Confirm new password")} value={form.confirm} onChange={set("confirm")} error={Boolean(mismatch)} helperText={mismatch ? "Passwords do not match" : " "} autoComplete="new-password" />
         </Grid>
       </Grid>
       <Button type="submit" variant="contained" sx={{ mt: 1 }} disabled={saving || !form.current_password || form.new_password.length < 8 || mismatch}>
-        Change Password
+        {t("Change Password")}
       </Button>
     </Paper>
   );
 }
 
 export default function Settings() {
+  const t = useT();
   const [tab, setTab] = useState("business");
   const { user, can } = useAuth();
   const navigate = useNavigate();
   return (
     <Box sx={{ maxWidth: 960, mx: "auto" }}>
-      <PageHeader title="Settings" subtitle={user ? `${user.name} · ${user.email}` : ""} />
+      <PageHeader title={t("Settings")} subtitle={user ? `${user.name} · ${user.email}` : ""} />
       {can("settings") && (
         <Alert
           severity="info"
@@ -126,20 +130,20 @@ export default function Settings() {
           sx={{ mb: 2 }}
           action={
             <Button size="small" onClick={() => navigate("/settings/invoice-design")}>
-              Open
+              {t("Open")}
             </Button>
           }
         >
-          Change invoice & receipt templates, logo, colours, sections and QR codes in <b>Invoice Design</b>.
+          Change invoice & receipt templates, logo, colours, sections and QR codes in <b>{t("Invoice Design")}</b>.
         </Alert>
       )}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab value="business" label="Business details" />
-        <Tab value="password" label="Change password" />
+        <Tab value="business" label={t("Business details")} />
+        <Tab value="password" label={t("Change password")} />
       </Tabs>
       {tab === "business" ? <BusinessProfile /> : <ChangePassword />}
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-        Receipt paper width (80mm / 58mm) is chosen on the invoice screen and remembered on this device.
+        {t("Receipt paper width (80mm / 58mm) is chosen on the invoice screen and remembered on this device.")}
       </Typography>
     </Box>
   );

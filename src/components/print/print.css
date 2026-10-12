@@ -24,7 +24,7 @@
   font-size: 1.25em;
 }
 .receipt .store-name {
-  font-size: 1.35em;
+  font-size: var(--store-size, 1.35em);
   margin-top: 2px;
 }
 .receipt .small {
@@ -47,40 +47,43 @@
   font-weight: 800;
   font-size: 1.2em;
 }
-.receipt table.items {
-  width: 100%;
-  border-collapse: collapse;
-}
-.receipt table.items th {
-  font-weight: 400;
-  text-align: right;
-  padding: 0 0 2px;
-}
-.receipt table.items th.left,
-.receipt table.items td.left {
-  text-align: left;
-}
-.receipt table.items td {
-  padding: 3px 0 0;
-}
-.receipt .item-line {
+/* Items: header and rows share one grid so the columns line up (widths adjustable in the designer). */
+.receipt .items-grid {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) var(--qty-w, 7ch) var(--price-w, 9.5ch) var(--amt-w, 8.5ch);
+  column-gap: 4px;
   align-items: baseline;
 }
-.receipt-58 .item-line {
-  grid-template-columns: 1fr auto auto;
+.receipt .items-grid.no-price {
+  grid-template-columns: minmax(0, 1fr) var(--qty-w, 7ch) var(--amt-w, 8.5ch);
 }
-.receipt-58 .item-line .num:nth-of-type(3) {
-  display: none;
+.receipt .ig-row {
+  display: contents;
 }
-.receipt .item-line .num {
+.receipt .ig-head {
   text-align: right;
-  min-width: 3.2em;
+  padding-bottom: 2px;
+  white-space: nowrap;
 }
-.receipt .item-line .qty {
-  min-width: 1.5em;
+.receipt .ig-head.left,
+.receipt .ig-name {
+  text-align: left;
+}
+.receipt .ig-name {
+  padding-top: 3px;
+  overflow-wrap: anywhere;
+}
+.receipt .ig-num {
+  text-align: right;
+  white-space: nowrap;
+  padding-top: 3px;
+}
+.receipt.bold-items .ig-name,
+.receipt.bold-items .ig-num {
+  font-weight: 700;
+}
+.receipt .ig-full {
+  grid-column: 1 / -1;
 }
 .receipt .note {
   font-style: italic;
@@ -118,7 +121,7 @@
   margin-bottom: 4px;
 }
 .a4-title h1 {
-  font-size: 18px;
+  font-size: var(--title-size, 18px);
   margin: 0;
   letter-spacing: 1px;
 }
@@ -197,7 +200,7 @@
 .a4 table.lines th,
 .a4 table.lines td {
   border: 1px solid #000;
-  padding: 3px 4px;
+  padding: var(--cell-pad, 3px) calc(var(--cell-pad, 3px) + 1px);
   text-align: center;
   vertical-align: top;
 }
@@ -274,6 +277,7 @@
 .receipt-logo {
   max-height: 48px;
   max-width: 70%;
+  width: var(--logo-w, auto);
   margin: 2px auto 4px;
   display: block;
   filter: grayscale(1) contrast(1.4);
@@ -311,7 +315,7 @@
   padding: 8px 6px;
 }
 .a4-logo {
-  max-height: 46px;
+  max-height: var(--a4-logo-h, 46px);
   max-width: 160px;
   object-fit: contain;
 }
@@ -468,4 +472,37 @@
 }
 .tpl-bold .seller-name {
   font-size: 16px;
+}
+
+/* ---------- Designer: separators and custom text blocks ---------- */
+.receipt.sep-dashed hr {
+  border-top-style: dashed !important;
+}
+.receipt.sep-dotted hr {
+  border-top-style: dotted !important;
+}
+.receipt.sep-double hr {
+  border-top: 3px double #000 !important;
+}
+.custom-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 3px 0;
+}
+.custom-block.cb-small {
+  font-size: 0.85em;
+}
+.custom-block.cb-large {
+  font-size: 1.25em;
+}
+.custom-block.cb-xlarge {
+  font-size: 1.6em;
+}
+.custom-block.cb-boxed {
+  border: 1px dashed #000;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.a4 .custom-block {
+  margin: 4px 0;
 }

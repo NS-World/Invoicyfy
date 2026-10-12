@@ -1,8 +1,9 @@
 import { QRCodeSVG } from "qrcode.react";
 import { amountInWords, formatDate, formatNumber } from "../../utils/format";
-import { DEFAULT_INVOICE_SETTINGS, qrCodesFor } from "../../utils/invoiceSettings";
+import { DEFAULT_INVOICE_SETTINGS, a4Style, qrCodesFor } from "../../utils/invoiceSettings";
 import { formatQty, rateSuffix } from "../../utils/weight";
 import ExtraQrCodes from "./ExtraQrCodes";
+import CustomBlocks from "./CustomBlocks";
 import "./print.css";
 
 const m = (v) => (Number(v) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31,16 +32,19 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
   const bank = s.show_bank && (store.bank_name || store.bank_account_no);
   const showTerms = s.show_terms && (invoice.terms || invoice.notes);
   const leadCols = 2 + (hsnCol ? 1 : 0); // #, description, [hsn]
+  const blocks = (position) => <CustomBlocks blocks={s.custom_blocks} position={position} format="a4" />;
 
   return (
-    <div className={`a4 tpl-${tpl}`} style={{ "--accent": s.accent_color || "#045864" }}>
+    <div className={`a4 tpl-${tpl}`} style={a4Style(s)}>
       {invoice.status === "Cancelled" && <div className="watermark">CANCELLED</div>}
+      {blocks("top")}
       <div className="a4-title">
         {s.show_logo && store.logo ? <img src={store.logo} alt="" className="a4-logo" /> : <span />}
         <h1>{title}</h1>
         <span className="copy">{copyLabel}</span>
       </div>
       {s.header_note && <div className="header-note">{s.header_note}</div>}
+      {blocks("after_header")}
 
       {invoice.irn && (
         <div className="box irn">
@@ -156,6 +160,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
         )}
       </div>
 
+      {blocks("before_items")}
       <table className="lines">
         <thead>
           <tr>
@@ -239,6 +244,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
           </tr>
         </tbody>
       </table>
+      {blocks("after_items")}
 
       <div className="grid2 box">
         <div className="cell">
@@ -340,6 +346,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
         </table>
       )}
 
+      {blocks("after_totals")}
       <div className="grid2 box footer-box">
         <div className="cell">
           {bank && (
@@ -393,6 +400,7 @@ export default function TaxInvoiceA4({ invoice, copyLabel = "Original for Recipi
           )}
         </div>
       </div>
+      {blocks("bottom")}
       {extraQr.length > 0 && (
         <div className="box qr-box">
           <ExtraQrCodes codes={extraQr} size={76} />

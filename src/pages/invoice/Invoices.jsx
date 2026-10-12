@@ -18,8 +18,10 @@ import { InvoiceServices } from "../../services/InvoiceServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { datePresets, formatCurrency, formatDate } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Invoices() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const { can } = useAuth();
@@ -71,13 +73,13 @@ export default function Invoices() {
       sortable: false,
       renderCell: ({ row }) => (
         <span onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="Print">
+          <Tooltip title={t("Print")}>
             <IconButton size="small" onClick={() => navigate(`/invoices/${row.invoice_id}?print=${row.invoice_type === "retail" ? "receipt" : "a4"}`)}>
               <PrintIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           {row.balance_due > 0 && row.status !== "Cancelled" && can("payments", "add") && (
-            <Tooltip title="Record payment">
+            <Tooltip title={t("Record payment")}>
               <IconButton size="small" color="success" onClick={() => setPayFor(row)}>
                 <PaymentsIcon fontSize="small" />
               </IconButton>
@@ -91,15 +93,15 @@ export default function Invoices() {
   return (
     <>
       <PageHeader
-        title="Invoices"
+        title={t("Invoices")}
         actions={
           can("invoices", "add") && (
           <>
             <Button variant="outlined" onClick={() => navigate("/invoices/new?type=tax")}>
-              New GST Invoice
+              {t("New GST Invoice")}
             </Button>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/invoices/new")}>
-              Quick Bill
+              {t("Quick Bill")}
             </Button>
           </>
           )
@@ -107,38 +109,38 @@ export default function Invoices() {
       />
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Billed" value={formatCurrency(summary?.total_amount)} loading={!summary} />
+          <StatCard label={t("Billed")} value={formatCurrency(summary?.total_amount)} loading={!summary} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Received" value={formatCurrency(summary?.amount_paid)} color="success.main" loading={!summary} />
+          <StatCard label={t("Received")} value={formatCurrency(summary?.amount_paid)} color="success.main" loading={!summary} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Outstanding" value={formatCurrency(summary?.balance_due)} color="warning.main" loading={!summary} />
+          <StatCard label={t("Outstanding")} value={formatCurrency(summary?.balance_due)} color="warning.main" loading={!summary} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="GST collected" value={formatCurrency(summary?.tax_amount)} color="secondary.main" loading={!summary} />
+          <StatCard label={t("GST collected")} value={formatCurrency(summary?.tax_amount)} color="secondary.main" loading={!summary} />
         </Grid>
       </Grid>
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Invoice no, customer, GSTIN" />
-        <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">All</MenuItem>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Invoice no, customer, GSTIN")} />
+        <TextField select label={t("Status")} value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 140 }}>
+          <MenuItem value="">{t("All")}</MenuItem>
           <MenuItem value="Due">Unpaid + Partial</MenuItem>
-          <MenuItem value="Overdue">Overdue</MenuItem>
-          <MenuItem value="Paid">Paid</MenuItem>
-          <MenuItem value="Unpaid">Unpaid</MenuItem>
-          <MenuItem value="Partial">Partial</MenuItem>
-          <MenuItem value="Cancelled">Cancelled</MenuItem>
+          <MenuItem value="Overdue">{t("Overdue")}</MenuItem>
+          <MenuItem value="Paid">{t("Paid")}</MenuItem>
+          <MenuItem value="Unpaid">{t("Unpaid")}</MenuItem>
+          <MenuItem value="Partial">{t("Partial")}</MenuItem>
+          <MenuItem value="Cancelled">{t("Cancelled")}</MenuItem>
         </TextField>
-        <TextField select label="Type" value={type} onChange={(e) => setType(e.target.value)} sx={{ minWidth: 130 }}>
-          <MenuItem value="">All</MenuItem>
-          <MenuItem value="retail">Retail bill</MenuItem>
-          <MenuItem value="tax">GST invoice</MenuItem>
+        <TextField select label={t("Type")} value={type} onChange={(e) => setType(e.target.value)} sx={{ minWidth: 130 }}>
+          <MenuItem value="">{t("All")}</MenuItem>
+          <MenuItem value="retail">{t("Retail bill")}</MenuItem>
+          <MenuItem value="tax">{t("GST invoice")}</MenuItem>
         </TextField>
         <DateRangeFilter value={range} onChange={setRange} />
         <ListExport
           table={table}
-          title="Invoices"
+          title={t("Invoices")}
           filename="invoices"
           subtitle={`${formatDate(range.from)} – ${formatDate(range.to)}`}
           columns={[
@@ -171,7 +173,7 @@ export default function Invoices() {
         onClose={() => setPayFor(null)}
         onSaved={() => {
           setPayFor(null);
-          notify("Payment recorded");
+          notify(t("Payment recorded"));
           table.reload();
         }}
       />

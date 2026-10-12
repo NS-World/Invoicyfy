@@ -3,6 +3,7 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormC
 import { InventoryServices } from "../../services/InventoryServices";
 import useMeta from "../../hooks/useMeta";
 import { apiError, formatCurrency, formatNumber, today } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const TYPES = [
   { value: "purchase", label: "Purchase / Stock in (+)" },
@@ -13,6 +14,7 @@ const TYPES = [
 ];
 
 export default function StockAdjustDialog({ product, open, onClose, onSaved }) {
+  const t = useT();
   const meta = useMeta();
   const [form, setForm] = useState({});
   const [error, setError] = useState("");
@@ -64,20 +66,20 @@ export default function StockAdjustDialog({ product, open, onClose, onSaved }) {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Grid container spacing={2}>
           <Grid size={12}>
-            <TextField select fullWidth label="Type" value={form.type || "purchase"} onChange={set("type")}>
-              {TYPES.map((t) => (
-                <MenuItem key={t.value} value={t.value}>
-                  {t.label}
+            <TextField select fullWidth label={t("Type")} value={form.type || "purchase"} onChange={set("type")}>
+              {TYPES.map((ty) => (
+                <MenuItem key={ty.value} value={ty.value}>
+                  {t(ty.label)}
                 </MenuItem>
               ))}
             </TextField>
           </Grid>
           <Grid size={6}>
-            <TextField fullWidth autoFocus type="number" label={`Quantity (${product.unit || "pcs"})`} value={form.quantity ?? ""} onChange={set("quantity")} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }} />
+            <TextField fullWidth autoFocus type="number" label={`${t("Quantity")} (${product.unit || "pcs"})`} value={form.quantity ?? ""} onChange={set("quantity")} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }} />
           </Grid>
           {isPurchase && (
             <Grid size={6}>
-              <TextField fullWidth type="number" label="Cost per unit ₹" value={form.unit_cost ?? ""} onChange={set("unit_cost")} slotProps={{ htmlInput: { min: 0, step: "any" } }} />
+              <TextField fullWidth type="number" label={t("Cost per unit ₹")} value={form.unit_cost ?? ""} onChange={set("unit_cost")} slotProps={{ htmlInput: { min: 0, step: "any" } }} />
             </Grid>
           )}
           {isPurchase && (
@@ -91,10 +93,10 @@ export default function StockAdjustDialog({ product, open, onClose, onSaved }) {
               {form.record_expense && (
                 <>
                   <Grid size={6}>
-                    <TextField fullWidth label="Supplier" value={form.vendor || ""} onChange={set("vendor")} />
+                    <TextField fullWidth label={t("Supplier")} value={form.vendor || ""} onChange={set("vendor")} />
                   </Grid>
                   <Grid size={6}>
-                    <TextField select fullWidth label="Paid by" value={form.payment_method || "Cash"} onChange={set("payment_method")}>
+                    <TextField select fullWidth label={t("Paid by")} value={form.payment_method || "Cash"} onChange={set("payment_method")}>
                       {meta.payment_methods.map((m) => (
                         <MenuItem key={m} value={m}>
                           {m}
@@ -107,12 +109,12 @@ export default function StockAdjustDialog({ product, open, onClose, onSaved }) {
             </>
           )}
           <Grid size={12}>
-            <TextField fullWidth label="Notes" value={form.notes || ""} onChange={set("notes")} />
+            <TextField fullWidth label={t("Notes")} value={form.notes || ""} onChange={set("notes")} />
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button variant="contained" onClick={save} disabled={saving || !(Number(form.quantity) > 0)}>
           {saving ? "Saving..." : "Save"}
         </Button>

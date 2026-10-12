@@ -1,5 +1,6 @@
 import { Box, Divider, Typography } from "@mui/material";
 import { formatCurrency } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const Row = ({ label, value, bold, color }) => (
   <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.4 }}>
@@ -13,28 +14,29 @@ const Row = ({ label, value, bold, color }) => (
 );
 
 /** t = calcTotals(...) result */
-export default function TotalsSummary({ t, interstate }) {
+export default function TotalsSummary({ t: totals, interstate }) {
+  const t = useT();
   return (
     <Box>
-      <Row label={`${t.count} item${t.count === 1 ? "" : "s"}`} value={formatCurrency(t.subtotal)} />
-      {t.discount > 0 && <Row label="Discount" value={`- ${formatCurrency(t.discount)}`} color="success.main" />}
-      <Row label="Taxable value" value={formatCurrency(t.taxable)} />
+      <Row label={`${totals.count} ${totals.count === 1 ? t("item") : t("items")}`} value={formatCurrency(totals.subtotal)} />
+      {totals.discount > 0 && <Row label={t("Discount")} value={`- ${formatCurrency(totals.discount)}`} color="success.main" />}
+      <Row label={t("Taxable value")} value={formatCurrency(totals.taxable)} />
       {interstate ? (
-        <Row label="IGST" value={formatCurrency(t.igst)} />
+        <Row label={t("IGST")} value={formatCurrency(totals.igst)} />
       ) : (
         <>
-          <Row label="CGST" value={formatCurrency(t.cgst)} />
-          <Row label="SGST" value={formatCurrency(t.sgst)} />
+          <Row label={t("CGST")} value={formatCurrency(totals.cgst)} />
+          <Row label={t("SGST")} value={formatCurrency(totals.sgst)} />
         </>
       )}
-      {t.roundOff !== 0 && <Row label="Round off" value={formatCurrency(t.roundOff)} />}
+      {totals.roundOff !== 0 && <Row label={t("Round off")} value={formatCurrency(totals.roundOff)} />}
       <Divider sx={{ my: 1 }} />
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          Grand Total
+          {t("Grand Total")}
         </Typography>
         <Typography variant="h5" color="primary" sx={{ fontWeight: 800 }}>
-          {formatCurrency(t.total)}
+          {formatCurrency(totals.total)}
         </Typography>
       </Box>
     </Box>

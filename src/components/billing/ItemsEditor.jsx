@@ -10,8 +10,6 @@ import {
   MenuItem,
   Paper,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -25,12 +23,22 @@ import useMeta from "../../hooks/useMeta";
 import useElementWidth from "../../hooks/useElementWidth";
 import { calcLine, emptyItem } from "../../utils/gst";
 import { formatCurrency, formatNumber } from "../../utils/format";
-import { gramsLabel, gramsPerUnit, isWeightUnit, parsePresets, rateSuffix } from "../../utils/weight";
+import { gramsLabel, gramsPerUnit, isWeightUnit, rateSuffix } from "../../utils/weight";
+import { useT } from "../../context/PrefsContext";
+import MeasurePicker from "./MeasurePicker";
+import QuickItems from "./QuickItems";
 
 function ProductSelect({ item, onPick, onText, storeId, autoFocus }) {
+  const t = useT();
   const [input, setInput] = useState(item.product_name || "");
   const [options, setOptions] = useState([]);
   const term = useDebounce(input, 250);
+  // Keep the box in sync when the item is filled from elsewhere (quick-pick buttons).
+  const [shownName, setShownName] = useState(item.product_name);
+  if (shownName !== item.product_name) {
+    setShownName(item.product_name);
+    setInput(item.product_name || "");
+  }
 
   useEffect(() => {
     let active = true;
@@ -74,7 +82,7 @@ function ProductSelect({ item, onPick, onText, storeId, autoFocus }) {
                   {o.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" component="div" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {[o.sku, o.hsn_code && `HSN ${o.hsn_code}`, `GST ${formatNumber(o.gst_rate)}%`, weight && "sold by weight"].filter(Boolean).join(" · ")}
+                  {[o.category, o.sku, o.hsn_code && `HSN ${o.hsn_code}`, `GST ${formatNumber(o.gst_rate)}%`, weight && t("loose")].filter(Boolean).join(" · ")}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: "right", flexShrink: 0 }}>
@@ -84,7 +92,7 @@ function ProductSelect({ item, onPick, onText, storeId, autoFocus }) {
                 </Typography>
                 {Boolean(o.track_inventory) && (
                   <Typography variant="caption" color={low ? "error" : "text.secondary"} sx={{ whiteSpace: "nowrap" }}>
-                    Stock {formatNumber(o.stock_qty, 3)} {o.unit}
+                    {t("Stock")} {formatNumber(o.stock_qty, 3)} {o.unit}
                   </Typography>
                 )}
               </Box>
@@ -92,54 +100,8 @@ function ProductSelect({ item, onPick, onText, storeId, autoFocus }) {
           </li>
         );
       }}
-      renderInput={(params) => <TextField {...params} placeholder="Search product or type item name" autoFocus={autoFocus} />}
+      renderInput={(params) => <TextField {...params} placeholder={t("Search product or type item name")} autoFocus={autoFocus} />}
     />
-  );
-}
-
-/** Gram presets (100 g, 250 g ...) + quantity typed in g or kg for items sold by weight. */
-function WeightPicker({ item, onChange }) {
-  const factor = gramsPerUnit(item.unit);
-  const grams = Math.round((Number(item.quantity) || 0) * factor * 1000) / 1000;
-  const entry = item.qty_entry === "kg" ? "kg" : "g";
-  const shown = item.quantity === "" ? "" : entry === "g" ? grams : grams / 1000;
-  const setGrams = (g) => onChange({ quantity: g === "" ? "" : Math.round((g / factor) * 1000) / 1000 });
-
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-        {parsePresets(item.weight_presets).map((g) => (
-          <Chip
-            key={g}
-            label={gramsLabel(g)}
-            size="small"
-            color={Math.abs(grams - g) < 0.001 ? "primary" : "default"}
-            variant={Math.abs(grams - g) < 0.001 ? "filled" : "outlined"}
-            onClick={() => setGrams(g)}
-            sx={{ fontWeight: 600 }}
-          />
-        ))}
-      </Box>
-      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-        <TextField
-          type="number"
-          label="Weight"
-          value={shown}
-          onChange={(e) => setGrams(e.target.value === "" ? "" : Number(e.target.value) * (entry === "g" ? 1 : 1000))}
-          onFocus={(e) => e.target.select()}
-          slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal", style: { textAlign: "right" } } }}
-          sx={{ flex: 1, minWidth: 90 }}
-        />
-        <ToggleButtonGroup exclusive size="small" value={entry} onChange={(_, v) => v && onChange({ qty_entry: v })}>
-          <ToggleButton value="g" sx={{ px: 1.25 }}>
-            g
-          </ToggleButton>
-          <ToggleButton value="kg" sx={{ px: 1.25 }}>
-            kg
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-    </Box>
   );
 }
 
@@ -147,22 +109,24 @@ function WeightPicker({ item, onChange }) {
  * Line items editor. Lays itself out by the width it actually gets (sidebar open or collapsed, tablet, phone):
  * a table when there is room, otherwise one card per item.
  */
-export default function ItemsEditor({ items, onChange, interstate, storeId, showDiscount = true }) {
+export default function ItemsEditor({ items, onChange, interstate, storeId, showDiscount = true, quickPick = true }) {
+  const t = useT();
   const meta = useMeta();
+  const [focusKey, setFocusKey] = useState(null);
   const [boxRef, width] = useElementWidth();
   const [notesOpen, setNotesOpen] = useState({});
   const anyWeight = items.some((it) => isWeightUnit(it.unit));
-  // Table needs ~860px (or ~1090px with the weight picker column); below that each item becomes a card.
-  const wide = width >= (anyWeight ? 1090 : 860);
-  const columns = `28px minmax(220px, 1fr) ${anyWeight ? "250px" : "90px"} 110px ${showDiscount ? "90px " : ""}90px 44px 110px 72px`;
+  // Table needs ~860px; below that each item becomes a card. Loose items get a full-width weight bar under their row.
+  const wide = width >= 860;
+  const columns = `28px minmax(220px, 1fr) 100px 110px ${showDiscount ? "90px " : ""}90px 44px 110px 72px`;
 
   const update = (idx, patch) => onChange(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   const remove = (idx) => onChange(items.length === 1 ? [emptyItem()] : items.filter((_, i) => i !== idx));
   const add = () => onChange([...items, emptyItem()]);
 
-  const pick = (idx, p) => {
+  const fromProduct = (p, current = {}) => {
     const weight = isWeightUnit(p.unit);
-    update(idx, {
+    return {
       product_id: p.product_id,
       product_name: p.name,
       hsn_code: p.hsn_code || "",
@@ -171,10 +135,27 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
       gst_rate: Number(p.gst_rate) || 0,
       price_includes_tax: Boolean(Number(p.price_includes_tax)),
       weight_presets: p.weight_presets || null,
-      // Weight items start empty so the cashier taps a preset or types the weight.
-      quantity: weight ? "" : items[idx].quantity || 1,
+      // Loose items start empty so the cashier taps a size or types weight / amount.
+      quantity: weight ? "" : current.quantity || 1,
       qty_entry: "g",
-    });
+    };
+  };
+  const pick = (idx, p) => {
+    update(idx, fromProduct(p, items[idx]));
+    if (isWeightUnit(p.unit)) setFocusKey(items[idx].key);
+  };
+  // Quick-pick: same product already billed (not loose) -> +1, else fill the empty row or add a new one.
+  const quickAdd = (p) => {
+    const weight = isWeightUnit(p.unit);
+    const same = !weight && items.findIndex((it) => it.product_id === p.product_id && !isWeightUnit(it.unit));
+    if (same !== false && same >= 0) {
+      update(same, { quantity: (Number(items[same].quantity) || 0) + 1 });
+      return;
+    }
+    const empty = items.findIndex((it) => !it.product_id && !String(it.product_name || "").trim());
+    const row = { ...(empty >= 0 ? items[empty] : emptyItem()), ...fromProduct(p) };
+    onChange(empty >= 0 ? items.map((it, i) => (i === empty ? row : it)) : [...items, row]);
+    if (weight) setFocusKey(row.key);
   };
 
   const rateSelect = (it, idx, label) => (
@@ -200,16 +181,12 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
   );
 
   const noteField = (it, idx) => (
-    <TextField fullWidth placeholder="Item note (e.g. Dry Fruits: Pista - 1x50 = 50)" value={it.item_note} onChange={(e) => update(idx, { item_note: e.target.value })} />
+    <TextField fullWidth placeholder={t("Item note (e.g. Dry Fruits: Pista - 1x50 = 50)")} value={it.item_note} onChange={(e) => update(idx, { item_note: e.target.value })} />
   );
 
-  const weightSummary = (it, l) =>
-    isWeightUnit(it.unit) && Number(it.quantity) > 0 ? (
-      <Typography variant="caption" color="text.secondary">
-        {gramsLabel(Number(it.quantity) * gramsPerUnit(it.unit))} × {formatCurrency(it.unit_price)}
-        {rateSuffix(it.unit)} = {formatCurrency(l.gross)}
-      </Typography>
-    ) : null;
+  const measure = (it, idx) => (
+    <MeasurePicker item={it} onChange={(patch) => update(idx, patch)} autoFocus={focusKey === it.key} />
+  );
 
   const card = (it, idx) => {
     const l = calcLine(it, interstate);
@@ -221,31 +198,26 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
           <Typography variant="caption" color="text.secondary">
             #{idx + 1}
           </Typography>
-          {weight && <Chip size="small" icon={<ScaleIcon />} label="By weight" variant="outlined" />}
+          {weight && <Chip size="small" icon={<ScaleIcon />} label={t("Loose / by weight")} variant="outlined" />}
           <Box sx={{ flex: 1 }} />
           <Typography variant="subtitle2">{formatCurrency(l.total)}</Typography>
-          <IconButton size="small" color="error" onClick={() => remove(idx)} aria-label="Remove item">
+          <IconButton size="small" color="error" onClick={() => remove(idx)} aria-label={t("Remove")}>
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Box>
         <ProductSelect item={it} storeId={storeId} onPick={(p) => pick(idx, p)} onText={(v) => update(idx, { product_name: v, product_id: null })} />
-        {weight && (
-          <Box sx={{ mt: 1.5 }}>
-            <WeightPicker item={it} onChange={(patch) => update(idx, patch)} />
-          </Box>
-        )}
+        {weight && <Box sx={{ mt: 1.5 }}>{measure(it, idx)}</Box>}
         <Box sx={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, mt: 1.5 }}>
-          {!weight && num(it.quantity, (v) => update(idx, { quantity: v }), { label: `Qty (${it.unit || "pcs"})` })}
-          {num(it.unit_price, (v) => update(idx, { unit_price: v }), { label: weight ? `Price ${rateSuffix(it.unit)}` : "Price" })}
-          {rateSelect(it, idx, "GST %")}
-          {showDiscount && num(it.discount_amount, (v) => update(idx, { discount_amount: v }), { label: "Discount ₹" })}
+          {!weight && num(it.quantity, (v) => update(idx, { quantity: v }), { label: `${t("Qty")} (${it.unit || "pcs"})` })}
+          {num(it.unit_price, (v) => update(idx, { unit_price: v }), { label: weight ? `${t("Price")} ${rateSuffix(it.unit)}` : t("Price") })}
+          {rateSelect(it, idx, t("GST %"))}
+          {showDiscount && num(it.discount_amount, (v) => update(idx, { discount_amount: v }), { label: t("Discount ₹") })}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mt: 0.5 }}>
           <FormControlLabel
             control={<Checkbox size="small" checked={Boolean(it.price_includes_tax)} onChange={(e) => update(idx, { price_includes_tax: e.target.checked })} />}
-            label={<Typography variant="caption">Price includes GST</Typography>}
+            label={<Typography variant="caption">{t("Price includes GST")}</Typography>}
           />
-          {weightSummary(it, l)}
         </Box>
         <Box sx={{ mt: 1 }}>{noteField(it, idx)}</Box>
       </Paper>
@@ -261,7 +233,8 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
         sx={{
           display: "grid",
           gridTemplateColumns: columns,
-          gap: 1,
+          columnGap: 1,
+          rowGap: 1,
           alignItems: "start",
           py: 1.25,
           px: 1,
@@ -277,22 +250,28 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
           {(notesOpen[it.key] || it.item_note) && noteField(it, idx)}
           {(it.hsn_code || weight) && (
             <Typography variant="caption" color="text.secondary">
-              {[it.hsn_code && `HSN ${it.hsn_code}`, weight && "Sold by weight"].filter(Boolean).join(" · ")}
+              {[it.hsn_code && `HSN ${it.hsn_code}`, weight && t("Loose / by weight")].filter(Boolean).join(" · ")}
             </Typography>
           )}
         </Box>
-        {weight ? <WeightPicker item={it} onChange={(patch) => update(idx, patch)} /> : <Box sx={{ maxWidth: 110 }}>{num(it.quantity, (v) => update(idx, { quantity: v }))}</Box>}
+        {weight ? (
+          <Typography variant="body2" sx={{ pt: 1, fontWeight: 600, color: Number(it.quantity) > 0 ? "text.primary" : "warning.main" }}>
+            {Number(it.quantity) > 0 ? gramsLabel(Number(it.quantity) * gramsPerUnit(it.unit), it.unit) : t("Set weight")}
+          </Typography>
+        ) : (
+          <Box sx={{ maxWidth: 110 }}>{num(it.quantity, (v) => update(idx, { quantity: v }))}</Box>
+        )}
         <Box>
           {num(it.unit_price, (v) => update(idx, { unit_price: v }))}
           {weight && (
             <Typography variant="caption" color="text.secondary">
-              per {rateSuffix(it.unit).slice(1)}
+              {t("per")} {rateSuffix(it.unit).slice(1)}
             </Typography>
           )}
         </Box>
         {showDiscount && num(it.discount_amount, (v) => update(idx, { discount_amount: v }))}
         {rateSelect(it, idx)}
-        <Checkbox size="small" checked={Boolean(it.price_includes_tax)} onChange={(e) => update(idx, { price_includes_tax: e.target.checked })} inputProps={{ "aria-label": "Price includes GST" }} />
+        <Checkbox size="small" checked={Boolean(it.price_includes_tax)} onChange={(e) => update(idx, { price_includes_tax: e.target.checked })} slotProps={{ input: { "aria-label": t("Price includes GST") } }} />
         <Box sx={{ textAlign: "right", pt: 1 }}>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {formatCurrency(l.total, { symbol: false })}
@@ -302,30 +281,27 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
               GST {formatCurrency(l.tax, { symbol: false })}
             </Typography>
           )}
-          {weight && Number(it.quantity) > 0 && (
-            <Typography variant="caption" color="text.secondary" display="block">
-              {gramsLabel(Number(it.quantity) * gramsPerUnit(it.unit))}
-            </Typography>
-          )}
         </Box>
         <Box sx={{ whiteSpace: "nowrap" }}>
-          <Tooltip title="Add note">
+          <Tooltip title={t("Add note")}>
             <IconButton size="small" onClick={() => setNotesOpen((n) => ({ ...n, [it.key]: !n[it.key] }))}>
               <NotesIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Remove">
+          <Tooltip title={t("Remove")}>
             <IconButton size="small" color="error" onClick={() => remove(idx)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
+        {weight && <Box sx={{ gridColumn: "2 / -1", maxWidth: 640 }}>{measure(it, idx)}</Box>}
       </Box>
     );
   };
 
   return (
     <Box ref={boxRef}>
+      {quickPick && <QuickItems storeId={storeId} onPick={quickAdd} />}
       {wide ? (
         <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box
@@ -335,20 +311,20 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
               gap: 1,
               px: 1,
               py: 1,
-              bgcolor: "#f8fafc",
+              bgcolor: "action.hover",
               "& > *": { fontWeight: 700, fontSize: 14 },
             }}
           >
             <span>#</span>
-            <span>Item</span>
-            <span style={{ textAlign: anyWeight ? "left" : "right" }}>{anyWeight ? "Qty / Weight" : "Qty"}</span>
-            <span style={{ textAlign: "right" }}>Price</span>
-            {showDiscount && <span style={{ textAlign: "right" }}>Disc. ₹</span>}
-            <span>GST</span>
-            <Tooltip title="Price includes GST">
-              <span>Incl.</span>
+            <span>{t("Item")}</span>
+            <span>{anyWeight ? t("Qty / Weight") : t("Qty")}</span>
+            <span style={{ textAlign: "right" }}>{t("Price")}</span>
+            {showDiscount && <span style={{ textAlign: "right" }}>{t("Disc. ₹")}</span>}
+            <span>{t("GST")}</span>
+            <Tooltip title={t("Price includes GST")}>
+              <span>{t("Incl.")}</span>
             </Tooltip>
-            <span style={{ textAlign: "right" }}>Amount</span>
+            <span style={{ textAlign: "right" }}>{t("Amount")}</span>
             <span />
           </Box>
           {items.map(row)}
@@ -357,7 +333,7 @@ export default function ItemsEditor({ items, onChange, interstate, storeId, show
         items.map(card)
       )}
       <Button startIcon={<AddIcon />} onClick={add} variant={wide ? "text" : "outlined"} fullWidth={!wide} sx={{ mt: 1 }}>
-        Add Item
+        {t("Add Item")}
       </Button>
     </Box>
   );

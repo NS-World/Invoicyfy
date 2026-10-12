@@ -15,8 +15,10 @@ import useStores from "../../hooks/useStores";
 import { apiError, today } from "../../utils/format";
 import { calcTotals, emptyItem, itemFromApi, itemToApi } from "../../utils/gst";
 import { isInterstate } from "../../utils/party";
+import { useT } from "../../context/PrefsContext";
 
 export default function OrderForm() {
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -126,20 +128,20 @@ export default function OrderForm() {
                 <CustomerPicker value={party} onChange={setParty} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
-                <TextField fullWidth type="date" label="Order date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                <TextField fullWidth type="date" label={t("Order date")} value={orderDate} onChange={(e) => setOrderDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
-                <TextField select fullWidth label="Order type" value={orderType} onChange={(e) => setOrderType(e.target.value)}>
-                  {meta.order_types.map((t) => (
-                    <MenuItem key={t} value={t}>
-                      {t}
+                <TextField select fullWidth label={t("Order type")} value={orderType} onChange={(e) => setOrderType(e.target.value)}>
+                  {meta.order_types.map((ot) => (
+                    <MenuItem key={ot} value={ot}>
+                      {t(ot)}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
               {isAdmin && stores.length > 1 && (
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <TextField select fullWidth label="Store" value={storeId} onChange={(e) => setStoreId(e.target.value)} disabled={Boolean(orderId)}>
+                  <TextField select fullWidth label={t("Store")} value={storeId} onChange={(e) => setStoreId(e.target.value)} disabled={Boolean(orderId)}>
                     {stores.map((s) => (
                       <MenuItem key={s.store_id} value={s.store_id}>
                         {s.name}
@@ -153,7 +155,7 @@ export default function OrderForm() {
 
           <Paper sx={{ p: { xs: 1.5, sm: 2 } }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-              Items
+              {t("Items")}
             </Typography>
             <ItemsEditor items={items} onChange={setItems} interstate={interstate} storeId={storeId} />
           </Paper>
@@ -162,18 +164,18 @@ export default function OrderForm() {
         <Grid size={{ xs: 12, lg: 4 }}>
           <Paper sx={{ p: 2, position: { lg: "sticky" }, top: { lg: 16 } }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-              Summary
+              {t("Summary")}
             </Typography>
             {interstate && (
               <Alert severity="info" sx={{ mb: 1 }}>
-                Inter-state supply — IGST applies
+                {t("Inter-state supply — IGST applies")}
               </Alert>
             )}
             <TotalsSummary t={totals} interstate={interstate} />
-            <TextField fullWidth multiline minRows={2} label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} sx={{ mt: 2 }} />
+            <TextField fullWidth multiline minRows={2} label={t("Notes")} value={notes} onChange={(e) => setNotes(e.target.value)} sx={{ mt: 2 }} />
             <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
               <Button variant="outlined" fullWidth onClick={() => navigate("/orders")}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button type="submit" variant="contained" fullWidth disabled={saving || !validItems.length}>
                 {saving ? "Saving..." : orderId ? "Update Order" : "Create Order"}

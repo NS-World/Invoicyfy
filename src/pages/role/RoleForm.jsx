@@ -23,6 +23,7 @@ import Loader from "../../components/common/Loader";
 import { RoleServices } from "../../services/RoleServices";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const ACTIONS = ["view", "add", "edit", "delete"];
 const LABEL = { view: "View", add: "Add", edit: "Edit", delete: "Delete / Cancel" };
@@ -38,6 +39,7 @@ const PRESETS = {
 };
 
 export default function RoleForm() {
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -109,19 +111,19 @@ export default function RoleForm() {
 
   return (
     <Box component="form" onSubmit={submit} sx={{ maxWidth: 960, mx: "auto" }}>
-      <PageHeader title={roleId ? `Edit Role · ${name}` : "Add Role"} subtitle="Choose exactly what people with this role can see and do" back="/roles" />
+      <PageHeader title={roleId ? `Edit Role · ${name}` : "Add Role"} subtitle={t("Choose exactly what people with this role can see and do")} back="/roles" />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
-        <TextField fullWidth required label="Role name" value={name} onChange={(e) => setName(e.target.value)} sx={{ maxWidth: 420 }} />
+        <TextField fullWidth required label={t("Role name")} value={name} onChange={(e) => setName(e.target.value)} sx={{ maxWidth: 420 }} />
         {!isSystem && (
           <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
             <Typography variant="body2" color="text.secondary">
-              Start from:
+              {t("Start from:")}
             </Typography>
             {Object.keys(PRESETS).map((p) => (
               <Chip key={p} label={p} variant="outlined" onClick={() => setPerms(PRESETS[p])} />
             ))}
-            <Chip label="Clear all" variant="outlined" color="error" onClick={() => setPerms({})} />
+            <Chip label={t("Clear all")} variant="outlined" color="error" onClick={() => setPerms({})} />
           </Box>
         )}
       </Paper>
@@ -147,7 +149,7 @@ export default function RoleForm() {
       ) : (
         <TableContainer component={Paper}>
           <Table size="small">
-            <TableHead sx={{ bgcolor: "#f8fafc" }}>
+            <TableHead sx={{ bgcolor: "action.hover" }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>Module</TableCell>
                 {ACTIONS.map((a) => (
@@ -156,7 +158,7 @@ export default function RoleForm() {
                   </TableCell>
                 ))}
                 <TableCell align="center" sx={{ fontWeight: 700 }}>
-                  All
+                  {t("All")}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -189,7 +191,7 @@ export default function RoleForm() {
           </Typography>
         )}
         <Button variant="outlined" onClick={() => navigate("/roles")}>
-          Cancel
+          {t("Cancel")}
         </Button>
         <Button type="submit" variant="contained" disabled={saving || !name.trim()}>
           {saving ? "Saving..." : "Save Role"}

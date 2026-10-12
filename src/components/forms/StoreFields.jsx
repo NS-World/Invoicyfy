@@ -2,6 +2,7 @@ import { Divider, Grid, MenuItem, TextField, Typography } from "@mui/material";
 import useMeta from "../../hooks/useMeta";
 import { storeInvalid } from "./storeForm";
 import ImageUpload from "./ImageUpload";
+import { useT } from "../../context/PrefsContext";
 
 const Section = ({ children }) => (
   <Grid size={12}>
@@ -13,6 +14,7 @@ const Section = ({ children }) => (
 
 /** Business profile fields printed on bills and invoices. */
 export default function StoreFields({ form, setForm }) {
+  const t = useT();
   const meta = useMeta();
   const set = (k, transform) => (e) => setForm((f) => ({ ...f, [k]: transform ? transform(e.target.value) : e.target.value }));
   const upper = (v) => v.toUpperCase().trim();
@@ -22,34 +24,34 @@ export default function StoreFields({ form, setForm }) {
     <Grid container spacing={2}>
       <Section>Business</Section>
       <Grid size={12}>
-        <ImageUpload value={form.logo} onChange={(v) => setForm((f) => ({ ...f, logo: v }))} label="Logo" hint="Optional · shows on bills when turned on in Invoice Design" />
+        <ImageUpload value={form.logo} onChange={(v) => setForm((f) => ({ ...f, logo: v }))} label={t("Logo")} hint="Optional · shows on bills when turned on in Invoice Design" />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth required label="Shop / brand name" value={form.name} onChange={set("name")} helperText="Printed at the top of receipts" />
+        <TextField fullWidth required label={t("Shop / brand name")} value={form.name} onChange={set("name")} helperText={t("Printed at the top of receipts")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="Tagline / sub-name" value={form.tagline} onChange={set("tagline")} />
+        <TextField fullWidth label={t("Tagline / sub-name")} value={form.tagline} onChange={set("tagline")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="Legal name (as per GST)" value={form.legal_name} onChange={set("legal_name")} />
+        <TextField fullWidth label={t("Legal name (as per GST)")} value={form.legal_name} onChange={set("legal_name")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="Phone" value={form.phone} onChange={set("phone")} />
+        <TextField fullWidth label={t("Phone")} value={form.phone} onChange={set("phone")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth type="email" label="Email" value={form.email} onChange={set("email")} />
+        <TextField fullWidth type="email" label={t("Email")} value={form.email} onChange={set("email")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="Logo URL" value={form.logo_url} onChange={set("logo_url")} />
+        <TextField fullWidth label={t("Logo URL")} value={form.logo_url} onChange={set("logo_url")} />
       </Grid>
       <Grid size={12}>
-        <TextField fullWidth multiline minRows={2} label="Address" value={form.address} onChange={set("address")} />
+        <TextField fullWidth multiline minRows={2} label={t("Address")} value={form.address} onChange={set("address")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 4 }}>
-        <TextField fullWidth label="City" value={form.city} onChange={set("city")} />
+        <TextField fullWidth label={t("City")} value={form.city} onChange={set("city")} />
       </Grid>
       <Grid size={{ xs: 6, sm: 4 }}>
-        <TextField select fullWidth label="State" value={form.state_code} onChange={set("state_code")}>
+        <TextField select fullWidth label={t("State")} value={form.state_code} onChange={set("state_code")}>
           <MenuItem value="">—</MenuItem>
           {meta.states.map((s) => (
             <MenuItem key={s.code} value={s.code}>
@@ -59,14 +61,14 @@ export default function StoreFields({ form, setForm }) {
         </TextField>
       </Grid>
       <Grid size={{ xs: 6, sm: 4 }}>
-        <TextField fullWidth label="PIN code" value={form.pincode} onChange={set("pincode")} slotProps={{ htmlInput: { maxLength: 6, inputMode: "numeric" } }} />
+        <TextField fullWidth label={t("PIN code")} value={form.pincode} onChange={set("pincode")} slotProps={{ htmlInput: { maxLength: 6, inputMode: "numeric" } }} />
       </Grid>
 
       <Section>Tax & licences</Section>
       <Grid size={{ xs: 12, sm: 4 }}>
         <TextField
           fullWidth
-          label="GSTIN"
+          label={t("GSTIN")}
           value={form.gstin}
           onChange={(e) => {
             const g = upper(e.target.value);
@@ -78,46 +80,46 @@ export default function StoreFields({ form, setForm }) {
         />
       </Grid>
       <Grid size={{ xs: 6, sm: 4 }}>
-        <TextField fullWidth label="PAN" value={form.pan} onChange={set("pan", upper)} slotProps={{ htmlInput: { maxLength: 10 } }} />
+        <TextField fullWidth label={t("PAN")} value={form.pan} onChange={set("pan", upper)} slotProps={{ htmlInput: { maxLength: 10 } }} />
       </Grid>
       <Grid size={{ xs: 6, sm: 4 }}>
-        <TextField fullWidth label="FSSAI Lic No." value={form.fssai_no} onChange={set("fssai_no")} />
+        <TextField fullWidth label={t("FSSAI Lic No.")} value={form.fssai_no} onChange={set("fssai_no")} />
       </Grid>
 
       <Section>Invoice numbering</Section>
       <Grid size={{ xs: 6 }}>
-        <TextField fullWidth label="Tax invoice prefix" value={form.invoice_prefix} onChange={set("invoice_prefix", upper)} helperText={`e.g. ${form.invoice_prefix || "INV"}/26-27/0001`} slotProps={{ htmlInput: { maxLength: 6 } }} />
+        <TextField fullWidth label={t("Tax invoice prefix")} value={form.invoice_prefix} onChange={set("invoice_prefix", upper)} helperText={`e.g. ${form.invoice_prefix || "INV"}/26-27/0001`} slotProps={{ htmlInput: { maxLength: 6 } }} />
       </Grid>
       <Grid size={{ xs: 6 }}>
-        <TextField fullWidth label="Retail bill prefix" value={form.bill_prefix} onChange={set("bill_prefix", upper)} helperText={`e.g. Bill No. ${form.bill_prefix || ""}55`} slotProps={{ htmlInput: { maxLength: 6 } }} />
+        <TextField fullWidth label={t("Retail bill prefix")} value={form.bill_prefix} onChange={set("bill_prefix", upper)} helperText={`e.g. Bill No. ${form.bill_prefix || ""}55`} slotProps={{ htmlInput: { maxLength: 6 } }} />
       </Grid>
 
       <Section>Bank & UPI (printed on invoices)</Section>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="UPI ID" placeholder="shop@upi" value={form.upi_id} onChange={set("upi_id")} helperText="A pay QR is printed on unpaid invoices" />
+        <TextField fullWidth label={t("UPI ID")} placeholder="shop@upi" value={form.upi_id} onChange={set("upi_id")} helperText={t("A pay QR is printed on unpaid invoices")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="Account holder name" value={form.bank_account_name} onChange={set("bank_account_name")} />
+        <TextField fullWidth label={t("Account holder name")} value={form.bank_account_name} onChange={set("bank_account_name")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="Bank name" value={form.bank_name} onChange={set("bank_name")} />
+        <TextField fullWidth label={t("Bank name")} value={form.bank_name} onChange={set("bank_name")} />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth label="Account number" value={form.bank_account_no} onChange={set("bank_account_no")} />
+        <TextField fullWidth label={t("Account number")} value={form.bank_account_no} onChange={set("bank_account_no")} />
       </Grid>
       <Grid size={{ xs: 6 }}>
-        <TextField fullWidth label="IFSC" value={form.bank_ifsc} onChange={set("bank_ifsc", upper)} slotProps={{ htmlInput: { maxLength: 11 } }} />
+        <TextField fullWidth label={t("IFSC")} value={form.bank_ifsc} onChange={set("bank_ifsc", upper)} slotProps={{ htmlInput: { maxLength: 11 } }} />
       </Grid>
       <Grid size={{ xs: 6 }}>
-        <TextField fullWidth label="Branch" value={form.bank_branch} onChange={set("bank_branch")} />
+        <TextField fullWidth label={t("Branch")} value={form.bank_branch} onChange={set("bank_branch")} />
       </Grid>
 
       <Section>Footer text</Section>
       <Grid size={12}>
-        <TextField fullWidth multiline minRows={3} label="Terms & conditions (A4 invoice)" value={form.invoice_terms} onChange={set("invoice_terms")} placeholder={"1. Goods once sold will not be taken back.\n2. Subject to local jurisdiction."} />
+        <TextField fullWidth multiline minRows={3} label={t("Terms & conditions (A4 invoice)")} value={form.invoice_terms} onChange={set("invoice_terms")} placeholder={"1. Goods once sold will not be taken back.\n2. Subject to local jurisdiction."} />
       </Grid>
       <Grid size={12}>
-        <TextField fullWidth label="Receipt footer" value={form.receipt_footer} onChange={set("receipt_footer")} placeholder="Thanks" />
+        <TextField fullWidth label={t("Receipt footer")} value={form.receipt_footer} onChange={set("receipt_footer")} placeholder={t("Thanks")} />
       </Grid>
     </Grid>
   );

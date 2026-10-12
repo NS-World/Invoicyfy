@@ -16,8 +16,10 @@ import { ExpenseServices } from "../../services/ExpenseServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { apiError, datePresets, formatCurrency, formatDate } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Expenses() {
+  const t = useT();
   const notify = useNotify();
   const { can } = useAuth();
   const [category, setCategory] = useState("");
@@ -38,7 +40,7 @@ export default function Expenses() {
   const confirmDelete = async () => {
     try {
       await ExpenseServices.deleteExpense(toDelete.expense_id);
-      notify("Expense deleted");
+      notify(t("Expense deleted"));
       table.reload();
     } catch (err) {
       notify(apiError(err), "error");
@@ -61,14 +63,14 @@ export default function Expenses() {
       renderCell: ({ row }) => (
         <span>
           {can("expenses", "edit") && (
-          <Tooltip title="Edit">
+          <Tooltip title={t("Edit")}>
             <IconButton size="small" color="primary" onClick={() => setDialog({ open: true, expense: row })}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           )}
           {can("expenses", "delete") && (
-          <Tooltip title="Delete">
+          <Tooltip title={t("Delete")}>
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -82,13 +84,13 @@ export default function Expenses() {
   return (
     <>
       <PageHeader
-        title="Expenses"
+        title={t("Expenses")}
         subtitle={summary ? `Total ${formatCurrency(summary.total_amount)} in this period` : " "}
         actions={
           <>
             {can("expenses", "add") && (
               <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ open: true, expense: null })}>
-                Add Expense
+                {t("Add Expense")}
               </Button>
             )}
           </>
@@ -102,9 +104,9 @@ export default function Expenses() {
         </Box>
       )}
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Search expenses" />
-        <TextField select label="Category" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 180 }}>
-          <MenuItem value="">All</MenuItem>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Search expenses")} />
+        <TextField select label={t("Category")} value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 180 }}>
+          <MenuItem value="">{t("All")}</MenuItem>
           {categories.map((c) => (
             <MenuItem key={c} value={c}>
               {c}
@@ -114,7 +116,7 @@ export default function Expenses() {
         <DateRangeFilter value={range} onChange={setRange} />
         <ListExport
           table={table}
-          title="Expenses"
+          title={t("Expenses")}
           filename="expenses"
           subtitle={`${formatDate(range.from)} – ${formatDate(range.to)}`}
           columns={[
@@ -145,7 +147,7 @@ export default function Expenses() {
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete expense?"
+        title={t("Delete expense?")}
         message={toDelete ? `${toDelete.category} · ${formatCurrency(toDelete.amount)}` : ""}
         cancelLabel="Cancel"
         confirmLabel="Delete"

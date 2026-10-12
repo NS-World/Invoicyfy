@@ -139,9 +139,10 @@ App ka `.htaccess` http ko apne aap https par bhej deta hai.
 1. **Settings** → shop details: naam, address, phone, GSTIN, FSSAI no., bank/UPI, bill prefix, logo.
 2. **Invoice Design** → template, QR codes (Google review link) aur default design chuno.
 3. **Roles & Permissions** + **Users** → biller/manager ke login banao.
-4. **Products** → ice cream items, loose (per kg) items ke 100/250/500/750/1000 g presets.
-5. **Offers & Messages → WhatsApp setup** (jab Meta account ready ho jaaye).
-6. **Backup & Restore** → pehla backup le lo.
+4. **Categories** → category + uska unit (kg / L / pcs) banao.
+5. **Products** → ice cream items, loose (per kg) items ke 100/250/500/750/1000 g presets.
+6. **Offers & Messages → Setup** → WhatsApp / Email / SMS.
+7. **Backup & Restore** → pehla backup le lo.
 
 Agar purana data local computer par hai: local app me **Backup & Restore → Download full backup**,
 phir live app me **Import backup**.
@@ -150,11 +151,34 @@ phir live app me **Import backup**.
 
 ## Update kaise karein (naya version)
 
-1. Step 1 se nayi zip banao.
-2. Upload karke extract karo, purani files overwrite hone do. `api/.env` zip me nahi hota, isliye
-   aapke secrets safe rehte hain.
-3. SSH se `php database/migrate.php` chalao (naye tables/columns; data safe rehta hai).
-4. Browser me ek baar hard refresh (Ctrl+Shift+R).
+1. **Pehle backup lo:** app me **Backup & Restore → Download full backup** (aur hPanel → Databases →
+   phpMyAdmin → Export bhi kar sakte ho).
+2. Nayi zip `public_html/billing` me upload karke extract karo, purani files overwrite hone do.
+   `api/.env` zip me nahi hota, isliye aapke secrets safe rehte hain.
+3. Admin se login karo → upar pila (yellow) banner aayega **"Update database"** → button dabao.
+   Naye tables/columns ban jaate hain, data safe rehta hai. (SSH ho to `php database/migrate.php` bhi chalega.)
+4. Browser me ek baar hard refresh (Ctrl+Shift+R). Mobile par app band karke phir kholo.
+
+### Offers ke liye auto-send (cron job) — ek baar set karo
+
+Email / SMS / WhatsApp API offers page band karne ke baad bhi jaate rahein, iske liye:
+hPanel → **Advanced → Cron Jobs** → Custom → **har minute** (`* * * * *`) → command:
+
+```
+/usr/bin/php /home/<hostinger-user>/domains/scoopiez.in/public_html/billing/api/cron/process-campaigns.php
+```
+
+(`<hostinger-user>` = `u975462343` jaisa aapka user. File Manager me path upar dikhta hai.)
+
+### Email / SMS setup (Offers & Messages → Setup)
+
+* **Email:** hPanel → Emails me ek mailbox banao (jaise `offers@scoopiez.in`). Setup → Email tab →
+  **Use Hostinger** dabao → mailbox ka email + password bharo → **Send test email**.
+* **SMS:** Fast2SMS ki API key (ya apne SMS provider ka URL). India me promotional SMS ke liye DLT
+  registration zaroori hai — provider se template approve karwao.
+* **WhatsApp API:** Meta Business me approved template; offer me photo bhejni ho to template me
+  IMAGE header rakho aur Setup me "Template has an image header" on karo.
+* Offer photos `api/uploads/offers/` me save hoti hain — yeh folder writable hona chahiye (default hota hai).
 
 ## Backup ki aadat
 
@@ -170,4 +194,7 @@ phir live app me **Import backup**.
 | "Server is not configured (JWT secrets missing)" | `.env` me `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` bharo. |
 | Har request par logout / 401 | `.htaccess` upload hua hai ya nahi dekho (File Manager → Settings → show hidden files). |
 | Refresh par 404 | `public_html/billing/.htaccess` missing hai. |
+| Offers page band karne par sending ruk jaati hai | Cron job set karo (upar dekho). |
+| Photo upload fail | `api/uploads/offers` folder ki permission 755 rakho. |
+| Naye screen par "Unknown column" error | Admin login → **Update database** button dabao. |
 | Error ki detail chahiye | Thodi der ke liye `APP_DEBUG=true` karo, check karke wapas `false` karo. |

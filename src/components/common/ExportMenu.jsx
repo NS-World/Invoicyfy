@@ -5,12 +5,14 @@ import GridOnIcon from "@mui/icons-material/GridOn";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 /**
  * "Download" button offering Excel and Word. `build` returns the report description used by utils/exporters
  * (it may fetch data first), so the file always matches the filters on screen.
  */
 export default function ExportMenu({ build, label = "Download", size = "medium", variant = "outlined", disabled }) {
+  const t = useT();
   const notify = useNotify();
   const [anchor, setAnchor] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -37,20 +39,20 @@ export default function ExportMenu({ build, label = "Download", size = "medium",
         onClick={(e) => setAnchor(e.currentTarget)}
         disabled={disabled || busy}
       >
-        {label}
+        {t(label)}
       </Button>
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
         <MenuItem onClick={() => run("excel")}>
           <ListItemIcon>
             <GridOnIcon fontSize="small" sx={{ color: "#1D6F42" }} />
           </ListItemIcon>
-          <ListItemText primary="Excel (.xlsx)" secondary="Open in Excel / Google Sheets" />
+          <ListItemText primary="Excel (.xlsx)" secondary={t("Open in Excel / Google Sheets")} />
         </MenuItem>
         <MenuItem onClick={() => run("word")}>
           <ListItemIcon>
             <DescriptionIcon fontSize="small" sx={{ color: "#2B579A" }} />
           </ListItemIcon>
-          <ListItemText primary="Word (.docx)" secondary="Ready to print or share" />
+          <ListItemText primary="Word (.docx)" secondary={t("Ready to print or share")} />
         </MenuItem>
       </Menu>
     </>

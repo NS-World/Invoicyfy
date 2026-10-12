@@ -17,11 +17,13 @@ import { Alert, CircularProgress } from "@mui/material";
 import { useAuth } from "../../context/useAuth";
 import { AuthServices } from "../../services/AuthServices";
 import "./Login.css";
+import { useT } from "../../context/PrefsContext";
 
 // The animation (and its player) load after the form so login is usable immediately.
 const Lottie = lazy(() => import("lottie-react"));
 
 export default function Login() {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -78,22 +80,22 @@ export default function Login() {
           </Box>
 
           <Typography variant="h4" align="center" className="login-title">
-            Invoicyfy
+            {t("Invoicyfy")}
           </Typography>
           <Typography align="center" className="login-subtitle">
-            Get your invoice in just 2 minutes.
+            {t("Get your invoice in just 2 minutes.")}
           </Typography>
 
           {params.get("expired") && !error && (
             <Alert severity="info" sx={{ mb: 1 }}>
-              Your session expired. Please login again.
+              {t("Your session expired. Please login again.")}
             </Alert>
           )}
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
               margin="normal"
-              label="Email"
+              label={t("Email")}
               type="email"
               autoComplete="email"
               required
@@ -112,7 +114,7 @@ export default function Login() {
               fullWidth
               margin="normal"
               type="password"
-              label="Password"
+              label={t("Password")}
               autoComplete="current-password"
               required
               disabled={loading}

@@ -3,8 +3,10 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid,
 import { PaymentServices } from "../../services/PaymentServices";
 import useMeta from "../../hooks/useMeta";
 import { apiError, formatCurrency, today } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function PaymentDialog({ invoice, open, onClose, onSaved }) {
+  const t = useT();
   const meta = useMeta();
   const [form, setForm] = useState({ amount: "", payment_method: "Cash", payment_date: today(), reference_no: "", notes: "" });
   const [saving, setSaving] = useState(false);
@@ -45,13 +47,13 @@ export default function PaymentDialog({ invoice, open, onClose, onSaved }) {
         </Typography>
         <Grid container spacing={2}>
           <Grid size={6}>
-            <TextField fullWidth autoFocus type="number" label="Amount ₹" value={form.amount} onChange={set("amount")} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }} />
+            <TextField fullWidth autoFocus type="number" label={t("Amount ₹")} value={form.amount} onChange={set("amount")} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }} />
           </Grid>
           <Grid size={6}>
-            <TextField fullWidth type="date" label="Date" value={form.payment_date} onChange={set("payment_date")} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField fullWidth type="date" label={t("Date")} value={form.payment_date} onChange={set("payment_date")} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={12}>
-            <TextField select fullWidth label="Payment mode" value={form.payment_method} onChange={set("payment_method")}>
+            <TextField select fullWidth label={t("Payment mode")} value={form.payment_method} onChange={set("payment_method")}>
               {meta.payment_methods.map((m) => (
                 <MenuItem key={m} value={m}>
                   {m}
@@ -60,15 +62,15 @@ export default function PaymentDialog({ invoice, open, onClose, onSaved }) {
             </TextField>
           </Grid>
           <Grid size={12}>
-            <TextField fullWidth label="Reference / UTR / Cheque no." value={form.reference_no} onChange={set("reference_no")} />
+            <TextField fullWidth label={t("Reference / UTR / Cheque no.")} value={form.reference_no} onChange={set("reference_no")} />
           </Grid>
           <Grid size={12}>
-            <TextField fullWidth label="Notes" value={form.notes} onChange={set("notes")} />
+            <TextField fullWidth label={t("Notes")} value={form.notes} onChange={set("notes")} />
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button variant="contained" onClick={save} disabled={saving || !(Number(form.amount) > 0)}>
           {saving ? "Saving..." : "Save Payment"}
         </Button>

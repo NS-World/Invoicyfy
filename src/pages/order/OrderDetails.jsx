@@ -29,6 +29,7 @@ import { OrderServices } from "../../services/OrderServices";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError, formatCurrency, formatDate, formatNumber } from "../../utils/format";
 import { formatQty, rateSuffix } from "../../utils/weight";
+import { useT } from "../../context/PrefsContext";
 
 const Info = ({ label, children }) => (
   <Box sx={{ mb: 1.5 }}>
@@ -42,6 +43,7 @@ const Info = ({ label, children }) => (
 );
 
 export default function OrderDetails() {
+  const t = useT();
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -103,27 +105,27 @@ export default function OrderDetails() {
           <>
             {order.status === "Pending" && can("orders", "edit") && (
               <Button variant="outlined" color="primary" startIcon={<CheckIcon />} onClick={() => setStatus("Approved")} disabled={busy}>
-                Approve
+                {t("Approve")}
               </Button>
             )}
             {open && can("orders", "edit") && (
               <Button variant="outlined" startIcon={<EditIcon />} onClick={() => navigate(`/order?id=${order.order_id}`)}>
-                Edit
+                {t("Edit")}
               </Button>
             )}
             {open && can("orders", "edit") && (
               <Button variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => setConfirmCancel(true)} disabled={busy}>
-                Cancel
+                {t("Cancel")}
               </Button>
             )}
             {order.status === "Cancelled" && can("orders", "edit") && (
               <Button variant="outlined" startIcon={<ReplayIcon />} onClick={() => setStatus("Pending")} disabled={busy}>
-                Re-open
+                {t("Re-open")}
               </Button>
             )}
             {open && can("invoices", "add") && (
               <Button variant="contained" color="success" startIcon={<ReceiptIcon />} onClick={() => setInvoiceOpen(true)}>
-                Generate Invoice
+                {t("Generate Invoice")}
               </Button>
             )}
             {order.invoice_id && (
@@ -140,16 +142,16 @@ export default function OrderDetails() {
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Details
+                {t("Details")}
               </Typography>
               <StatusChip status={order.status} />
             </Box>
-            <Info label="Customer">{order.customer_name || "Walk-in"}</Info>
-            <Info label="Mobile">{order.customer_phone}</Info>
-            {order.customer_gstin && <Info label="GSTIN">{order.customer_gstin}</Info>}
-            <Info label="Store">{order.store_name}</Info>
-            <Info label="Created by">{order.user_name}</Info>
-            {order.notes && <Info label="Notes">{order.notes}</Info>}
+            <Info label={t("Customer")}>{order.customer_name || "Walk-in"}</Info>
+            <Info label={t("Mobile")}>{order.customer_phone}</Info>
+            {order.customer_gstin && <Info label={t("GSTIN")}>{order.customer_gstin}</Info>}
+            <Info label={t("Store")}>{order.store_name}</Info>
+            <Info label={t("Created by")}>{order.user_name}</Info>
+            {order.notes && <Info label={t("Notes")}>{order.notes}</Info>}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
@@ -163,16 +165,16 @@ export default function OrderDetails() {
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>Item</TableCell>
                     <TableCell sx={{ fontWeight: 700 }} align="right">
-                      Qty
+                      {t("Qty")}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700 }} align="right">
-                      Price
+                      {t("Price")}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700 }} align="right">
-                      GST
+                      {t("GST")}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700 }} align="right">
-                      Amount
+                      {t("Amount")}
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -226,7 +228,7 @@ export default function OrderDetails() {
                   </Box>
                 ))}
               <Box sx={{ display: "flex", justifyContent: "space-between", borderTop: 1, borderColor: "divider", pt: 1, mt: 1 }}>
-                <Typography sx={{ fontWeight: 700 }}>Total</Typography>
+                <Typography sx={{ fontWeight: 700 }}>{t("Total")}</Typography>
                 <Typography variant="h6" color="primary" sx={{ fontWeight: 800 }}>
                   {formatCurrency(order.total_amount)}
                 </Typography>
@@ -240,7 +242,7 @@ export default function OrderDetails() {
         open={confirmCancel}
         onClose={() => setConfirmCancel(false)}
         onConfirm={() => setStatus("Cancelled")}
-        title="Cancel order?"
+        title={t("Cancel order?")}
         message="The order will be marked Cancelled. You can re-open it later."
         cancelLabel="Keep"
         confirmLabel="Cancel Order"

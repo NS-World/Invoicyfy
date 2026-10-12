@@ -1,3 +1,4 @@
+import { useTheme } from "@mui/material/styles";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -27,6 +28,7 @@ import DateRangeFilter from "../../components/common/DateRangeFilter";
 import { ReportServices } from "../../services/ReportServices";
 import { useAuth } from "../../context/useAuth";
 import { apiError, datePresets, formatCompact, formatCurrency, formatDate, formatNumber } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const COLORS = ["#045864", "#00897b", "#f9a825", "#ef6c00", "#6a1b9a", "#1565c0", "#c62828", "#546e7a"];
 
@@ -49,6 +51,10 @@ const Empty = ({ text = "No data yet" }) => (
 );
 
 export default function DashboardPage() {
+  const t = useT();
+  const theme = useTheme();
+  // Chart tooltips follow light / dark mode.
+  const tipStyle = { background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, borderRadius: 8, color: theme.palette.text.primary };
   const navigate = useNavigate();
   const { user, can } = useAuth();
   const [range, setRange] = useState(() => {
@@ -80,18 +86,18 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Hello${user?.name ? `, ${user.name.split(" ")[0]}` : ""} 👋`}
+        title={`${t("Hello")}${user?.name ? `, ${user.name.split(" ")[0]}` : ""} 👋`}
         subtitle={user?.store_name}
         actions={
           <>
             {can("orders", "add") && (
             <Button variant="outlined" startIcon={<AddIcon />} onClick={() => navigate("/order")}>
-              New Order
+              {t("New Order")}
             </Button>
             )}
             {can("invoices", "add") && (
             <Button variant="contained" startIcon={<PointOfSaleIcon />} onClick={() => navigate("/invoices/new")}>
-              Quick Bill
+              {t("Quick Bill")}
             </Button>
             )}
           </>
@@ -104,30 +110,30 @@ export default function DashboardPage() {
 
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 4, xl: 2 }}>
-          <StatCard label="Sales" value={formatCurrency(k?.total_sales)} hint={k && `${k.invoice_count} bills · avg ${formatCompact(k.average_bill)}`} icon={<TrendingUpIcon />} loading={loading} onClick={() => navigate("/invoices")} />
+          <StatCard label={t("Sales")} value={formatCurrency(k?.total_sales)} hint={k && `${k.invoice_count} ${t("bills")} · ${t("avg")} ${formatCompact(k.average_bill)}`} icon={<TrendingUpIcon />} loading={loading} onClick={() => navigate("/invoices")} />
         </Grid>
         <Grid size={{ xs: 6, md: 4, xl: 2 }}>
-          <StatCard label="Received" value={formatCurrency(k?.collected)} color="success.main" icon={<PaymentsIcon />} loading={loading} onClick={() => navigate("/payments")} />
+          <StatCard label={t("Received")} value={formatCurrency(k?.collected)} color="success.main" icon={<PaymentsIcon />} loading={loading} onClick={() => navigate("/payments")} />
         </Grid>
         <Grid size={{ xs: 6, md: 4, xl: 2 }}>
-          <StatCard label="Expenses" value={formatCurrency(k?.expenses)} color="error.main" icon={<AccountBalanceWalletIcon />} loading={loading} onClick={() => navigate("/expenses")} />
+          <StatCard label={t("Expenses")} value={formatCurrency(k?.expenses)} color="error.main" icon={<AccountBalanceWalletIcon />} loading={loading} onClick={() => navigate("/expenses")} />
         </Grid>
         <Grid size={{ xs: 6, md: 4, xl: 2 }}>
           <StatCard
-            label="Net Profit"
+            label={t("Net Profit")}
             value={formatCurrency(k?.net_profit)}
             color={k && k.net_profit < 0 ? "error.main" : "success.dark"}
-            hint="Sales (excl. GST) − expenses"
+            hint={t("Sales (excl. GST) − expenses")}
             icon={<SavingsIcon />}
             loading={loading}
             onClick={() => navigate("/reports")}
           />
         </Grid>
         <Grid size={{ xs: 6, md: 4, xl: 2 }}>
-          <StatCard label="Outstanding" value={formatCurrency(k?.outstanding)} hint={k && `${k.due_invoices} unpaid bills`} color="warning.dark" icon={<HourglassBottomIcon />} loading={loading} onClick={() => navigate("/invoices")} />
+          <StatCard label={t("Outstanding")} value={formatCurrency(k?.outstanding)} hint={k && `${k.due_invoices} ${t("unpaid bills")}`} color="warning.dark" icon={<HourglassBottomIcon />} loading={loading} onClick={() => navigate("/invoices")} />
         </Grid>
         <Grid size={{ xs: 6, md: 4, xl: 2 }}>
-          <StatCard label="GST collected" value={formatCurrency(k?.tax_collected)} color="secondary.main" icon={<ReceiptIcon />} loading={loading} onClick={() => navigate("/reports")} />
+          <StatCard label={t("GST collected")} value={formatCurrency(k?.tax_collected)} color="secondary.main" icon={<ReceiptIcon />} loading={loading} onClick={() => navigate("/reports")} />
         </Grid>
       </Grid>
 
@@ -135,17 +141,17 @@ export default function DashboardPage() {
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
           {data.counts.open_orders > 0 && (
             <Alert severity="info" sx={{ flex: "1 1 220px", cursor: "pointer" }} onClick={() => navigate("/orders")}>
-              {data.counts.open_orders} open order(s) waiting to be billed
+              {data.counts.open_orders} {t("open order(s) waiting to be billed")}
             </Alert>
           )}
           {k.overdue > 0 && (
             <Alert severity="error" sx={{ flex: "1 1 220px", cursor: "pointer" }} onClick={() => navigate("/invoices")}>
-              {formatCurrency(k.overdue)} overdue from customers
+              {formatCurrency(k.overdue)} {t("overdue from customers")}
             </Alert>
           )}
           {data.counts.low_stock > 0 && (
             <Alert severity="warning" sx={{ flex: "1 1 220px", cursor: "pointer" }} onClick={() => navigate("/inventory")}>
-              {data.counts.low_stock} product(s) low on stock
+              {data.counts.low_stock} {t("product(s) low on stock")}
             </Alert>
           )}
         </Box>
@@ -153,18 +159,18 @@ export default function DashboardPage() {
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard title="Sales vs Expenses (12 months)">
+          <ChartCard title={t("Sales vs Expenses (12 months)")}>
             {monthly.length ? (
               <ResponsiveContainer>
                 <BarChart data={monthly}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="label" fontSize={12} />
                   <YAxis tickFormatter={formatCompact} fontSize={12} width={56} />
-                  <Tooltip formatter={(v) => formatCurrency(v)} />
+                  <Tooltip formatter={(v) => formatCurrency(v)} contentStyle={tipStyle} cursor={{ fill: theme.palette.action.hover }} />
                   <Legend />
-                  <Bar dataKey="sales" name="Sales" fill="#045864" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="collected" name="Received" fill="#26a69a" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expenses" name="Expenses" fill="#ef6c00" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sales" name={t("Sales")} fill="#045864" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="collected" name={t("Received")} fill="#26a69a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expenses" name={t("Expenses")} fill="#ef6c00" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -173,7 +179,7 @@ export default function DashboardPage() {
           </ChartCard>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <ChartCard title="Payment modes">
+          <ChartCard title={t("Payment modes")}>
             {data?.payment_methods?.length ? (
               <ResponsiveContainer>
                 <PieChart>
@@ -182,7 +188,7 @@ export default function DashboardPage() {
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v) => formatCurrency(v)} />
+                  <Tooltip formatter={(v) => formatCurrency(v)} contentStyle={tipStyle} cursor={{ fill: theme.palette.action.hover }} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -193,7 +199,7 @@ export default function DashboardPage() {
         </Grid>
         {daily.length > 0 && (
           <Grid size={{ xs: 12, sm: 6, lg: 8 }}>
-            <ChartCard title="Daily sales">
+            <ChartCard title={t("Daily sales")}>
               <ResponsiveContainer>
                 <AreaChart data={daily}>
                   <defs>
@@ -205,8 +211,8 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="label" fontSize={11} minTickGap={16} />
                   <YAxis tickFormatter={formatCompact} fontSize={12} width={56} />
-                  <Tooltip formatter={(v) => formatCurrency(v)} />
-                  <Area dataKey="sales" name="Sales" stroke="#045864" fill="url(#salesFill)" strokeWidth={2} />
+                  <Tooltip formatter={(v) => formatCurrency(v)} contentStyle={tipStyle} cursor={{ fill: theme.palette.action.hover }} />
+                  <Area dataKey="sales" name={t("Sales")} stroke="#045864" fill="url(#salesFill)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -215,7 +221,7 @@ export default function DashboardPage() {
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <Paper sx={{ p: 2, height: "100%" }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-              Top products
+              {t("Top products")}
             </Typography>
             {data?.top_products?.length ? (
               data.top_products.map((p, i) => (
@@ -225,7 +231,7 @@ export default function DashboardPage() {
                       {p.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {formatNumber(p.quantity, 3)} sold
+                      {formatNumber(p.quantity, 3)} {t("sold")}
                     </Typography>
                   </Box>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -235,7 +241,7 @@ export default function DashboardPage() {
               ))
             ) : (
               <Typography variant="body2" color="text.secondary">
-                No sales in this period
+                {t("No sales in this period")}
               </Typography>
             )}
           </Paper>
@@ -244,10 +250,10 @@ export default function DashboardPage() {
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Recent invoices
+                {t("Recent invoices")}
               </Typography>
               <Button size="small" onClick={() => navigate("/invoices")}>
-                View all
+                {t("View all")}
               </Button>
             </Box>
             <List dense disablePadding>
@@ -268,7 +274,7 @@ export default function DashboardPage() {
               ))}
               {data && !data.recent_invoices.length && (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                  No invoices yet — create your first Quick Bill.
+                  {t("No invoices yet — create your first Quick Bill.")}
                 </Typography>
               )}
             </List>
@@ -277,7 +283,7 @@ export default function DashboardPage() {
         <Grid size={{ xs: 12, lg: 4 }}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-              Top customers
+              {t("Top customers")}
             </Typography>
             {(data?.top_customers || []).map((c, i) => (
               <Box key={c.name + i} sx={{ display: "flex", justifyContent: "space-between", py: 0.75, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -291,7 +297,7 @@ export default function DashboardPage() {
             ))}
             {data && !data.top_customers.length && (
               <Typography variant="body2" color="text.secondary">
-                No sales in this period
+                {t("No sales in this period")}
               </Typography>
             )}
           </Paper>

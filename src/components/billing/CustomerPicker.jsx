@@ -4,12 +4,14 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { CustomerServices } from "../../services/CustomerServices";
 import useDebounce from "../../hooks/useDebounce";
 import CustomerQuickAdd from "./CustomerQuickAdd";
+import { useT } from "../../context/PrefsContext";
 
 /**
  * Select a saved customer (search by name / phone / GSTIN) or type a walk-in name + mobile.
  * value = { customer: object|null, customer_name, customer_phone }
  */
 export default function CustomerPicker({ value, onChange, required = false, allowWalkIn = true }) {
+  const t = useT();
   const [input, setInput] = useState("");
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +61,7 @@ export default function CustomerPicker({ value, onChange, required = false, allo
             );
           }}
           renderInput={(params) => (
-            <TextField {...params} label={required ? "Customer *" : "Customer (search name / mobile / GSTIN)"} placeholder="Search saved customers" />
+            <TextField {...params} label={required ? `${t("Customer")} *` : t("Customer (search name / mobile / GSTIN)")} placeholder={t("Search saved customers")} />
           )}
         />
         <Button variant="outlined" onClick={() => setAddOpen(true)} sx={{ minWidth: 0, px: 1.5, height: 40 }} aria-label="New customer">
@@ -74,12 +76,12 @@ export default function CustomerPicker({ value, onChange, required = false, allo
       {!selected && allowWalkIn && (
         <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="Walk-in name" value={value.customer_name} onChange={(e) => onChange({ ...value, customer_name: e.target.value })} />
+            <TextField fullWidth label={t("Walk-in name")} value={value.customer_name} onChange={(e) => onChange({ ...value, customer_name: e.target.value })} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
-              label="Mobile"
+              label={t("Mobile")}
               value={value.customer_phone}
               onChange={(e) => onChange({ ...value, customer_phone: e.target.value.replace(/[^0-9+ ]/g, "") })}
               slotProps={{ htmlInput: { inputMode: "tel", maxLength: 15 } }}

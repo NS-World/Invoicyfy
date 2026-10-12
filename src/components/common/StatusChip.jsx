@@ -1,4 +1,5 @@
 import { Chip } from "@mui/material";
+import { useT } from "../../context/PrefsContext";
 
 const COLORS = {
   pending: ["#fff4e5", "#ed6c02"],
@@ -22,11 +23,12 @@ const COLORS = {
 };
 
 export default function StatusChip({ status, label, size = "small" }) {
+  const t = useT();
   const key = String(status || "").toLowerCase();
   const [bg, fg] = COLORS[key] || ["#eee", "#555"];
   return (
     <Chip
-      label={label || status}
+      label={t(label || status)}
       size={size}
       sx={{ fontWeight: 700, bgcolor: bg, color: fg, borderRadius: "6px" }}
     />

@@ -27,6 +27,7 @@ import {
   Payment,
   Logout,
   Menu as MenuIcon,
+  Category,
   CloudSync,
   Campaign,
   Store,
@@ -42,6 +43,9 @@ import {
 } from "@mui/icons-material";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
+import { useT } from "../../context/PrefsContext";
+import PrefsSwitcher from "../../components/common/PrefsSwitcher";
+import DatabaseUpdateBanner from "../../components/common/DatabaseUpdateBanner";
 import { SIDEBAR_BG } from "../../theme";
 import "./Home.css";
 
@@ -65,6 +69,7 @@ const menu = [
     section: "Stock & Money",
     items: [
       { text: "Products", icon: <ShoppingCart />, path: "/products", perm: "products" },
+      { text: "Categories", icon: <Category />, path: "/categories", perm: "products" },
       { text: "Inventory", icon: <Inventory2 />, path: "/inventory", perm: "inventory" },
       { text: "Expenses", icon: <AccountBalanceWallet />, path: "/expenses", perm: "expenses" },
       { text: "Reports", icon: <Assessment />, path: "/reports", perm: "reports" },
@@ -87,6 +92,7 @@ const menu = [
 const ACTIVE_ALIASES = {
   "/orders": ["/order", "/order-details"],
   "/products": ["/product", "/product-details"],
+  "/categories": ["/category"],
   "/customers": ["/customer"],
   "/users": ["/user"],
   "/roles": ["/role"],
@@ -101,6 +107,7 @@ const isActive = (path, pathname) => {
 };
 
 export default function Home() {
+  const t = useT();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const { user, logout, isAdmin, can } = useAuth();
@@ -140,7 +147,7 @@ export default function Home() {
               subheader={
                 group.section && !collapsed ? (
                   <ListSubheader sx={{ bgcolor: "transparent", color: "rgba(255,255,255,0.5)", lineHeight: "32px", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
-                    {group.section}
+                    {t(group.section)}
                   </ListSubheader>
                 ) : null
               }
@@ -162,11 +169,11 @@ export default function Home() {
                     }}
                   >
                     <ListItemIcon sx={{ color: active ? "#4dd0e1" : "#fff", minWidth: collapsed ? 0 : 40 }}>{item.icon}</ListItemIcon>
-                    {!collapsed && <ListItemText primary={item.text} slotProps={{ primary: { fontWeight: active ? 700 : 500, fontSize: 14 } }} />}
+                    {!collapsed && <ListItemText primary={t(item.text)} slotProps={{ primary: { fontWeight: active ? 700 : 500, fontSize: 14 } }} />}
                   </ListItemButton>
                 );
                 return collapsed ? (
-                  <Tooltip key={item.path} title={item.text} placement="right">
+                  <Tooltip key={item.path} title={t(item.text)} placement="right">
                     {button}
                   </Tooltip>
                 ) : (
@@ -178,6 +185,9 @@ export default function Home() {
         })}
       </Box>
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
+      <Box sx={{ px: collapsed ? 1 : 2, pt: 1.5, display: isDesktop ? "block" : "none" }}>
+        <PrefsSwitcher compact={collapsed} color="#fff" />
+      </Box>
       <Box sx={{ p: collapsed ? 1 : 2 }}>
         {!collapsed && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5, minWidth: 0 }}>
@@ -193,14 +203,14 @@ export default function Home() {
           </Box>
         )}
         {collapsed ? (
-          <Tooltip title="Logout" placement="right">
+          <Tooltip title={t("Logout")} placement="right">
             <IconButton onClick={logout} sx={{ color: "#fff", width: "100%" }}>
               <Logout />
             </IconButton>
           </Tooltip>
         ) : (
           <Button fullWidth variant="contained" onClick={logout} startIcon={<Logout />} sx={{ bgcolor: "#fff", color: "#045864", "&:hover": { bgcolor: "#e0f2f1" } }}>
-            Logout
+            {t("Logout")}
           </Button>
         )}
       </Box>
@@ -218,6 +228,7 @@ export default function Home() {
             <Typography variant="h6" sx={{ fontWeight: 800, flex: 1 }} noWrap>
               Invoicyfy
             </Typography>
+            <PrefsSwitcher short color="#fff" />
             <Avatar sx={{ width: 30, height: 30, bgcolor: "#045864", fontSize: 14 }}>{(user?.name || "U").charAt(0).toUpperCase()}</Avatar>
           </Toolbar>
         </AppBar>
@@ -248,6 +259,7 @@ export default function Home() {
       <Box component="main" className="main-content" sx={{ flexGrow: 1, minWidth: 0, width: { md: `calc(100% - ${width}px)` } }}>
         {!isDesktop && <Toolbar />}
         <Box className="tab-content" sx={{ p: { xs: 1.5, sm: 2.5, lg: 3 }, maxWidth: 1600, mx: "auto" }}>
+          <DatabaseUpdateBanner />
           <Outlet />
         </Box>
       </Box>

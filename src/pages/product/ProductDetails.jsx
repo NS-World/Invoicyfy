@@ -9,6 +9,7 @@ import StatusChip from "../../components/common/StatusChip";
 import StockHistoryDialog from "../inventory/StockHistoryDialog";
 import { ProductServices } from "../../services/ProductServices";
 import { apiError, formatCurrency, formatNumber } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const Row = ({ label, value }) => (
   <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.75, borderBottom: "1px solid", borderColor: "divider", gap: 2 }}>
@@ -22,6 +23,7 @@ const Row = ({ label, value }) => (
 );
 
 export default function ProductDetails() {
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -51,38 +53,38 @@ export default function ProductDetails() {
           <>
             {Boolean(product.track_inventory) && (
               <Button variant="outlined" onClick={() => setHistoryOpen(true)}>
-                Stock history
+                {t("Stock history")}
               </Button>
             )}
             <Button variant="contained" startIcon={<EditIcon />} onClick={() => navigate(`/product?id=${product.product_id}`)}>
-              Edit
+              {t("Edit")}
             </Button>
           </>
         }
       />
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Selling price" value={formatCurrency(product.price)} />
+          <StatCard label={t("Selling price")} value={formatCurrency(product.price)} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="In stock" value={product.track_inventory ? `${formatNumber(product.stock_qty, 3)} ${product.unit}` : "Not tracked"} color={product.track_inventory && product.stock_qty <= product.low_stock_threshold ? "error.main" : "primary.main"} />
+          <StatCard label={t("In stock")} value={product.track_inventory ? `${formatNumber(product.stock_qty, 3)} ${product.unit}` : "Not tracked"} color={product.track_inventory && product.stock_qty <= product.low_stock_threshold ? "error.main" : "primary.main"} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Total sold" value={`${formatNumber(product.sales?.qty_sold, 3)} ${product.unit}`} />
+          <StatCard label={t("Total sold")} value={`${formatNumber(product.sales?.qty_sold, 3)} ${product.unit}`} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Revenue" value={formatCurrency(product.sales?.revenue)} color="success.main" />
+          <StatCard label={t("Revenue")} value={formatCurrency(product.sales?.revenue)} color="success.main" />
         </Grid>
       </Grid>
       <Paper sx={{ p: 2, maxWidth: 700 }}>
-        <Row label="Status" value={<StatusChip status={product.status} />} />
-        <Row label="HSN / SAC" value={product.hsn_code} />
-        <Row label="GST rate" value={`${formatNumber(product.gst_rate)}% ${product.price_includes_tax ? "(included in price)" : "(added on top)"}`} />
-        <Row label="Cost price" value={formatCurrency(product.cost_price)} />
-        <Row label="Unit" value={product.unit} />
-        <Row label="Low stock alert at" value={formatNumber(product.low_stock_threshold, 3)} />
-        <Row label="Store" value={product.store_name} />
-        <Row label="Description" value={product.description} />
+        <Row label={t("Status")} value={<StatusChip status={product.status} />} />
+        <Row label={t("HSN / SAC")} value={product.hsn_code} />
+        <Row label={t("GST rate")} value={`${formatNumber(product.gst_rate)}% ${product.price_includes_tax ? "(included in price)" : "(added on top)"}`} />
+        <Row label={t("Cost price")} value={formatCurrency(product.cost_price)} />
+        <Row label={t("Unit")} value={product.unit} />
+        <Row label={t("Low stock alert at")} value={formatNumber(product.low_stock_threshold, 3)} />
+        <Row label={t("Store")} value={product.store_name} />
+        <Row label={t("Description")} value={product.description} />
       </Paper>
       <StockHistoryDialog product={product} open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </>

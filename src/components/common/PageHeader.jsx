@@ -1,8 +1,10 @@
 import { Box, IconButton, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
+import { useT } from "../../context/PrefsContext";
 
 export default function PageHeader({ title, subtitle, actions, back }) {
+  const t = useT();
   const navigate = useNavigate();
   return (
     <Box
@@ -23,11 +25,11 @@ export default function PageHeader({ title, subtitle, actions, back }) {
         )}
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="h5" sx={{ fontWeight: "bold" }} noWrap>
-            {title}
+            {typeof title === "string" ? t(title) : title}
           </Typography>
           {subtitle && (
             <Typography variant="body2" color="text.secondary">
-              {subtitle}
+              {typeof subtitle === "string" ? t(subtitle) : subtitle}
             </Typography>
           )}
         </Box>

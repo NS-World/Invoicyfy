@@ -12,11 +12,13 @@ import { useAuth } from "../../context/useAuth";
 import { apiError, datePresets, formatCompact, formatCurrency, formatDate, formatNumber } from "../../utils/format";
 import { monthLabel, toExportCols } from "../../utils/reportHelpers";
 import AnnualReport from "./AnnualReport";
+import { useT } from "../../context/PrefsContext";
 
 const periodText = (range) => `${formatDate(range.from)} – ${formatDate(range.to)}`;
 const sec = (heading, cols, rows, totals) => ({ heading, columns: toExportCols(cols), rows, totals });
 
 function ProfitLoss({ range, shop }) {
+  const t = useT();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -25,7 +27,7 @@ function ProfitLoss({ range, shop }) {
   }, [range]);
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!data) return <Loader />;
-  const t = data.totals;
+  const tot = data.totals;
   const cols = [
     { key: "label", label: "Month" },
     { key: "sales", label: "Sales (incl. GST)", money: true },
@@ -39,21 +41,21 @@ function ProfitLoss({ range, shop }) {
     <>
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Income (net of GST)" value={formatCurrency(t.net_sales)} hint={`Billed ${formatCurrency(t.sales)}`} />
+          <StatCard label={t("Income (net of GST)")} value={formatCurrency(tot.net_sales)} hint={`Billed ${formatCurrency(tot.sales)}`} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Expenses" value={formatCurrency(t.expenses)} color="error.main" />
+          <StatCard label={t("Expenses")} value={formatCurrency(tot.expenses)} color="error.main" />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Net Profit" value={formatCurrency(t.profit)} color={t.profit >= 0 ? "success.main" : "error.main"} hint={`Margin ${t.margin_percent}%`} />
+          <StatCard label={t("Net Profit")} value={formatCurrency(tot.profit)} color={tot.profit >= 0 ? "success.main" : "error.main"} hint={`Margin ${tot.margin_percent}%`} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Gross profit (on cost)" value={formatCurrency(t.gross_profit)} hint={`COGS ${formatCurrency(t.cost_of_goods)}`} />
+          <StatCard label={t("Gross profit (on cost)")} value={formatCurrency(tot.gross_profit)} hint={`COGS ${formatCurrency(tot.cost_of_goods)}`} />
         </Grid>
       </Grid>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-          Income vs Expenses
+          {t("Income vs Expenses")}
         </Typography>
         <Box sx={{ height: 280 }}>
           <ResponsiveContainer>
@@ -74,7 +76,7 @@ function ProfitLoss({ range, shop }) {
         <Grid size={{ xs: 12, lg: 8 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Month-wise
+              {t("Month-wise")}
             </Typography>
             <ExportMenu
               size="small"
@@ -86,13 +88,13 @@ function ProfitLoss({ range, shop }) {
                   {
                     heading: "Summary",
                     summary: [
-                      { label: "Sales (incl. GST)", value: t.sales, type: "money" },
-                      { label: "Income (net of GST)", value: t.net_sales, type: "money" },
-                      { label: "Cost of goods", value: t.cost_of_goods, type: "money" },
-                      { label: "Gross profit", value: t.gross_profit, type: "money" },
-                      { label: "Expenses", value: t.expenses, type: "money" },
-                      { label: "Net profit", value: t.profit, type: "money" },
-                      { label: "Margin %", value: t.margin_percent, type: "percent" },
+                      { label: "Sales (incl. GST)", value: tot.sales, type: "money" },
+                      { label: "Income (net of GST)", value: tot.net_sales, type: "money" },
+                      { label: "Cost of goods", value: tot.cost_of_goods, type: "money" },
+                      { label: "Gross profit", value: tot.gross_profit, type: "money" },
+                      { label: "Expenses", value: tot.expenses, type: "money" },
+                      { label: "Net profit", value: tot.profit, type: "money" },
+                      { label: "Margin %", value: tot.margin_percent, type: "percent" },
                     ],
                   },
                   sec("Month-wise", cols, rows, true),
@@ -105,7 +107,7 @@ function ProfitLoss({ range, shop }) {
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-            Expenses by category
+            {t("Expenses by category")}
           </Typography>
           <ReportTable cols={[{ key: "category", label: "Category" }, { key: "amount", label: "Amount", money: true }]} rows={data.expenses_by_category} />
         </Grid>
@@ -122,6 +124,7 @@ const SALES_COLS = {
 };
 
 function SalesRegister({ range, shop }) {
+  const t = useT();
   const [group, setGroup] = useState("day");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -140,11 +143,11 @@ function SalesRegister({ range, shop }) {
   return (
     <>
       <Box sx={{ display: "flex", gap: 1, justifyContent: "space-between", mb: 2, flexWrap: "wrap" }}>
-        <TextField select label="Group by" value={group} onChange={(e) => setGroup(e.target.value)} sx={{ minWidth: 160 }}>
-          <MenuItem value="day">Day</MenuItem>
-          <MenuItem value="month">Month</MenuItem>
-          <MenuItem value="product">Product</MenuItem>
-          <MenuItem value="customer">Customer</MenuItem>
+        <TextField select label={t("Group by")} value={group} onChange={(e) => setGroup(e.target.value)} sx={{ minWidth: 160 }}>
+          <MenuItem value="day">{t("Day")}</MenuItem>
+          <MenuItem value="month">{t("Month")}</MenuItem>
+          <MenuItem value="product">{t("Product")}</MenuItem>
+          <MenuItem value="customer">{t("Customer")}</MenuItem>
         </TextField>
         <ExportMenu
           disabled={!data}
@@ -163,6 +166,7 @@ function SalesRegister({ range, shop }) {
 }
 
 function GstSummary({ range, shop }) {
+  const t = useT();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -171,7 +175,7 @@ function GstSummary({ range, shop }) {
   }, [range]);
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!data) return <Loader />;
-  const t = data.totals;
+  const tot = data.totals;
   const taxCols = [
     { key: "taxable_value", label: "Taxable", money: true },
     { key: "cgst_amount", label: "CGST", money: true },
@@ -216,14 +220,14 @@ function GstSummary({ range, shop }) {
       {
         heading: "Summary",
         summary: [
-          { label: "Taxable turnover", value: t.taxable_value, type: "money" },
-          { label: "CGST", value: t.cgst_amount, type: "money" },
-          { label: "SGST", value: t.sgst_amount, type: "money" },
-          { label: "IGST", value: t.igst_amount, type: "money" },
-          { label: "Output GST", value: t.tax_amount, type: "money" },
+          { label: "Taxable turnover", value: tot.taxable_value, type: "money" },
+          { label: "CGST", value: tot.cgst_amount, type: "money" },
+          { label: "SGST", value: tot.sgst_amount, type: "money" },
+          { label: "IGST", value: tot.igst_amount, type: "money" },
+          { label: "Output GST", value: tot.tax_amount, type: "money" },
           { label: "Input tax credit (expenses)", value: data.input_tax_credit, type: "money" },
           { label: "Estimated GST payable", value: data.net_gst_payable, type: "money" },
-          { label: "Invoices", value: t.invoices, type: "number" },
+          { label: "Invoices", value: tot.invoices, type: "number" },
         ],
       },
       sec("Rate-wise summary", rateCols, data.by_rate, true),
@@ -236,33 +240,34 @@ function GstSummary({ range, shop }) {
     <>
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Taxable turnover" value={formatCurrency(t.taxable_value)} hint={`${t.invoices} invoices · ${t.cancelled_invoices} cancelled`} />
+          <StatCard label={t("Taxable turnover")} value={formatCurrency(tot.taxable_value)} hint={`${tot.invoices} invoices · ${tot.cancelled_invoices} cancelled`} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Output GST" value={formatCurrency(t.tax_amount)} hint={`CGST ${formatCompact(t.cgst_amount)} · SGST ${formatCompact(t.sgst_amount)} · IGST ${formatCompact(t.igst_amount)}`} />
+          <StatCard label={t("Output GST")} value={formatCurrency(tot.tax_amount)} hint={`CGST ${formatCompact(tot.cgst_amount)} · SGST ${formatCompact(tot.sgst_amount)} · IGST ${formatCompact(tot.igst_amount)}`} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Input tax credit (expenses)" value={formatCurrency(data.input_tax_credit)} color="success.main" />
+          <StatCard label={t("Input tax credit (expenses)")} value={formatCurrency(data.input_tax_credit)} color="success.main" />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label="Estimated GST payable" value={formatCurrency(data.net_gst_payable)} color="error.main" />
+          <StatCard label={t("Estimated GST payable")} value={formatCurrency(data.net_gst_payable)} color="error.main" />
         </Grid>
       </Grid>
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-        <ExportMenu build={build} label="Download GST report" />
+        <ExportMenu build={build} label={t("Download GST report")} />
       </Box>
       <Alert severity="info" sx={{ mb: 2 }}>
-        Use these tables to fill GSTR-1 (B2B, B2C, HSN) and GSTR-3B. Please verify with your CA before filing.
+        {t("Use these tables to fill GSTR-1 (B2B, B2C, HSN) and GSTR-3B. Please verify with your CA before filing.")}
       </Alert>
-      <Section title="Rate-wise summary" cols={rateCols} rows={data.by_rate} />
-      <Section title="B2B invoices (registered buyers)" cols={b2bCols} rows={data.b2b} />
-      <Section title="B2C summary (unregistered buyers)" cols={b2cCols} rows={data.b2c} />
-      <Section title="HSN-wise summary" cols={hsnCols} rows={data.hsn} />
+      <Section title={t("Rate-wise summary")} cols={rateCols} rows={data.by_rate} />
+      <Section title={t("B2B invoices (registered buyers)")} cols={b2bCols} rows={data.b2b} />
+      <Section title={t("B2C summary (unregistered buyers)")} cols={b2cCols} rows={data.b2c} />
+      <Section title={t("HSN-wise summary")} cols={hsnCols} rows={data.hsn} />
     </>
   );
 }
 
 export default function Reports() {
+  const t = useT();
   const { user } = useAuth();
   const shop = user?.store_name || "Business";
   const [tab, setTab] = useState("pl");
@@ -272,12 +277,12 @@ export default function Reports() {
   });
   return (
     <>
-      <PageHeader title="Reports" actions={tab === "annual" ? null : <DateRangeFilter value={range} onChange={setRange} />} />
+      <PageHeader title={t("Reports")} actions={tab === "annual" ? null : <DateRangeFilter value={range} onChange={setRange} />} />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mb: 2 }}>
-        <Tab value="pl" label="Profit & Loss" />
-        <Tab value="sales" label="Sales Register" />
-        <Tab value="gst" label="GST Summary" />
-        <Tab value="annual" label="Annual Report" />
+        <Tab value="pl" label={t("Profit & Loss")} />
+        <Tab value="sales" label={t("Sales Register")} />
+        <Tab value="gst" label={t("GST Summary")} />
+        <Tab value="annual" label={t("Annual Report")} />
       </Tabs>
       {tab === "pl" && <ProfitLoss range={range} shop={shop} />}
       {tab === "sales" && <SalesRegister range={range} shop={shop} />}

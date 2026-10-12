@@ -41,6 +41,9 @@ import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
 import { sampleInvoice } from "../../utils/sampleInvoice";
 import { A4_TEMPLATES, ACCENT_COLORS, DEFAULT_INVOICE_SETTINGS, RECEIPT_TEMPLATES, getInvoiceSettings } from "../../utils/invoiceSettings";
+import { previewCanvas } from "../../theme";
+import { useT } from "../../context/PrefsContext";
+import { BlocksEditor, LayoutControls } from "./DesignerLayout";
 
 const A4_SECTIONS = [
   ["show_logo", "Logo"],
@@ -73,7 +76,7 @@ const QR_SUGGESTIONS = ["Review us on Google", "Follow us on Instagram", "Order 
 /** Scaled live preview of a document. */
 function Preview({ kind, invoice, settings, template, zoom }) {
   return (
-    <Box sx={{ overflow: "auto", bgcolor: "#eef1f4", p: { xs: 1, sm: 2 }, borderRadius: 2 }}>
+    <Box sx={{ overflow: "auto", bgcolor: previewCanvas, p: { xs: 1, sm: 2 }, borderRadius: 2 }}>
       <Box sx={{ width: "fit-content", mx: "auto", bgcolor: "#fff", boxShadow: 2, zoom, p: kind === "a4" ? 1 : 0 }}>
         {kind === "a4" ? <TaxInvoiceA4 invoice={invoice} settings={settings} template={template} /> : <ThermalReceipt invoice={invoice} settings={settings} template={template} />}
       </Box>
@@ -82,6 +85,7 @@ function Preview({ kind, invoice, settings, template, zoom }) {
 }
 
 function TemplateCard({ tpl, selected, onSelect, kind, invoice, settings }) {
+  const t = useT();
   return (
     <Paper
       variant="outlined"
@@ -99,7 +103,7 @@ function TemplateCard({ tpl, selected, onSelect, kind, invoice, settings }) {
         "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main" },
       }}
     >
-      <Box sx={{ height: 150, overflow: "hidden", bgcolor: "#eef1f4", display: "flex", justifyContent: "center", pt: 1, pointerEvents: "none" }}>
+      <Box sx={{ height: 150, overflow: "hidden", bgcolor: previewCanvas, display: "flex", justifyContent: "center", pt: 1, pointerEvents: "none" }}>
         <Box sx={{ zoom: kind === "a4" ? 0.24 : 0.42, bgcolor: "#fff", height: "fit-content" }}>
           {kind === "a4" ? <TaxInvoiceA4 invoice={invoice} settings={settings} template={tpl.key} /> : <ThermalReceipt invoice={invoice} settings={settings} template={tpl.key} />}
         </Box>
@@ -107,7 +111,7 @@ function TemplateCard({ tpl, selected, onSelect, kind, invoice, settings }) {
       <Box sx={{ p: 1, display: "flex", alignItems: "flex-start", gap: 0.5 }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="body2" sx={{ fontWeight: 700 }}>
-            {tpl.name} {tpl.key === "classic" && <Chip label="Default" size="small" sx={{ height: 18, fontSize: 10, ml: 0.5 }} />}
+            {tpl.name} {tpl.key === "classic" && <Chip label={t("Default")} size="small" sx={{ height: 18, fontSize: 10, ml: 0.5 }} />}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.3 }}>
             {tpl.description}
@@ -120,6 +124,7 @@ function TemplateCard({ tpl, selected, onSelect, kind, invoice, settings }) {
 }
 
 export default function InvoiceDesigner() {
+  const t = useT();
   const { user, can, isAdmin } = useAuth();
   const notify = useNotify();
   const { stores } = useStores();
@@ -184,7 +189,7 @@ export default function InvoiceDesigner() {
       setStore(res.data);
       clearStoreCache();
       setDirty(false);
-      notify("Invoice design saved — new prints will use it");
+      notify(t("Invoice design saved — new prints will use it"));
     } catch (err) {
       setError(apiError(err));
     } finally {
@@ -201,8 +206,8 @@ export default function InvoiceDesigner() {
   return (
     <Box>
       <PageHeader
-        title="Invoice Design"
-        subtitle="Choose a template and decide what prints on your bills"
+        title={t("Invoice Design")}
+        subtitle={t("Choose a template and decide what prints on your bills")}
         back="/settings"
         actions={
           canEdit && (
@@ -215,10 +220,10 @@ export default function InvoiceDesigner() {
                   setDirty(true);
                 }}
               >
-                Reset to default
+                {t("Reset to default")}
               </Button>
               <Button variant="contained" startIcon={<SaveIcon />} onClick={save} disabled={saving || !dirty}>
-                {saving ? "Saving..." : dirty ? "Save design" : "Saved"}
+                {saving ? t("Saving...") : dirty ? t("Save design") : t("Saved")}
               </Button>
             </>
           )
@@ -231,17 +236,17 @@ export default function InvoiceDesigner() {
       )}
       {!canEdit && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Your role can only view the invoice design.
+          {t("Your role can only view the invoice design.")}
         </Alert>
       )}
 
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <Tabs value={kind} onChange={(_, v) => setKind(v)}>
-          <Tab value="a4" label="A4 invoice" />
-          <Tab value="receipt" label="Thermal receipt" />
+          <Tab value="a4" label={t("A4 invoice")} />
+          <Tab value="receipt" label={t("Thermal receipt")} />
         </Tabs>
         {isAdmin && stores.length > 1 && (
-          <TextField select label="Store" value={storeId} onChange={(e) => setStoreId(e.target.value)} sx={{ minWidth: 200 }}>
+          <TextField select label={t("Store")} value={storeId} onChange={(e) => setStoreId(e.target.value)} sx={{ minWidth: 200 }}>
             {stores.map((s) => (
               <MenuItem key={s.store_id} value={s.store_id}>
                 {s.name}
@@ -256,7 +261,7 @@ export default function InvoiceDesigner() {
           <fieldset disabled={!canEdit} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <Paper sx={{ p: 2, mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                Template
+                {t("Template")}
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", sm: `repeat(${templates.length}, minmax(0, 1fr))`, lg: "repeat(2, minmax(0, 1fr))" }, gap: 1.5 }}>
                 {templates.map((t) => (
@@ -267,7 +272,7 @@ export default function InvoiceDesigner() {
 
             <Accordion defaultExpanded disableGutters sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>Logo & colour</Typography>
+                <Typography sx={{ fontWeight: 700 }}>{t("Logo & colour")}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <ImageUpload
@@ -276,15 +281,15 @@ export default function InvoiceDesigner() {
                     setLogo(v);
                     setDirty(true);
                   }}
-                  label="Logo"
+                  label={t("Logo")}
                   hint="Optional · PNG or JPG, resized automatically"
                   disabled={!canEdit}
                 />
-                <FormControlLabel sx={{ mt: 1 }} control={<Switch checked={settings.show_logo} onChange={(e) => set({ show_logo: e.target.checked })} />} label="Print logo on bills" />
+                <FormControlLabel sx={{ mt: 1 }} control={<Switch checked={settings.show_logo} onChange={(e) => set({ show_logo: e.target.checked })} />} label={t("Print logo on bills")} />
                 {kind === "a4" && (
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Accent colour (Modern, Minimal and Bold templates)
+                      {t("Accent colour (Modern, Minimal and Bold templates)")}
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                       {ACCENT_COLORS.map((c) => (
@@ -307,12 +312,12 @@ export default function InvoiceDesigner() {
 
             <Accordion disableGutters sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>Sections to print</Typography>
+                <Typography sx={{ fontWeight: 700 }}>{t("Sections to print")}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
                   {sections.map(([key, label]) => (
-                    <FormControlLabel key={key} control={<Switch size="small" checked={Boolean(settings[key])} onChange={(e) => set({ [key]: e.target.checked })} />} label={<Typography variant="body2">{label}</Typography>} />
+                    <FormControlLabel key={key} control={<Switch size="small" checked={Boolean(settings[key])} onChange={(e) => set({ [key]: e.target.checked })} />} label={<Typography variant="body2">{t(label)}</Typography>} />
                   ))}
                 </Box>
               </AccordionDetails>
@@ -320,35 +325,35 @@ export default function InvoiceDesigner() {
 
             <Accordion disableGutters sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>Text & headings</Typography>
+                <Typography sx={{ fontWeight: 700 }}>{t("Text & headings")}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={2}>
                   {kind === "a4" ? (
                     <>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label="Title (GST registered)" value={settings.title_tax} onChange={(e) => set({ title_tax: e.target.value })} />
+                        <TextField fullWidth label={t("Title (GST registered)")} value={settings.title_tax} onChange={(e) => set({ title_tax: e.target.value })} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label="Title (no GSTIN)" value={settings.title_retail} onChange={(e) => set({ title_retail: e.target.value })} />
+                        <TextField fullWidth label={t("Title (no GSTIN)")} value={settings.title_retail} onChange={(e) => set({ title_retail: e.target.value })} />
                       </Grid>
                       <Grid size={12}>
-                        <TextField fullWidth label="Line under the title" placeholder="e.g. Wholesale & party orders" value={settings.header_note} onChange={(e) => set({ header_note: e.target.value })} />
+                        <TextField fullWidth label={t("Line under the title")} placeholder={t("e.g. Wholesale & party orders")} value={settings.header_note} onChange={(e) => set({ header_note: e.target.value })} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label="Signature label" value={settings.signature_label} onChange={(e) => set({ signature_label: e.target.value })} />
+                        <TextField fullWidth label={t("Signature label")} value={settings.signature_label} onChange={(e) => set({ signature_label: e.target.value })} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label="Footer line" value={settings.footer_note} onChange={(e) => set({ footer_note: e.target.value })} />
+                        <TextField fullWidth label={t("Footer line")} value={settings.footer_note} onChange={(e) => set({ footer_note: e.target.value })} />
                       </Grid>
                     </>
                   ) : (
                     <>
                       <Grid size={12}>
-                        <TextField fullWidth label="Line under shop name" placeholder="e.g. Pure veg · Home delivery 9am–11pm" value={settings.receipt_header_note} onChange={(e) => set({ receipt_header_note: e.target.value })} />
+                        <TextField fullWidth label={t("Line under shop name")} placeholder="e.g. Pure veg · Home delivery 9am–11pm" value={settings.receipt_header_note} onChange={(e) => set({ receipt_header_note: e.target.value })} />
                       </Grid>
                       <Grid size={12}>
-                        <TextField fullWidth label="Message above footer" placeholder="e.g. Get 10% off on your next visit!" value={settings.receipt_footer_note} onChange={(e) => set({ receipt_footer_note: e.target.value })} />
+                        <TextField fullWidth label={t("Message above footer")} placeholder={t("e.g. Get 10% off on your next visit!")} value={settings.receipt_footer_note} onChange={(e) => set({ receipt_footer_note: e.target.value })} />
                       </Grid>
                     </>
                   )}
@@ -361,7 +366,27 @@ export default function InvoiceDesigner() {
 
             <Accordion disableGutters sx={{ mb: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700 }}>QR codes ({settings.qr_codes.length}/4)</Typography>
+                <Typography sx={{ fontWeight: 700 }}>{t("Layout, size & spacing")}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <LayoutControls kind={kind} settings={settings} set={set} />
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion disableGutters sx={{ mb: 1 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography sx={{ fontWeight: 700 }}>
+                  {t("Custom text & emoji")} ({settings.custom_blocks.length})
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <BlocksEditor settings={settings} set={set} />
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion disableGutters sx={{ mb: 1 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography sx={{ fontWeight: 700 }}>{t("QR codes")} ({settings.qr_codes.length}/4)</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
@@ -376,8 +401,8 @@ export default function InvoiceDesigner() {
                         QR {i + 1}
                       </Typography>
                       <ToggleButtonGroup size="small" exclusive value={mode} onChange={(_, v) => v && setQr(i, v === "link" ? { mode: "link", image: null } : { mode: "image", url: "" })}>
-                        <ToggleButton value="link">Link</ToggleButton>
-                        <ToggleButton value="image">Image</ToggleButton>
+                        <ToggleButton value="link">{t("Link")}</ToggleButton>
+                        <ToggleButton value="image">{t("Image")}</ToggleButton>
                       </ToggleButtonGroup>
                       <IconButton size="small" color="error" onClick={() => set({ qr_codes: settings.qr_codes.filter((_, j) => j !== i) })} aria-label="Remove QR">
                         <DeleteIcon fontSize="small" />
@@ -385,20 +410,20 @@ export default function InvoiceDesigner() {
                     </Box>
                     <Grid container spacing={1.5}>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label="Text under QR" value={q.label || ""} onChange={(e) => setQr(i, { label: e.target.value })} slotProps={{ htmlInput: { maxLength: 40 } }} />
+                        <TextField fullWidth label={t("Text under QR")} value={q.label || ""} onChange={(e) => setQr(i, { label: e.target.value })} slotProps={{ htmlInput: { maxLength: 40 } }} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField select fullWidth label="Print on" value={q.show_on || "both"} onChange={(e) => setQr(i, { show_on: e.target.value })}>
-                          <MenuItem value="both">A4 and receipt</MenuItem>
-                          <MenuItem value="a4">A4 invoice only</MenuItem>
-                          <MenuItem value="receipt">Receipt only</MenuItem>
+                        <TextField select fullWidth label={t("Print on")} value={q.show_on || "both"} onChange={(e) => setQr(i, { show_on: e.target.value })}>
+                          <MenuItem value="both">{t("A4 and receipt")}</MenuItem>
+                          <MenuItem value="a4">{t("A4 invoice only")}</MenuItem>
+                          <MenuItem value="receipt">{t("Receipt only")}</MenuItem>
                         </TextField>
                       </Grid>
                       <Grid size={12}>
                         {mode === "image" ? (
-                          <ImageUpload value={q.image} onChange={(v) => setQr(i, { image: v })} label="QR image" maxSize={300} disabled={!canEdit} />
+                          <ImageUpload value={q.image} onChange={(v) => setQr(i, { image: v })} label={t("QR image")} maxSize={300} disabled={!canEdit} />
                         ) : (
-                          <TextField fullWidth label="Link" placeholder="https://g.page/r/your-shop/review" value={q.url || ""} onChange={(e) => setQr(i, { url: e.target.value.trim() })} />
+                          <TextField fullWidth label={t("Link")} placeholder={t("https://g.page/r/your-shop/review")} value={q.url || ""} onChange={(e) => setQr(i, { url: e.target.value.trim() })} />
                         )}
                       </Grid>
                     </Grid>
@@ -408,7 +433,7 @@ export default function InvoiceDesigner() {
                 {settings.qr_codes.length < 4 && (
                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                     <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => set({ qr_codes: [...settings.qr_codes, { label: "", url: "", show_on: "both" }] })}>
-                      Add QR code
+                      {t("Add QR code")}
                     </Button>
                     {QR_SUGGESTIONS.filter((label) => !settings.qr_codes.some((q) => q.label === label)).slice(0, 3).map((label) => (
                       <Chip key={label} label={`+ ${label}`} variant="outlined" onClick={() => set({ qr_codes: [...settings.qr_codes, { label, url: "", show_on: "both" }] })} />
@@ -424,7 +449,7 @@ export default function InvoiceDesigner() {
           <Paper sx={{ p: { xs: 1, sm: 2 }, position: { lg: "sticky" }, top: { lg: 16 } }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, px: 1 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Live preview
+                {t("Live preview")}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {realInvoices[kind === "a4" ? "tax" : "retail"] ? `Your bill ${invoice.invoice_number}` : "Sample bill"}

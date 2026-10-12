@@ -8,10 +8,12 @@ import { RoleServices } from "../../services/RoleServices";
 import useStores from "../../hooks/useStores";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const blank = { name: "", email: "", phone: "", city: "", role_id: "", store_id: "", password: "", is_active: true };
 
 export default function UserForm() {
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -65,19 +67,19 @@ export default function UserForm() {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth required label="Name" value={form.name} onChange={set("name")} />
+            <TextField fullWidth required label={t("Name")} value={form.name} onChange={set("name")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth required type="email" label="Email (login)" value={form.email} onChange={set("email")} />
+            <TextField fullWidth required type="email" label={t("Email (login)")} value={form.email} onChange={set("email")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="Phone" value={form.phone || ""} onChange={set("phone")} />
+            <TextField fullWidth label={t("Phone")} value={form.phone || ""} onChange={set("phone")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth label="City" value={form.city || ""} onChange={set("city")} />
+            <TextField fullWidth label={t("City")} value={form.city || ""} onChange={set("city")} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField select fullWidth required label="Role" value={form.role_id} onChange={set("role_id")} helperText="Admin: everything · Manager: own store + settings · Staff: billing">
+            <TextField select fullWidth required label={t("Role")} value={form.role_id} onChange={set("role_id")} helperText="Admin: everything · Manager: own store + settings · Staff: billing">
               {roles.map((r) => (
                 <MenuItem key={r.role_id} value={r.role_id}>
                   {r.role_name}
@@ -86,7 +88,7 @@ export default function UserForm() {
             </TextField>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField select fullWidth required label="Store" value={form.store_id} onChange={set("store_id")}>
+            <TextField select fullWidth required label={t("Store")} value={form.store_id} onChange={set("store_id")}>
               {stores.map((s) => (
                 <MenuItem key={s.store_id} value={s.store_id}>
                   {s.name}
@@ -100,19 +102,19 @@ export default function UserForm() {
               required={!userId}
               type="password"
               label={userId ? "New password (optional)" : "Password"}
-              helperText="At least 8 characters"
+              helperText={t("At least 8 characters")}
               value={form.password}
               onChange={set("password")}
               autoComplete="new-password"
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControlLabel control={<Switch checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />} label="Active (can log in)" />
+            <FormControlLabel control={<Switch checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />} label={t("Active (can log in)")} />
           </Grid>
         </Grid>
         <Box sx={{ display: "flex", gap: 1, mt: 3, justifyContent: "flex-end" }}>
           <Button variant="outlined" onClick={() => navigate("/users")}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button type="submit" variant="contained" disabled={saving}>
             {saving ? "Saving..." : userId ? "Update User" : "Create User"}

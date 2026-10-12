@@ -9,6 +9,7 @@ import { useAuth } from "../../context/useAuth";
 import { ReportServices } from "../../services/ReportServices";
 import { apiError, formatCompact, formatCurrency, formatDate, formatNumber } from "../../utils/format";
 import { WEEKDAYS, monthLabel, toExportCols } from "../../utils/reportHelpers";
+import { useT } from "../../context/PrefsContext";
 
 const currentFyStart = () => {
   const d = new Date();
@@ -94,6 +95,7 @@ function Block({ title, cols, rows, totals }) {
 }
 
 export default function AnnualReport() {
+  const t = useT();
   const { user } = useAuth();
   const [fy, setFy] = useState(currentFyStart());
   const [data, setData] = useState(null);
@@ -153,14 +155,14 @@ export default function AnnualReport() {
   return (
     <>
       <Box sx={{ display: "flex", gap: 1, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", mb: 2 }}>
-        <TextField select size="small" label="Financial year" value={fy} onChange={(e) => setFy(Number(e.target.value))} sx={{ minWidth: 160 }}>
+        <TextField select size="small" label={t("Financial year")} value={fy} onChange={(e) => setFy(Number(e.target.value))} sx={{ minWidth: 160 }}>
           {years.map((y) => (
             <MenuItem key={y} value={y}>
               {fyLabel(y)}
             </MenuItem>
           ))}
         </TextField>
-        <ExportMenu build={build} label="Download annual report" variant="contained" disabled={!data} />
+        <ExportMenu build={build} label={t("Download annual report")} variant="contained" disabled={!data} />
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
       {!data && !error && <Loader />}
@@ -168,16 +170,16 @@ export default function AnnualReport() {
         <>
           <Grid container spacing={1.5} sx={{ mb: 2 }}>
             <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard label="Total sales" value={formatCurrency(data.totals.sales)} hint={growthText(data.growth.sales)} />
+              <StatCard label={t("Total sales")} value={formatCurrency(data.totals.sales)} hint={growthText(data.growth.sales)} />
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard label="Net profit" value={formatCurrency(data.totals.profit)} color={data.totals.profit >= 0 ? "success.main" : "error.main"} hint={growthText(data.growth.profit)} />
+              <StatCard label={t("Net profit")} value={formatCurrency(data.totals.profit)} color={data.totals.profit >= 0 ? "success.main" : "error.main"} hint={growthText(data.growth.profit)} />
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard label="Bills" value={data.totals.bills.toLocaleString("en-IN")} hint={`Avg bill ${formatCurrency(data.totals.average_bill)}`} />
+              <StatCard label={t("Bills")} value={data.totals.bills.toLocaleString("en-IN")} hint={`Avg bill ${formatCurrency(data.totals.average_bill)}`} />
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard label="Collected" value={formatCurrency(data.totals.collected)} hint={`Outstanding ${formatCurrency(data.totals.outstanding)}`} />
+              <StatCard label={t("Collected")} value={formatCurrency(data.totals.collected)} hint={`Outstanding ${formatCurrency(data.totals.outstanding)}`} />
             </Grid>
           </Grid>
           <Paper sx={{ p: 2, mb: 2 }}>
@@ -199,27 +201,27 @@ export default function AnnualReport() {
               </ResponsiveContainer>
             </Box>
           </Paper>
-          <Block title="Month-wise" cols={MONTH_COLS} rows={months} totals />
+          <Block title={t("Month-wise")} cols={MONTH_COLS} rows={months} totals />
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, lg: 7 }}>
-              <Block title="Top products" cols={PRODUCT_COLS} rows={data.top_products} />
+              <Block title={t("Top products")} cols={PRODUCT_COLS} rows={data.top_products} />
             </Grid>
             <Grid size={{ xs: 12, lg: 5 }}>
-              <Block title="Sales by category" cols={CATEGORY_COLS} rows={data.categories} totals />
-              <Block title="Payment modes" cols={PAYMENT_COLS} rows={data.payment_modes} totals />
+              <Block title={t("Sales by category")} cols={CATEGORY_COLS} rows={data.categories} totals />
+              <Block title={t("Payment modes")} cols={PAYMENT_COLS} rows={data.payment_modes} totals />
             </Grid>
             <Grid size={{ xs: 12, lg: 7 }}>
-              <Block title="Top customers" cols={CUSTOMER_COLS} rows={data.top_customers} />
+              <Block title={t("Top customers")} cols={CUSTOMER_COLS} rows={data.top_customers} />
             </Grid>
             <Grid size={{ xs: 12, lg: 5 }}>
-              <Block title="Order types" cols={ORDER_TYPE_COLS} rows={data.order_types} totals />
-              <Block title="Sales by weekday" cols={WEEKDAY_COLS} rows={weekdays} totals />
+              <Block title={t("Order types")} cols={ORDER_TYPE_COLS} rows={data.order_types} totals />
+              <Block title={t("Sales by weekday")} cols={WEEKDAY_COLS} rows={weekdays} totals />
             </Grid>
             <Grid size={{ xs: 12, lg: 7 }}>
-              <Block title="GST rate-wise" cols={GST_COLS} rows={data.gst_rates} totals />
+              <Block title={t("GST rate-wise")} cols={GST_COLS} rows={data.gst_rates} totals />
             </Grid>
             <Grid size={{ xs: 12, lg: 5 }}>
-              <Block title="Expenses by category" cols={EXPENSE_COLS} rows={data.expenses_by_category} totals />
+              <Block title={t("Expenses by category")} cols={EXPENSE_COLS} rows={data.expenses_by_category} totals />
             </Grid>
           </Grid>
         </>

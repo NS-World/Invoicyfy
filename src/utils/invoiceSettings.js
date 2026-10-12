@@ -29,6 +29,61 @@ export const DEFAULT_INVOICE_SETTINGS = {
   receipt_header_note: "",
   receipt_footer_note: "",
   qr_codes: [],
+  // Layout (null = template default)
+  show_store_name: true,
+  receipt_show_price_col: true,
+  receipt_bold_items: false,
+  receipt_separator: "solid",
+  receipt_font_size: null,
+  receipt_padding: null,
+  receipt_line_height: null,
+  receipt_store_name_size: null,
+  receipt_col_qty: null,
+  receipt_col_price: null,
+  receipt_col_amount: null,
+  receipt_logo_width: null,
+  a4_font_size: null,
+  a4_padding: null,
+  a4_cell_padding: null,
+  a4_title_size: null,
+  a4_logo_height: null,
+  custom_blocks: [],
+};
+
+/** Where a custom text block can be printed. */
+export const BLOCK_POSITIONS = [
+  { key: "top", label: "Very top" },
+  { key: "after_header", label: "Under shop details" },
+  { key: "before_items", label: "Before items" },
+  { key: "after_items", label: "After items" },
+  { key: "after_totals", label: "After totals" },
+  { key: "bottom", label: "Bottom (before QR codes)" },
+];
+
+const set = (v) => v !== null && v !== undefined && v !== "";
+
+/** Inline style for the receipt root from the layout settings (only values the shop changed). */
+export const receiptStyle = (s) => {
+  const st = {};
+  if (set(s.receipt_font_size)) st.fontSize = `${s.receipt_font_size}px`;
+  if (set(s.receipt_padding)) st.padding = `${s.receipt_padding}mm ${s.receipt_padding}mm ${Number(s.receipt_padding) + 3}mm`;
+  if (set(s.receipt_line_height)) st.lineHeight = s.receipt_line_height;
+  if (set(s.receipt_store_name_size)) st["--store-size"] = `${s.receipt_store_name_size}em`;
+  if (set(s.receipt_col_qty)) st["--qty-w"] = `${s.receipt_col_qty}ch`;
+  if (set(s.receipt_col_price)) st["--price-w"] = `${s.receipt_col_price}ch`;
+  if (set(s.receipt_col_amount)) st["--amt-w"] = `${s.receipt_col_amount}ch`;
+  if (set(s.receipt_logo_width)) st["--logo-w"] = `${s.receipt_logo_width}mm`;
+  return st;
+};
+
+export const a4Style = (s) => {
+  const st = { "--accent": s.accent_color || "#045864" };
+  if (set(s.a4_font_size)) st.fontSize = `${s.a4_font_size}px`;
+  if (set(s.a4_padding)) st.padding = `${s.a4_padding}mm`;
+  if (set(s.a4_cell_padding)) st["--cell-pad"] = `${s.a4_cell_padding}px`;
+  if (set(s.a4_title_size)) st["--title-size"] = `${s.a4_title_size}px`;
+  if (set(s.a4_logo_height)) st["--a4-logo-h"] = `${s.a4_logo_height}px`;
+  return st;
 };
 
 export const A4_TEMPLATES = [
@@ -53,7 +108,12 @@ export const getInvoiceSettings = (store) => {
   } catch {
     saved = {};
   }
-  return { ...DEFAULT_INVOICE_SETTINGS, ...saved, qr_codes: Array.isArray(saved?.qr_codes) ? saved.qr_codes : [] };
+  return {
+    ...DEFAULT_INVOICE_SETTINGS,
+    ...saved,
+    qr_codes: Array.isArray(saved?.qr_codes) ? saved.qr_codes : [],
+    custom_blocks: Array.isArray(saved?.custom_blocks) ? saved.custom_blocks : [],
+  };
 };
 
 /** QR codes that should print on this format ("a4" or "receipt"). */

@@ -11,8 +11,10 @@ import { PaymentServices } from "../../services/PaymentServices";
 import useServerTable from "../../hooks/useServerTable";
 import useMeta from "../../hooks/useMeta";
 import { datePresets, formatCurrency, formatDate } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Payments() {
+  const t = useT();
   const navigate = useNavigate();
   const meta = useMeta();
   const [method, setMethod] = useState("");
@@ -38,7 +40,7 @@ export default function Payments() {
 
   return (
     <>
-      <PageHeader title="Payments Received" subtitle={summary ? `Total ${formatCurrency(summary.total_amount)}` : " "} />
+      <PageHeader title={t("Payments Received")} subtitle={summary ? `Total ${formatCurrency(summary.total_amount)}` : " "} />
       {summary?.by_method?.length > 0 && (
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
           {summary.by_method.map((m) => (
@@ -47,9 +49,9 @@ export default function Payments() {
         </Box>
       )}
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Invoice, customer, reference" />
-        <TextField select label="Mode" value={method} onChange={(e) => setMethod(e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">All</MenuItem>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Invoice, customer, reference")} />
+        <TextField select label={t("Mode")} value={method} onChange={(e) => setMethod(e.target.value)} sx={{ minWidth: 140 }}>
+          <MenuItem value="">{t("All")}</MenuItem>
           {meta.payment_methods.map((m) => (
             <MenuItem key={m} value={m}>
               {m}
@@ -59,7 +61,7 @@ export default function Payments() {
         <DateRangeFilter value={range} onChange={setRange} />
         <ListExport
           table={table}
-          title="Payments Received"
+          title={t("Payments Received")}
           filename="payments"
           subtitle={`${formatDate(range.from)} – ${formatDate(range.to)}`}
           columns={[

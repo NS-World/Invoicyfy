@@ -19,10 +19,12 @@ import { OrderServices } from "../../services/OrderServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { apiError, formatCurrency, formatDate } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 const STATUSES = ["Pending", "Approved", "Invoiced", "Cancelled"];
 
 export default function Orders() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const { can } = useAuth();
@@ -34,7 +36,7 @@ export default function Orders() {
   const confirmDelete = async () => {
     try {
       await OrderServices.deleteOrderDataFromId({ order_id: toDelete.order_id });
-      notify("Order deleted");
+      notify(t("Order deleted"));
       table.reload();
     } catch (err) {
       notify(apiError(err), "error");
@@ -75,34 +77,34 @@ export default function Orders() {
         const open = ["Pending", "Approved"].includes(row.status);
         return (
           <span onClick={(e) => e.stopPropagation()}>
-            <Tooltip title="View">
+            <Tooltip title={t("View")}>
               <IconButton size="small" onClick={() => navigate(`/orders/${row.order_id}`)}>
                 <VisibilityIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             {open && can("orders", "edit") && (
-              <Tooltip title="Edit">
+              <Tooltip title={t("Edit")}>
                 <IconButton size="small" color="primary" onClick={() => navigate(`/order?id=${row.order_id}`)}>
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
             {open && can("invoices", "add") && (
-              <Tooltip title="Generate invoice">
+              <Tooltip title={t("Generate invoice")}>
                 <IconButton size="small" color="success" onClick={() => setToInvoice(row)}>
                   <ReceiptIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
             {row.invoice_id && (
-              <Tooltip title="Open invoice">
+              <Tooltip title={t("Open invoice")}>
                 <IconButton size="small" color="success" onClick={() => navigate(`/invoices/${row.invoice_id}`)}>
                   <ReceiptIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
             {!row.invoice_id && can("orders", "delete") && (
-              <Tooltip title="Delete">
+              <Tooltip title={t("Delete")}>
                 <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
                   <DeleteIcon fontSize="small" />
                 </IconButton>
@@ -117,19 +119,19 @@ export default function Orders() {
   return (
     <>
       <PageHeader
-        title="Orders"
+        title={t("Orders")}
         actions={
           can("orders", "add") && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/order")}>
-              New Order
+              {t("New Order")}
             </Button>
           )
         }
       />
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Order no, customer, mobile" />
-        <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 150 }}>
-          <MenuItem value="">All</MenuItem>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Order no, customer, mobile")} />
+        <TextField select label={t("Status")} value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 150 }}>
+          <MenuItem value="">{t("All")}</MenuItem>
           {STATUSES.map((s) => (
             <MenuItem key={s} value={s}>
               {s}
@@ -138,7 +140,7 @@ export default function Orders() {
         </TextField>
         <ListExport
           table={table}
-          title="Orders"
+          title={t("Orders")}
           filename="orders"
           columns={[
             { label: "Order No", key: "order_number" },
@@ -165,7 +167,7 @@ export default function Orders() {
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete order?"
+        title={t("Delete order?")}
         message={`Order ${toDelete?.order_number || ""} will be permanently deleted.`}
         cancelLabel="Cancel"
         confirmLabel="Delete"

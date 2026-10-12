@@ -28,11 +28,13 @@ import { useNotify } from "../../context/NotifyProvider";
 import { BackupServices } from "../../services/BackupServices";
 import { apiError } from "../../utils/format";
 import { createBackup, downloadErrorFile, readBackupFile, restoreBackup } from "./backupFile";
+import { useT } from "../../context/PrefsContext";
 
 const when = (v) => (v ? new Date(String(v).replace(" ", "T")).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "Never");
 const daysSince = (v) => (v ? Math.floor((Date.now() - new Date(String(v).replace(" ", "T")).getTime()) / 86400000) : null);
 
 export default function Backup() {
+  const t = useT();
   const notify = useNotify();
   const { can } = useAuth();
   const canImport = can("backup", "add");
@@ -67,7 +69,7 @@ export default function Backup() {
     e.target.value = "";
     if (!f) return;
     if (!/\.xlsx$/i.test(f.name)) {
-      notify("Please choose an Excel (.xlsx) backup file", "error");
+      notify(t("Please choose an Excel (.xlsx) backup file"), "error");
       return;
     }
     setResults(null);
@@ -75,14 +77,14 @@ export default function Backup() {
     try {
       const p = await readBackupFile(f, info.tables);
       if (!Object.keys(p.sheets).length) {
-        notify("No matching sheets found. Use a file downloaded from this screen.", "error");
+        notify(t("No matching sheets found. Use a file downloaded from this screen."), "error");
         setParsed(null);
       } else {
         setFile(f);
         setParsed(p);
       }
     } catch {
-      notify("Could not read this file. Is it a valid Excel file?", "error");
+      notify(t("Could not read this file. Is it a valid Excel file?"), "error");
     }
     setBusy(null);
   };
@@ -114,7 +116,7 @@ export default function Backup() {
 
   return (
     <Box>
-      <PageHeader title="Backup & Restore" subtitle="Download all your business data to Excel and bring it back any time" />
+      <PageHeader title={t("Backup & Restore")} subtitle={t("Download all your business data to Excel and bring it back any time")} />
 
       {age === null || age > 7 ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -124,7 +126,7 @@ export default function Backup() {
       ) : null}
       {!info.is_full && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Stores, users and roles are included only when an Admin takes the backup.
+          {t("Stores, users and roles are included only when an Admin takes the backup.")}
         </Alert>
       )}
 
@@ -134,14 +136,14 @@ export default function Backup() {
             <CardContent>
               <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 1 }}>
                 <CloudDownloadIcon color="primary" />
-                <Typography variant="h6">Download backup</Typography>
+                <Typography variant="h6">{t("Download backup")}</Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 One Excel file with every table ({totalRecords.toLocaleString("en-IN")} records): customers, products, orders, invoices,
                 payments, expenses, stock and settings. Last backup: <b>{when(info.last_backup_at)}</b>
               </Typography>
               <Button variant="contained" startIcon={<CloudDownloadIcon />} onClick={runExport} disabled={!!busy} fullWidth>
-                Download full backup (.xlsx)
+                {t("Download full backup (.xlsx)")}
               </Button>
             </CardContent>
           </Card>
@@ -151,7 +153,7 @@ export default function Backup() {
             <CardContent>
               <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 1 }}>
                 <CloudUploadIcon color="secondary" />
-                <Typography variant="h6">Import backup</Typography>
+                <Typography variant="h6">{t("Import backup")}</Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Choose a backup file. New records are added; records that already exist are <b>never overwritten</b> — they are skipped
@@ -193,7 +195,7 @@ export default function Backup() {
             </Typography>
             {!parsed.isBackup && (
               <Alert severity="info" sx={{ mb: 2 }}>
-                This file was not created by Invoicyfy backup, but matching sheets were found. Each row will be checked before saving.
+                {t("This file was not created by Invoicyfy backup, but matching sheets were found. Each row will be checked before saving.")}
               </Alert>
             )}
             <TableContainer>
@@ -220,9 +222,9 @@ export default function Backup() {
             </TableContainer>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 2 }}>
               <Button variant="contained" startIcon={<RestoreIcon />} onClick={runImport}>
-                Start import
+                {t("Start import")}
               </Button>
-              <Button onClick={() => setParsed(null)}>Cancel</Button>
+              <Button onClick={() => setParsed(null)}>{t("Cancel")}</Button>
             </Stack>
           </CardContent>
         </Card>
@@ -232,7 +234,7 @@ export default function Backup() {
         <Card sx={{ mt: 2 }}>
           <CardContent>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between", alignItems: { sm: "center" }, mb: 1 }}>
-              <Typography variant="h6">Import result</Typography>
+              <Typography variant="h6">{t("Import result")}</Typography>
               {issueCount > 0 && (
                 <Button color="error" variant="contained" startIcon={<ErrorOutlineIcon />} onClick={() => downloadErrorFile(results, file?.name || "backup.xlsx")}>
                   Download error file ({issueCount})
@@ -278,11 +280,11 @@ export default function Backup() {
       <Card sx={{ mt: 2 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            History
+            {t("History")}
           </Typography>
           {info.logs.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
-              No backups yet.
+              {t("No backups yet.")}
             </Typography>
           ) : (
             <TableContainer>

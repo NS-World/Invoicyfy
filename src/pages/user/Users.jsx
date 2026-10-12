@@ -14,8 +14,10 @@ import { UserServices } from "../../services/UserServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { apiError, formatDate } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Users() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const [toDelete, setToDelete] = useState(null);
@@ -47,12 +49,12 @@ export default function Users() {
       sortable: false,
       renderCell: ({ row }) => (
         <span onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="Edit">
+          <Tooltip title={t("Edit")}>
             <IconButton size="small" color="primary" onClick={() => navigate(`/user?id=${row.user_id}`)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
+          <Tooltip title={t("Delete")}>
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -65,22 +67,22 @@ export default function Users() {
   return (
     <>
       <PageHeader
-        title="Users"
+        title={t("Users")}
         actions={
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/user")}>
-            Add User
+            {t("Add User")}
           </Button>
         }
       />
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Name, email, phone" />
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Name, email, phone")} />
       </Toolbar>
       <DataTable table={table} columns={columns} mobileHidden={["email", "phone", "store_name", "last_login_at"]} onRowClick={({ row }) => navigate(`/user?id=${row.user_id}`)} />
       <ConfirmationDialog
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete user?"
+        title={t("Delete user?")}
         message={`${toDelete?.name || ""} will be deleted (or disabled if they have billing history).`}
         cancelLabel="Cancel"
         confirmLabel="Delete"

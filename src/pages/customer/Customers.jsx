@@ -17,8 +17,10 @@ import { CustomerServices } from "../../services/CustomerServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
 import { apiError, formatCurrency } from "../../utils/format";
+import { useT } from "../../context/PrefsContext";
 
 export default function Customers() {
+  const t = useT();
   const navigate = useNavigate();
   const notify = useNotify();
   const { can } = useAuth();
@@ -29,7 +31,7 @@ export default function Customers() {
   const confirmDelete = async () => {
     try {
       await CustomerServices.deleteCustomerDataFromId({ customer_id: toDelete.customer_id });
-      notify("Customer deleted");
+      notify(t("Customer deleted"));
       table.reload();
     } catch (err) {
       notify(apiError(err), "error");
@@ -73,21 +75,21 @@ export default function Customers() {
       renderCell: ({ row }) => (
         <span onClick={(e) => e.stopPropagation()}>
           {can("invoices", "add") && (
-          <Tooltip title="New invoice">
+          <Tooltip title={t("New invoice")}>
             <IconButton size="small" color="success" onClick={() => navigate(`/invoices/new${row.customer_type === "B2B" ? "?type=tax" : ""}`)}>
               <ReceiptIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           )}
           {can("customers", "edit") && (
-          <Tooltip title="Edit">
+          <Tooltip title={t("Edit")}>
             <IconButton size="small" color="primary" onClick={() => navigate(`/customer?id=${row.customer_id}`)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           )}
           {can("customers", "delete") && (
-          <Tooltip title="Delete">
+          <Tooltip title={t("Delete")}>
             <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -101,25 +103,25 @@ export default function Customers() {
   return (
     <>
       <PageHeader
-        title="Customers"
+        title={t("Customers")}
         actions={
           can("customers", "add") && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/customer")}>
-              Add Customer
+              {t("Add Customer")}
             </Button>
           )
         }
       />
       <Toolbar>
-        <SearchField value={table.search} onChange={table.setSearch} placeholder="Name, mobile, email, GSTIN" />
-        <TextField select label="Type" value={type} onChange={(e) => setType(e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">All</MenuItem>
-          <MenuItem value="B2C">B2C (consumer)</MenuItem>
-          <MenuItem value="B2B">B2B (business)</MenuItem>
+        <SearchField value={table.search} onChange={table.setSearch} placeholder={t("Name, mobile, email, GSTIN")} />
+        <TextField select label={t("Type")} value={type} onChange={(e) => setType(e.target.value)} sx={{ minWidth: 140 }}>
+          <MenuItem value="">{t("All")}</MenuItem>
+          <MenuItem value="B2C">{t("B2C (consumer)")}</MenuItem>
+          <MenuItem value="B2B">{t("B2B (business)")}</MenuItem>
         </TextField>
         <ListExport
           table={table}
-          title="Customers"
+          title={t("Customers")}
           filename="customers"
           columns={[
             { label: "Name", key: "name" },
@@ -148,7 +150,7 @@ export default function Customers() {
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete customer?"
+        title={t("Delete customer?")}
         message={`${toDelete?.name || ""} will be deleted.`}
         cancelLabel="Cancel"
         confirmLabel="Delete"
