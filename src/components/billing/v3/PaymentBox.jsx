@@ -155,7 +155,7 @@ export default function PaymentBox({ total, paid, onPaid, rows, onRows, methods,
                 value={given}
                 onChange={(e) => setGiven(e.target.value)}
                 slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }}
-                sx={{ width: 150 }}
+                sx={{ width: 190, maxWidth: "55%" }}
               />
               {Number(given) > 0 && (
                 <Typography sx={{ fontWeight: 700, color: Number(given) >= amounts[0] ? "success.main" : "warning.main" }}>
