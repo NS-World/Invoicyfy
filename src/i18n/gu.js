@@ -941,6 +941,7 @@ export default {
   "Short": "ઘટ",
   "Show UPI QR": "UPI QR બતાવો",
   "Show UPI QR with the bill amount on screen": "સ્ક્રીન પર બિલની રકમ સાથે UPI QR બતાવો",
+  "Showing the top {n} by sales. Totals include everything.": "વેચાણ પ્રમાણે ટોચના {n} બતાવ્યા છે. કુલ રકમમાં બધું સામેલ છે.",
   "Signature block": "સહીનો ભાગ",
   "Signature label": "સહીનું લખાણ",
   "Signed QR code text": "સાઇન કરેલ QR કોડ લખાણ",

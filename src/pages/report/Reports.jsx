@@ -160,6 +160,11 @@ function SalesRegister({ range, shop }) {
         />
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
+      {data?.truncated && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t("Showing the top {n} by sales. Totals include everything.", { n: data.data.length })}
+        </Alert>
+      )}
       {!data ? <Loader /> : <ReportTable cols={cols} rows={data.data} totals={data.totals} />}
     </>
   );
