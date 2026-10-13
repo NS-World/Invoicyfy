@@ -36,6 +36,25 @@ API at `/api/` on the same domain). Step-by-step guide: [DEPLOY-HOSTINGER.md](DE
 3. **Invoice screen** — print 80 mm / 58 mm receipt, print / save A4 PDF (Original / Duplicate / Triplicate),
    print the KOT again, share on WhatsApp, record part payments, cancel (stock is restored), add e-invoice IRN + QR.
 
+## Version 3 screens
+
+* **Day Close** (`/day-close`) — open the day with the cash in the drawer (note counter), pay in / pay out,
+  live totals by payment mode, X report any time, close with a count (short / excess) and a Z report.
+* **Quick Bill extras** — table number, coupon code, loyalty points, split payment (cash + UPI...), UPI QR for
+  the exact amount, change to return, Hold / Held bills, manager PIN when the discount is above the role limit.
+* **Udhaar / Credit** (`/credit`) — customers with dues and since when, statement (print A4), receive money
+  (oldest bills first), reminders on WhatsApp / SMS / email.
+* **Coupons & Loyalty** (`/coupons`), **Automatic Messages** (`/automation`: night summary, low stock,
+  birthday / anniversary wishes with coupon, udhaar reminders), **Activity Log** (`/activity`),
+  **Counter & Printer** (`/counter`: counter rules, approval PIN, direct printer).
+* **Direct print** — ESC/POS raster over WebUSB / Web Serial / Web Bluetooth (`src/utils/escpos.js`,
+  `src/utils/directPrint.js`), or Chrome kiosk printing; falls back to the normal print window.
+* **Offline billing** — `src/utils/offline.js` keeps an IndexedDB outbox; retail Quick Bills made without
+  internet print with an `OFF-` number and sync with an idempotent `client_uuid`. The build writes `sw.js`
+  (service worker, see `vite.config.js`) so the app itself opens offline.
+* **Demo & help** — top bar icon with guided tours (`src/components/tour/tours.js`); parts of screens are
+  marked with `data-tour="..."`.
+
 ## Printing
 
 * Receipt layout follows the shop's thermal bill: PAID/Duplicate, shop name, customer + mobile, date/time,

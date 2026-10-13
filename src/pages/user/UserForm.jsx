@@ -10,7 +10,7 @@ import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
 import { useT } from "../../context/PrefsContext";
 
-const blank = { name: "", email: "", phone: "", city: "", role_id: "", store_id: "", password: "", is_active: true };
+const blank = { name: "", email: "", phone: "", city: "", role_id: "", store_id: "", password: "", is_active: true, approval_pin: "" };
 
 export default function UserForm() {
   const t = useT();
@@ -21,6 +21,8 @@ export default function UserForm() {
   const { stores } = useStores();
   const userId = params.get("id") || location.state?.userData?.user_id || null;
   const [form, setForm] = useState(blank);
+  const [hasPin, setHasPin] = useState(false);
+  const [clearPin, setClearPin] = useState(false);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(Boolean(userId));
   const [saving, setSaving] = useState(false);
@@ -35,7 +37,8 @@ export default function UserForm() {
     UserServices.getUserDataFromId(userId)
       .then((res) => {
         const d = res.data;
-        setForm({ ...blank, ...Object.fromEntries(Object.keys(blank).map((k) => [k, d[k] ?? blank[k]])), password: "", is_active: Boolean(Number(d.is_active)) });
+        setForm({ ...blank, ...Object.fromEntries(Object.keys(blank).map((k) => [k, d[k] ?? blank[k]])), password: "", approval_pin: "", is_active: Boolean(Number(d.is_active)) });
+        setHasPin(Boolean(Number(d.has_approval_pin)));
       })
       .catch((err) => setError(apiError(err)))
       .finally(() => setLoading(false));
@@ -48,8 +51,9 @@ export default function UserForm() {
     setSaving(true);
     setError("");
     try {
-      if (userId) await UserServices.updateUserData({ ...form, user_id: userId });
-      else await UserServices.postUserData(form);
+      const payload = { ...form, approval_pin: form.approval_pin || undefined, clear_approval_pin: clearPin || undefined };
+      if (userId) await UserServices.updateUserData({ ...payload, user_id: userId });
+      else await UserServices.postUserData(payload);
       notify(userId ? "User updated" : "User created");
       navigate("/users");
     } catch (err) {
@@ -107,6 +111,18 @@ export default function UserForm() {
               onChange={set("password")}
               autoComplete="new-password"
             />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              fullWidth
+              type="password"
+              label={hasPin ? t("New approval PIN (optional)") : t("Approval PIN for discounts (optional)")}
+              helperText={hasPin ? t("A PIN is set. Leave empty to keep it.") : t("4-8 digits. Managers use it to approve big discounts.")}
+              value={form.approval_pin}
+              onChange={(e) => setForm((f) => ({ ...f, approval_pin: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
+              slotProps={{ htmlInput: { inputMode: "numeric", autoComplete: "new-password" } }}
+            />
+            {hasPin && <FormControlLabel control={<Switch size="small" checked={clearPin} onChange={(e) => setClearPin(e.target.checked)} />} label={t("Remove PIN")} />}
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <FormControlLabel control={<Switch checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />} label={t("Active (can log in)")} />

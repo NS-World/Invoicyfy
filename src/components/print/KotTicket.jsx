@@ -23,6 +23,7 @@ export default function KotTicket({ doc, width = "80mm", settings = DEFAULT_INVO
         <span>No. {number}</span>
         <span>{doc.order_type || ""}</span>
       </div>
+      {doc.table_no && <div className="center bold kot-table">TABLE {doc.table_no}</div>}
       <div className="row small">
         <span>
           {formatDate(doc.created_at || doc.invoice_date || doc.order_date, "short")} {formatTime(doc.created_at)}

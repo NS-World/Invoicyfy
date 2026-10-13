@@ -62,7 +62,10 @@ export default function ThermalReceipt({ invoice, copyLabel = "", width = "80mm"
           <br />
           {formatTime(invoice.created_at)}
         </span>
-        <span className="bold">{invoice.order_type || ""}</span>
+        <span className="bold">
+          {invoice.order_type || ""}
+          {invoice.table_no ? ` · T-${invoice.table_no}` : ""}
+        </span>
       </div>
       <div className="row">
         <span>{s.show_cashier ? `Cashier: ${invoice.user_name || "-"}` : ""}</span>
@@ -112,6 +115,20 @@ export default function ThermalReceipt({ invoice, copyLabel = "", width = "80mm"
           <span>Discount&nbsp;&nbsp;-{money(invoice.discount_amount)}</span>
         </div>
       )}
+      {Number(invoice.coupon_discount) > 0 && (
+        <div className="row right-only small">
+          <span>
+            (Coupon {invoice.coupon_code} -{money(invoice.coupon_discount)})
+          </span>
+        </div>
+      )}
+      {Number(invoice.loyalty_discount) > 0 && (
+        <div className="row right-only small">
+          <span>
+            (Points {Number(invoice.loyalty_points_redeemed)} -{money(invoice.loyalty_discount)})
+          </span>
+        </div>
+      )}
       {showTaxLines &&
         (invoice.is_interstate ? (
           <div className="row right-only">
@@ -146,6 +163,9 @@ export default function ThermalReceipt({ invoice, copyLabel = "", width = "80mm"
         </div>
       )}
       {s.show_payment_mode && paymentModes && <div className="center small">Paid by: {paymentModes}</div>}
+      {Number(invoice.loyalty_points_earned) > 0 && invoice.status !== "Cancelled" && (
+        <div className="center small">You earned {Number(invoice.loyalty_points_earned)} points on this bill</div>
+      )}
       {blocks("after_totals")}
       <hr />
       {s.receipt_footer_note && <div className="center small note-line">{s.receipt_footer_note}</div>}

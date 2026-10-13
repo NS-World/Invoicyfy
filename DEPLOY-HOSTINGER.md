@@ -159,9 +159,10 @@ phir live app me **Import backup**.
    Naye tables/columns ban jaate hain, data safe rehta hai. (SSH ho to `php database/migrate.php` bhi chalega.)
 4. Browser me ek baar hard refresh (Ctrl+Shift+R). Mobile par app band karke phir kholo.
 
-### Offers ke liye auto-send (cron job) — ek baar set karo
+### Offers + automatic messages ke liye cron job — ek baar set karo
 
-Email / SMS / WhatsApp API offers page band karne ke baad bhi jaate rahein, iske liye:
+Email / SMS / WhatsApp API offers page band karne ke baad bhi jaate rahein, aur V3 ke automatic messages
+(raat ka summary, low stock alert, birthday/anniversary wish, udhaar reminder) time par jaayein, iske liye:
 hPanel → **Advanced → Cron Jobs** → Custom → **har minute** (`* * * * *`) → command:
 
 ```
@@ -180,6 +181,34 @@ hPanel → **Advanced → Cron Jobs** → Custom → **har minute** (`* * * * *`
   IMAGE header rakho aur Setup me "Template has an image header" on karo.
 * Offer photos `api/uploads/offers/` me save hoti hain — yeh folder writable hona chahiye (default hota hai).
 
+## Version 3 — naye features ka setup (ek baar)
+
+Update ke baad **Update database** button zaroor dabao (naye tables: day close, coupons, loyalty,
+activity log, held bills...). Purana data aur purane screens waise hi chalte hain.
+
+1. **Roles & Permissions** — har role me *Max discount without manager PIN (%)* bharo (jaise Staff = 5).
+   Khaali = koi limit nahi (pehle jaisa).
+2. **Counter & Printer → My approval PIN** — Manager/Admin apna 4-8 digit PIN set karein.
+3. **Counter & Printer → Counter** — tables ki sankhya, UPI QR screen par, aur chahiye to
+   *Billing only after the day is opened*.
+4. **Counter & Printer → Printer** — har billing device par ek baar:
+   * Thermal printer USB / Bluetooth / Serial se **Connect printer** → **Test print**. Iske baad bill
+     aur KOT bina print-window ke seedhe chhapte hain (Chrome / Edge, https par).
+   * Windows PC par koi bhi printer: Chrome *kiosk printing* shortcut (steps usi tab me) — Chrome
+     default printer par bina pooche chhapta hai.
+   * Printer na mile to normal print window apne aap khulti hai — billing kabhi nahi rukti.
+5. **Coupons & Loyalty** — coupons banao, Loyalty tab me points ka rule on karo.
+6. **Automatic Messages** — owner ka mobile/email, time aur channel chuno, *Send ... now* se test karo.
+   Cron job (upar) laga ho to app band hone par bhi time par jaate hain; warna app khuli ho tab jaate hain.
+7. **Customers** me birthday / anniversary bharo — us din coupon ke saath wish jaayega.
+
+**Offline billing:** internet jaane par Quick Bill (retail) bante aur chhapte rehte hain, `OFF-` number ke
+saath device me save hote hain, aur internet aate hi apne aap server par jaakar asli bill number paate hain
+(upar ka cloud icon dikhata hai kitne baaki hain). Coupon / points / order se bane bill ke liye internet
+chahiye. App ek baar online khulne ke baad internet ke bina bhi khul jaati hai (same device + browser).
+
+**Demo & help:** upar **Demo & help** (topi wala icon) dabao — har screen ka step-by-step demo.
+
 ## Backup ki aadat
 
 * App: **Backup & Restore → Download full backup** hafte me kam se kam ek baar. File ko Google Drive
@@ -197,4 +226,7 @@ hPanel → **Advanced → Cron Jobs** → Custom → **har minute** (`* * * * *`
 | Offers page band karne par sending ruk jaati hai | Cron job set karo (upar dekho). |
 | Photo upload fail | `api/uploads/offers` folder ki permission 755 rakho. |
 | Naye screen par "Unknown column" error | Admin login → **Update database** button dabao. |
+| Bill save par "The day is not opened yet" | Day Close screen par **Open day** karo, ya Counter me wo rule band karo. |
+| Direct print ka option grey hai | App https par kholo; Chrome / Edge use karo (Bluetooth ke liye Android/PC Chrome). |
+| Naya version nahi dikh raha | App ek baar band karke kholo / Ctrl+Shift+R (offline copy agle visit par update hoti hai). |
 | Error ki detail chahiye | Thodi der ke liye `APP_DEBUG=true` karo, check karke wapas `false` karo. |

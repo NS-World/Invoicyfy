@@ -41,6 +41,7 @@ import ThermalReceipt from "../../components/print/ThermalReceipt";
 import TaxInvoiceA4 from "../../components/print/TaxInvoiceA4";
 import PrintPortal from "../../components/print/PrintPortal";
 import KotTicket from "../../components/print/KotTicket";
+import { directPrint } from "../../utils/directPrint";
 import { InvoiceServices } from "../../services/InvoiceServices";
 import { PaymentServices } from "../../services/PaymentServices";
 import { useNotify } from "../../context/NotifyProvider";
@@ -188,17 +189,27 @@ export default function InvoiceView() {
 
   const print = useCallback((kind) => setPrinting(kind), []);
 
-  // Open the browser print dialog once the print view has rendered.
+  // Open the browser print dialog once the print view has rendered
+  // (thermal slips go straight to the printer when one is set up in Counter & Printer).
   useEffect(() => {
     if (!printing) return undefined;
+    let stop = false;
     const done = () => setPrinting(null);
-    window.addEventListener("afterprint", done);
-    const t = setTimeout(() => window.print(), 250);
+    const t = setTimeout(async () => {
+      if (printing !== "a4" && directPrint.enabled()) {
+        const ok = await directPrint.printElement(document.getElementById("print-root"), receiptWidth).catch(() => false);
+        if (ok) return done();
+      }
+      if (stop) return;
+      window.addEventListener("afterprint", done);
+      window.print();
+    }, 250);
     return () => {
+      stop = true;
       clearTimeout(t);
       window.removeEventListener("afterprint", done);
     };
-  }, [printing]);
+  }, [printing, receiptWidth]);
 
   // ?print=receipt|a4 right after creating a bill
   useEffect(() => {

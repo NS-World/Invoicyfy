@@ -8,6 +8,7 @@ export default function PageHeader({ title, subtitle, actions, back }) {
   const navigate = useNavigate();
   return (
     <Box
+      data-tour="page-header"
       sx={{
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
@@ -35,7 +36,7 @@ export default function PageHeader({ title, subtitle, actions, back }) {
         </Box>
       </Box>
       {actions && (
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: { xs: "flex-start", sm: "flex-end" } }}>
+        <Box data-tour="page-actions" sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: { xs: "flex-start", sm: "flex-end" } }}>
           {actions}
         </Box>
       )}

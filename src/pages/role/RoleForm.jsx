@@ -24,6 +24,7 @@ import { RoleServices } from "../../services/RoleServices";
 import { useNotify } from "../../context/NotifyProvider";
 import { apiError } from "../../utils/format";
 import { useT } from "../../context/PrefsContext";
+import { useAuth } from "../../context/useAuth";
 
 const ACTIONS = ["view", "add", "edit", "delete"];
 const LABEL = { view: "View", add: "Add", edit: "Edit", delete: "Delete / Cancel" };
@@ -51,6 +52,8 @@ export default function RoleForm() {
   const [perms, setPerms] = useState({});
   const [modules, setModules] = useState([]);
   const [isSystem, setIsSystem] = useState(false);
+  const [maxDiscount, setMaxDiscount] = useState("");
+  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -65,6 +68,7 @@ export default function RoleForm() {
           setName(res.data.role_name);
           setPerms(res.data.permissions || {});
           setIsSystem(Boolean(res.data.is_system));
+          setMaxDiscount(res.data.max_discount_percent ?? "");
         }
       } catch (err) {
         setError(apiError(err));
@@ -95,7 +99,7 @@ export default function RoleForm() {
     setSaving(true);
     setError("");
     try {
-      const payload = { role_name: name, permissions: perms };
+      const payload = { role_name: name, permissions: perms, ...(isAdmin ? { max_discount_percent: maxDiscount } : {}) };
       if (roleId) await RoleServices.updateRoleData({ ...payload, role_id: roleId });
       else await RoleServices.postRoleData(payload);
       notify(roleId ? "Role updated" : "Role added");
@@ -114,7 +118,21 @@ export default function RoleForm() {
       <PageHeader title={roleId ? `Edit Role · ${name}` : "Add Role"} subtitle={t("Choose exactly what people with this role can see and do")} back="/roles" />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
-        <TextField fullWidth required label={t("Role name")} value={name} onChange={(e) => setName(e.target.value)} sx={{ maxWidth: 420 }} />
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <TextField fullWidth required label={t("Role name")} value={name} onChange={(e) => setName(e.target.value)} sx={{ maxWidth: 420 }} />
+          {isAdmin && !isSystem && (
+            <TextField
+              type="number"
+              label={t("Max discount without manager PIN (%)")}
+              value={maxDiscount}
+              onChange={(e) => setMaxDiscount(e.target.value)}
+              helperText={t("Empty = no limit. e.g. 10 means a bigger discount needs a manager's PIN.")}
+              slotProps={{ htmlInput: { min: 0, max: 100, step: "any", inputMode: "decimal" } }}
+              sx={{ maxWidth: 360, flex: "1 1 260px" }}
+              data-tour="role-discount"
+            />
+          )}
+        </Box>
         {!isSystem && (
           <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
             <Typography variant="body2" color="text.secondary">

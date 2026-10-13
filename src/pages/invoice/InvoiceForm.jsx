@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -17,6 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import PauseCircleIcon from "@mui/icons-material/PauseCircle";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import CustomerPicker from "../../components/billing/CustomerPicker";
@@ -27,6 +28,17 @@ import useCatalog from "../../hooks/useCatalog";
 import { billLines } from "../../utils/billItems";
 import { getInvoiceSettings } from "../../utils/invoiceSettings";
 import TotalsSummary from "../../components/billing/TotalsSummary";
+import PaymentBox from "../../components/billing/v3/PaymentBox";
+import CouponPoints from "../../components/billing/v3/CouponPoints";
+import ApprovalPinDialog from "../../components/billing/v3/ApprovalPinDialog";
+import TablePicker from "../../components/billing/v3/TablePicker";
+import HeldBills from "../../components/billing/v3/HeldBills";
+import OfflineSavedDialog from "../../components/billing/v3/OfflineSavedDialog";
+import { BillServices, HeldServices, PosServices } from "../../services/V3Services";
+import useDebounce from "../../hooks/useDebounce";
+import { fromServerTotals, newUuid, paymentAmounts } from "../../utils/payments";
+import { isNetworkError, queueBill } from "../../utils/offline";
+import { buildOfflineInvoice } from "../../utils/offlineInvoice";
 import { InvoiceServices } from "../../services/InvoiceServices";
 import { useNotify } from "../../context/NotifyProvider";
 import { useAuth } from "../../context/useAuth";
@@ -44,7 +56,7 @@ export default function InvoiceForm() {
   const [params] = useSearchParams();
   const notify = useNotify();
   const meta = useMeta();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { stores, defaultStoreId } = useStores();
 
   const [type, setType] = useState(params.get("type") === "tax" ? "tax" : "retail");
@@ -59,9 +71,18 @@ export default function InvoiceForm() {
   const [kot, setKot] = useState(null); // null = shop default from Invoice Design
   const cartRef = useRef(null);
   const [paid, setPaid] = useState(params.get("type") !== "tax");
-  const [payAmount, setPayAmount] = useState("");
-  const [payMethod, setPayMethod] = useState("Cash");
-  const [payRef, setPayRef] = useState("");
+  const [payRows, setPayRows] = useState([{ method: "Cash", amount: "", reference: "" }]);
+  const [tableNo, setTableNo] = useState("");
+  const [busyTables, setBusyTables] = useState([]);
+  const [pos, setPos] = useState(null);
+  const [disc, setDisc] = useState({ coupon_code: "", redeem_points: 0 });
+  const [quote, setQuote] = useState(null);
+  const [quoteError, setQuoteError] = useState("");
+  const [approval, setApproval] = useState(null); // { info, payload }
+  const [errorCode, setErrorCode] = useState("");
+  const [heldKey, setHeldKey] = useState(0);
+  const [offlineBill, setOfflineBill] = useState(null);
+  const uuid = useRef(newUuid());
   const [extra, setExtra] = useState({ notes: "", terms: "", shipping_address: "", eway_bill_no: "", vehicle_no: "", reverse_charge: false });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -77,13 +98,135 @@ export default function InvoiceForm() {
   const { pick, addCustom, dialog } = useBillPicker(setItems);
   const kotOn = type === "retail" && (kot ?? getInvoiceSettings(store).kot_auto);
   const validItems = billLines(items);
-  const totals = useMemo(() => calcTotals(validItems, interstate), [validItems, interstate]);
+  const localTotals = useMemo(() => calcTotals(validItems, interstate), [validItems, interstate]);
   const gstinInvalid = gstin && !GSTIN_REGEX.test(gstin);
+
+  // Counter settings: tables, UPI QR, loyalty on/off.
+  useEffect(() => {
+    if (!storeId) return;
+    PosServices.get(storeId)
+      .then((r) => setPos(r.data))
+      .catch(() => {});
+  }, [storeId]);
+
+  // Coupon / points: the server works out the exact discount (debounced while the cart changes).
+  const customerId = party.customer?.customer_id || null;
+  const wantQuote = validItems.length > 0 && (disc.coupon_code || disc.redeem_points > 0 || (customerId && pos?.loyalty?.enabled));
+  const quoteKey = useDebounce(wantQuote ? JSON.stringify([storeId, customerId, disc, interstate, validItems.map(itemToApi)]) : "", 350);
+  useEffect(() => {
+    if (!quoteKey) {
+      setQuote(null);
+      setQuoteError("");
+      return undefined;
+    }
+    let live = true;
+    const [sid, cid, d, , lines] = JSON.parse(quoteKey);
+    BillServices.quote({ store_id: sid, customer_id: cid, items: lines, coupon_code: d.coupon_code || undefined, redeem_points: d.redeem_points || undefined })
+      .then((r) => {
+        if (!live) return;
+        setQuote(r.data);
+        setQuoteError("");
+      })
+      .catch((e) => {
+        if (!live || isNetworkError(e)) return;
+        setQuote(null);
+        setQuoteError(apiError(e));
+      });
+    return () => {
+      live = false;
+    };
+  }, [quoteKey]);
+  const discounted = Boolean(quote && !quoteError && (disc.coupon_code || disc.redeem_points > 0));
+  const totals = discounted ? { ...fromServerTotals(quote.totals, validItems.length), qty: localTotals.qty, tax: quote.totals.tax_amount } : localTotals;
 
   const switchType = (t) => {
     if (!t) return;
     setType(t);
     setPaid(t === "retail");
+  };
+
+  const resetBill = () => {
+    uuid.current = newUuid();
+    setItems([]);
+    setParty({ customer: null, customer_name: "", customer_phone: "" });
+    setPayRows([{ method: "Cash", amount: "", reference: "" }]);
+    setTableNo("");
+    setDisc({ coupon_code: "", redeem_points: 0 });
+    setExtra((x) => ({ ...x, notes: "" }));
+    setError("");
+  };
+
+  // Park this bill and start the next customer.
+  const hold = async () => {
+    if (!validItems.length) return;
+    try {
+      await HeldServices.save({
+        store_id: storeId,
+        table_no: tableNo || undefined,
+        label: party.customer?.name || party.customer_name || undefined,
+        customer_name: party.customer?.name || party.customer_name || undefined,
+        total: totals.total,
+        payload: { items: validItems, party, orderType, tableNo, disc, notes: extra.notes, type },
+      });
+      notify(t("Bill put on hold"));
+      resetBill();
+      setHeldKey((k) => k + 1);
+    } catch (err) {
+      notify(apiError(err), "error");
+    }
+  };
+  const resume = useCallback((p) => {
+    setItems((p.items || []).map((it) => ({ ...it, key: it.key || newUuid() })));
+    setParty(p.party || { customer: null, customer_name: "", customer_phone: "" });
+    setOrderType(p.orderType || "Counter");
+    setTableNo(p.tableNo || "");
+    setDisc(p.disc || { coupon_code: "", redeem_points: 0 });
+    setExtra((x) => ({ ...x, notes: p.notes || "" }));
+    if (p.type) setType(p.type);
+    uuid.current = newUuid();
+  }, []);
+
+  const send = async (payload) => {
+    setSaving(true);
+    setError("");
+    setErrorCode("");
+    try {
+      const res = await InvoiceServices.createInvoice(payload);
+      uuid.current = newUuid();
+      notify(`Invoice ${res.invoice_number} created`);
+      navigate(`/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}${kotOn ? "&kot=1" : ""}`, { replace: true });
+    } catch (err) {
+      const data = err?.response?.data || {};
+      if (data.code === "approval_required" || data.code === "approval_wrong_pin") {
+        setApproval({ info: { ...data, wrong: data.code === "approval_wrong_pin" }, payload });
+      } else if (isNetworkError(err) && type === "retail" && !payload.coupon_code && !payload.redeem_points && !payload.order_id) {
+        // No internet: keep the bill on this device and print it now; it is sent when the connection is back.
+        try {
+          const preview = buildOfflineInvoice({
+            uuid: payload.client_uuid,
+            store,
+            items: validItems,
+            totals,
+            interstate,
+            party,
+            orderType,
+            tableNo,
+            payments: payload.payments || [],
+            user,
+            notes: payload.notes,
+          });
+          await queueBill(payload, preview);
+          setOfflineBill({ invoice: preview, withKot: kotOn });
+        } catch (qErr) {
+          setError(qErr.message || apiError(err));
+        }
+      } else {
+        setErrorCode(data.code || "");
+        setError(apiError(err));
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const submit = async (e) => {
@@ -96,34 +239,29 @@ export default function InvoiceForm() {
       setError("Enter the buyer name for a tax invoice");
       return;
     }
-    setSaving(true);
-    setError("");
-    const amount = payAmount === "" ? totals.total : Number(payAmount);
-    try {
-      const res = await InvoiceServices.createInvoice({
-        invoice_type: type,
-        store_id: storeId,
-        customer_id: party.customer?.customer_id || null,
-        customer_name: party.customer ? undefined : party.customer_name || undefined,
-        customer_phone: party.customer ? undefined : party.customer_phone || undefined,
-        customer_gstin: !party.customer && gstin ? gstin : undefined,
-        place_of_supply_code: !party.customer && posCode ? posCode : undefined,
-        invoice_date: invoiceDate,
-        due_date: !paid && dueDate ? dueDate : undefined,
-        order_type: type === "retail" ? orderType : undefined,
-        items: validItems.map(itemToApi),
-        payment: paid && amount > 0 ? { amount, payment_method: payMethod, reference_no: payRef || undefined } : undefined,
-        ...extra,
-        notes: extra.notes || undefined,
-        terms: extra.terms || undefined,
-      });
-      notify(`Invoice ${res.invoice_number} created`);
-      navigate(`/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}${kotOn ? "&kot=1" : ""}`, { replace: true });
-    } catch (err) {
-      setError(apiError(err));
-    } finally {
-      setSaving(false);
-    }
+    const amounts = paymentAmounts(payRows, totals.total);
+    const payments = paid ? payRows.map((r, i) => ({ amount: amounts[i], payment_method: r.method, reference_no: r.reference || undefined })).filter((p) => p.amount > 0) : [];
+    await send({
+      invoice_type: type,
+      store_id: storeId,
+      customer_id: party.customer?.customer_id || null,
+      customer_name: party.customer ? undefined : party.customer_name || undefined,
+      customer_phone: party.customer ? undefined : party.customer_phone || undefined,
+      customer_gstin: !party.customer && gstin ? gstin : undefined,
+      place_of_supply_code: !party.customer && posCode ? posCode : undefined,
+      invoice_date: invoiceDate,
+      due_date: !paid && dueDate ? dueDate : undefined,
+      order_type: type === "retail" ? orderType : undefined,
+      table_no: tableNo || undefined,
+      items: validItems.map(itemToApi),
+      payments: payments.length ? payments : undefined,
+      coupon_code: disc.coupon_code || undefined,
+      redeem_points: disc.redeem_points || undefined,
+      client_uuid: uuid.current,
+      ...extra,
+      notes: extra.notes || undefined,
+      terms: extra.terms || undefined,
+    });
   };
 
   return (
@@ -132,14 +270,22 @@ export default function InvoiceForm() {
         title={type === "retail" ? "Quick Bill" : "New GST Tax Invoice"}
         back="/invoices"
         actions={
-          <ToggleButtonGroup exclusive size="small" color="primary" value={type} onChange={(_, v) => switchType(v)}>
-            <ToggleButton value="retail">{t("Retail bill")}</ToggleButton>
-            <ToggleButton value="tax">{t("GST invoice (B2B)")}</ToggleButton>
-          </ToggleButtonGroup>
+          <>
+            {storeId && <HeldBills storeId={storeId} onResume={resume} reloadKey={heldKey} onTablesBusy={setBusyTables} />}
+            <ToggleButtonGroup exclusive size="small" color="primary" value={type} onChange={(_, v) => switchType(v)}>
+              <ToggleButton value="retail">{t("Retail bill")}</ToggleButton>
+              <ToggleButton value="tax">{t("GST invoice (B2B)")}</ToggleButton>
+            </ToggleButtonGroup>
+          </>
         }
       />
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          onClose={() => setError("")}
+          action={errorCode === "day_not_open" ? <Button size="small" onClick={() => navigate("/day-close")}>{t("Open day")}</Button> : undefined}
+        >
           {error}
         </Alert>
       )}
@@ -151,7 +297,7 @@ export default function InvoiceForm() {
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, lg: 7 }}>
-          <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
+          <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }} data-tour="bill-customer">
             <Grid container spacing={2}>
               <Grid size={12}>
                 <CustomerPicker value={party} onChange={setParty} />
@@ -199,6 +345,19 @@ export default function InvoiceForm() {
                   <TextField fullWidth type="date" label={t("Due date")} value={dueDate} onChange={(e) => setDueDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} disabled={paid} />
                 </Grid>
               )}
+              {type === "retail" && pos?.table_count > 0 && (
+                <Grid size={12}>
+                  <TablePicker
+                    count={pos.table_count}
+                    value={tableNo}
+                    busy={busyTables}
+                    onChange={(n) => {
+                      setTableNo(n);
+                      if (n) setOrderType("Dine-in");
+                    }}
+                  />
+                </Grid>
+              )}
               {isAdmin && stores.length > 1 && (
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <TextField select fullWidth label={t("Store")} value={storeId} onChange={(e) => setStoreId(e.target.value)}>
@@ -213,7 +372,7 @@ export default function InvoiceForm() {
             </Grid>
           </Paper>
 
-          <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
+          <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }} data-tour="catalog">
             <ProductCatalog catalog={catalog} items={items} onPick={pick} onCustom={addCustom} />
           </Paper>
 
@@ -247,7 +406,7 @@ export default function InvoiceForm() {
 
         <Grid size={{ xs: 12, lg: 5 }}>
           <Box sx={{ position: { lg: "sticky" }, top: { lg: 16 } }}>
-            <Paper ref={cartRef} sx={{ p: 2, mb: 2, scrollMarginTop: 72 }}>
+            <Paper ref={cartRef} sx={{ p: 2, mb: 2, scrollMarginTop: 72 }} data-tour="bill-cart">
               <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, flex: 1 }}>
                   {t("Bill items")} {validItems.length > 0 && `(${validItems.length})`}
@@ -270,45 +429,23 @@ export default function InvoiceForm() {
                 </Alert>
               )}
               <TotalsSummary t={totals} interstate={interstate} />
+              {validItems.length > 0 && (
+                <CouponPoints
+                  value={disc}
+                  onChange={setDisc}
+                  quote={quote}
+                  error={quoteError}
+                  hasCustomer={Boolean(customerId)}
+                  loyaltyEnabled={Boolean(pos?.loyalty?.enabled)}
+                />
+              )}
+              {quote?.approval_required && (
+                <Alert severity="warning" sx={{ mt: 1, py: 0 }}>
+                  {t("Discount {p}% is above your limit of {l}%.", { p: quote.manual_discount_percent, l: quote.discount_limit })} {t("A manager PIN will be asked.")}
+                </Alert>
+              )}
 
-              <Box sx={{ mt: 2, p: 1.5, bgcolor: "action.hover", borderRadius: 2 }}>
-                <FormControlLabel control={<Switch checked={paid} onChange={(e) => setPaid(e.target.checked)} />} label={t("Payment received")} />
-                {paid && (
-                  <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
-                    <Grid size={6}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label={t("Amount ₹")}
-                        value={payAmount === "" ? totals.total : payAmount}
-                        onChange={(e) => setPayAmount(e.target.value)}
-                        slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" } }}
-                      />
-                    </Grid>
-                    <Grid size={6}>
-                      <TextField select fullWidth label={t("Mode")} value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                        {meta.payment_methods.filter((m) => m !== "Credit").map((m) => (
-                          <MenuItem key={m} value={m}>
-                            {m}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {payMethod !== "Cash" && (
-                      <Grid size={12}>
-                        <TextField fullWidth label={t("Reference / UTR")} value={payRef} onChange={(e) => setPayRef(e.target.value)} />
-                      </Grid>
-                    )}
-                    {payAmount !== "" && Number(payAmount) < totals.total && (
-                      <Grid size={12}>
-                        <Typography variant="caption" color="warning.main">
-                          Balance {formatCurrency(totals.total - Number(payAmount))} will stay due
-                        </Typography>
-                      </Grid>
-                    )}
-                  </Grid>
-                )}
-              </Box>
+              <PaymentBox total={totals.total} paid={paid} onPaid={setPaid} rows={payRows} onRows={setPayRows} methods={meta.payment_methods} upi={pos} />
 
               <TextField fullWidth multiline minRows={1} label={t("Notes")} value={extra.notes} onChange={(e) => setExtra({ ...extra, notes: e.target.value })} sx={{ mt: 2 }} />
               {type === "retail" && (
@@ -318,14 +455,42 @@ export default function InvoiceForm() {
                   label={t("Also print KOT (kitchen copy)")}
                 />
               )}
-              <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 1 }} disabled={saving || !validItems.length || Boolean(gstinInvalid)}>
-                {saving ? t("Saving...") : `${t("Save & Print")} · ${formatCurrency(totals.total)}`}
-              </Button>
+              <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                {type === "retail" && (
+                  <Button variant="outlined" size="large" onClick={hold} disabled={saving || !validItems.length} startIcon={<PauseCircleIcon />} data-tour="hold-btn">
+                    {t("Hold")}
+                  </Button>
+                )}
+                <Button type="submit" variant="contained" size="large" fullWidth disabled={saving || !validItems.length || Boolean(gstinInvalid)} data-tour="save-bill">
+                  {saving ? t("Saving...") : `${t("Save & Print")} · ${formatCurrency(totals.total)}`}
+                </Button>
+              </Box>
             </Paper>
           </Box>
         </Grid>
       </Grid>
       {dialog}
+      {approval && (
+        <ApprovalPinDialog
+          info={approval.info}
+          onCancel={() => setApproval(null)}
+          onConfirm={(pin) => {
+            const payload = { ...approval.payload, approval_pin: pin };
+            setApproval(null);
+            send(payload);
+          }}
+        />
+      )}
+      {offlineBill && (
+        <OfflineSavedDialog
+          invoice={offlineBill.invoice}
+          withKot={offlineBill.withKot}
+          onClose={() => {
+            setOfflineBill(null);
+            resetBill();
+          }}
+        />
+      )}
       {/* Phones / tablets: total and save stay in reach while picking items. */}
       <Paper
         elevation={8}

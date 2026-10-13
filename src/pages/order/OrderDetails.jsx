@@ -28,6 +28,7 @@ import ConfirmationDialog from "../../components/ConfirmationDialog";
 import GenerateInvoiceDialog from "../../components/billing/GenerateInvoiceDialog";
 import PrintPortal from "../../components/print/PrintPortal";
 import KotTicket from "../../components/print/KotTicket";
+import { directPrint } from "../../utils/directPrint";
 import useStores from "../../hooks/useStores";
 import { getInvoiceSettings } from "../../utils/invoiceSettings";
 import { OrderServices } from "../../services/OrderServices";
@@ -89,10 +90,19 @@ export default function OrderDetails() {
   }, [order, params, setParams]);
   useEffect(() => {
     if (!printing) return undefined;
+    let stop = false;
     const done = () => setPrinting(false);
-    window.addEventListener("afterprint", done);
-    const timer = setTimeout(() => window.print(), 250);
+    const timer = setTimeout(async () => {
+      if (directPrint.enabled()) {
+        const ok = await directPrint.printElement(document.getElementById("print-root"), localStorage.getItem("receiptWidth") || "80mm").catch(() => false);
+        if (ok) return done();
+      }
+      if (stop) return;
+      window.addEventListener("afterprint", done);
+      window.print();
+    }, 250);
     return () => {
+      stop = true;
       clearTimeout(timer);
       window.removeEventListener("afterprint", done);
     };

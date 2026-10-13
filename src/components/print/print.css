@@ -559,3 +559,10 @@
   page-break-after: always;
   height: 0;
 }
+
+.receipt.kot .kot-table {
+  font-size: 1.4em;
+  border: 2px solid #000;
+  margin: 4px 0;
+  padding: 2px 0;
+}

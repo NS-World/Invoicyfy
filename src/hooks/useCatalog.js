@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ProductServices } from "../services/ProductServices";
 import { CategoryServices } from "../services/CategoryServices";
 import { fetchAllPages } from "../utils/fetchAll";
+import { cacheGet, cacheSet } from "../utils/offline";
 
 /**
  * Everything the billing screen needs to pick items without searching the server on each key:
@@ -32,9 +33,17 @@ export default function useCatalog(storeId) {
         const byName = Object.fromEntries(cats.map((c) => [c.name, c]));
         const categories = names.map((name) => ({ name, unit: byName[name]?.default_unit, count: products.filter((p) => (p.category || "") === name).length }));
         products.sort((a, b) => a.name.localeCompare(b.name));
-        setState({ products, categories, popular, loading: false, error: "" });
+        const next = { products, categories, popular, loading: false, error: "" };
+        setState(next);
+        // Kept on this device so items can be picked when the internet is down.
+        cacheSet(`catalog:${storeId || "default"}`, { products, categories, popular });
       })
-      .catch((e) => live && setState((s) => ({ ...s, loading: false, error: e?.message || "Could not load products" })));
+      .catch(async (e) => {
+        const cached = await cacheGet(`catalog:${storeId || "default"}`);
+        if (!live) return;
+        if (cached) setState({ ...cached, loading: false, error: "", offline: true });
+        else setState((s) => ({ ...s, loading: false, error: e?.message || "Could not load products" }));
+      });
     return () => {
       live = false;
     };

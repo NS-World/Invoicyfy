@@ -38,6 +38,12 @@ const InvoiceDesigner = lazy(() => import("./pages/settings/InvoiceDesigner"));
 const Backup = lazy(() => import("./pages/backup/Backup"));
 const Offers = lazy(() => import("./pages/marketing/Offers"));
 const Categories = lazy(() => import("./pages/category/Categories"));
+const DayClose = lazy(() => import("./pages/cash/DayClose"));
+const CouponsLoyalty = lazy(() => import("./pages/loyalty/CouponsLoyalty"));
+const Credit = lazy(() => import("./pages/credit/Credit"));
+const ActivityLog = lazy(() => import("./pages/activity/ActivityLog"));
+const Automation = lazy(() => import("./pages/automation/Automation"));
+const CounterSettings = lazy(() => import("./pages/counter/CounterSettings"));
 
 const admin = (el) => <PrivateRoute admin>{el}</PrivateRoute>;
 const guard = (perm, el) => <PrivateRoute perm={perm}>{el}</PrivateRoute>;
@@ -85,6 +91,12 @@ function App() {
                   <Route path="settings/invoice-design" element={guard("settings", <InvoiceDesigner />)} />
                   <Route path="backup" element={guard("backup", <Backup />)} />
                   <Route path="offers" element={guard("marketing", <Offers />)} />
+                  <Route path="day-close" element={guard("cash", <DayClose />)} />
+                  <Route path="coupons" element={guard("loyalty", <CouponsLoyalty />)} />
+                  <Route path="credit" element={guard("payments", <Credit />)} />
+                  <Route path="activity" element={guard("activity", <ActivityLog />)} />
+                  <Route path="automation" element={guard("settings", <Automation />)} />
+                  <Route path="counter" element={<CounterSettings />} />
 
                   <Route path="users" element={guard("users", <Users />)} />
                   <Route path="user" element={guard("users", <UserForm />)} />

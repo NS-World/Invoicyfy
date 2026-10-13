@@ -40,12 +40,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Palette,
+  LockClock,
+  Loyalty,
+  MoneyOff,
+  History,
+  AutoMode,
+  Print,
 } from "@mui/icons-material";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { useT } from "../../context/PrefsContext";
 import PrefsSwitcher from "../../components/common/PrefsSwitcher";
 import DatabaseUpdateBanner from "../../components/common/DatabaseUpdateBanner";
+import OfflineStatus from "../../components/v3/OfflineStatus";
+import HelpTour from "../../components/tour/HelpTour";
+import { AutomationServices } from "../../services/V3Services";
 import { SIDEBAR_BG } from "../../theme";
 import "./Home.css";
 
@@ -61,8 +70,11 @@ const menu = [
       { text: "Orders", icon: <Assignment />, path: "/orders", perm: "orders" },
       { text: "Invoices", icon: <Receipt />, path: "/invoices", perm: "invoices" },
       { text: "Payments", icon: <Payment />, path: "/payments", perm: "payments" },
+      { text: "Udhaar / Credit", icon: <MoneyOff />, path: "/credit", perm: "payments" },
+      { text: "Day Close", icon: <LockClock />, path: "/day-close", perm: "cash" },
       { text: "Customers", icon: <People />, path: "/customers", perm: "customers" },
       { text: "Offers & Messages", icon: <Campaign />, path: "/offers", perm: "marketing" },
+      { text: "Coupons & Loyalty", icon: <Loyalty />, path: "/coupons", perm: "loyalty" },
     ],
   },
   {
@@ -80,6 +92,9 @@ const menu = [
     items: [
       { text: "Settings", icon: <Settings />, path: "/settings" },
       { text: "Invoice Design", icon: <Palette />, path: "/settings/invoice-design", perm: "settings" },
+      { text: "Counter & Printer", icon: <Print />, path: "/counter" },
+      { text: "Automatic Messages", icon: <AutoMode />, path: "/automation", perm: "settings" },
+      { text: "Activity Log", icon: <History />, path: "/activity", perm: "activity" },
       { text: "Stores", icon: <Store />, path: "/stores", admin: true },
       { text: "Users", icon: <People />, path: "/users", perm: "users" },
       { text: "Roles & Permissions", icon: <AdminPanelSettings />, path: "/roles", perm: "users" },
@@ -118,6 +133,17 @@ export default function Home() {
   useEffect(() => setMobileOpen(false), [pathname]);
   useEffect(() => localStorage.setItem("sidebarMini", mini ? "1" : "0"), [mini]);
 
+  // Daily automatic messages also go out while the app is open (for hosting without a cron job).
+  useEffect(() => {
+    const tick = () => navigator.onLine && document.visibilityState === "visible" && AutomationServices.tick().catch(() => {});
+    const first = setTimeout(tick, 15000);
+    const timer = setInterval(tick, 10 * 60 * 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, []);
+
   const collapsed = isDesktop && mini;
   const width = collapsed ? MINI_WIDTH : DRAWER_WIDTH;
 
@@ -136,7 +162,7 @@ export default function Home() {
         )}
       </Box>
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
-      <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+      <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }} data-tour="main-menu">
         {menu.map((group) => {
           const items = group.items.filter((i) => (!i.admin || isAdmin) && (!i.perm || can(...i.perm.split("."))));
           if (!items.length) return null;
@@ -186,7 +212,9 @@ export default function Home() {
       </Box>
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
       <Box sx={{ px: collapsed ? 1 : 2, pt: 1.5, display: isDesktop ? "block" : "none" }}>
-        <PrefsSwitcher compact={collapsed} color="#fff" />
+        <Box data-tour="prefs">
+          <PrefsSwitcher compact={collapsed} color="#fff" />
+        </Box>
       </Box>
       <Box sx={{ p: collapsed ? 1 : 2 }}>
         {!collapsed && (
@@ -221,15 +249,19 @@ export default function Home() {
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       {!isDesktop && (
         <AppBar position="fixed" elevation={0} sx={{ bgcolor: SIDEBAR_BG }} className="no-print">
-          <Toolbar sx={{ gap: 1 }}>
-            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+          <Toolbar sx={{ gap: { xs: 0.5, sm: 1 }, px: { xs: 1, sm: 2 } }}>
+            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} aria-label="Open menu" data-tour="main-menu" sx={{ ml: 0 }}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" sx={{ fontWeight: 800, flex: 1 }} noWrap>
+            <Typography variant="h6" sx={{ fontWeight: 800, flex: 1, minWidth: 0, fontSize: { xs: 18, sm: 20 } }} noWrap>
               Invoicyfy
             </Typography>
-            <PrefsSwitcher short color="#fff" />
-            <Avatar sx={{ width: 30, height: 30, bgcolor: "#045864", fontSize: 14 }}>{(user?.name || "U").charAt(0).toUpperCase()}</Avatar>
+            <OfflineStatus color="#fff" />
+            <HelpTour color="#fff" />
+            <Box data-tour="prefs">
+              <PrefsSwitcher short color="#fff" />
+            </Box>
+            <Avatar sx={{ width: 30, height: 30, bgcolor: "#045864", fontSize: 14, display: { xs: "none", sm: "flex" } }}>{(user?.name || "U").charAt(0).toUpperCase()}</Avatar>
           </Toolbar>
         </AppBar>
       )}
@@ -258,6 +290,12 @@ export default function Home() {
 
       <Box component="main" className="main-content" sx={{ flexGrow: 1, minWidth: 0, width: { md: `calc(100% - ${width}px)` } }}>
         {!isDesktop && <Toolbar />}
+        {isDesktop && (
+          <Box className="no-print" sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1, px: { sm: 2.5, lg: 3 }, pt: 1.5, mb: -1, maxWidth: 1600, mx: "auto" }}>
+            <OfflineStatus color="text.secondary" />
+            <HelpTour label color="text.primary" />
+          </Box>
+        )}
         <Box className="tab-content" sx={{ p: { xs: 1.5, sm: 2.5, lg: 3 }, maxWidth: 1600, mx: "auto" }}>
           <DatabaseUpdateBanner />
           <Outlet />

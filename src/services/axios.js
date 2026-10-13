@@ -63,7 +63,8 @@ API.interceptors.response.use(
         original.headers.Authorization = `Bearer ${token}`;
         return API(original);
       } catch (refreshError) {
-        sessionExpired();
+        // No connection is not an expired session: keep the user signed in (offline billing keeps working).
+        if (refreshError?.response || refreshError?.message === "No refresh token" || refreshError?.message === "Token refresh failed") sessionExpired();
         return Promise.reject(refreshError);
       }
     }

@@ -27,6 +27,10 @@ Options -Indexes
     <FilesMatch "\.(js|css|woff2?|svg|png|jpg|webp)$">
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
+    # The offline helper must be checked for updates on every visit.
+    <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>

@@ -88,6 +88,7 @@ export default function ProductCatalog({ catalog, items, onPick, onCustom, heigh
       <TextField
         fullWidth
         size="small"
+        data-tour="catalog-search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         onKeyDown={onKey}
@@ -112,6 +113,7 @@ export default function ProductCatalog({ catalog, items, onPick, onCustom, heigh
       />
       {!q && tabs.length > 1 && (
         <Tabs
+          data-tour="catalog-tabs"
           value={current}
           onChange={(_, v) => chooseTab(v)}
           variant="scrollable"

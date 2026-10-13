@@ -10,6 +10,9 @@ import useBillPicker from "../../components/billing/useBillPicker";
 import useCatalog from "../../hooks/useCatalog";
 import { billLines } from "../../utils/billItems";
 import { getInvoiceSettings } from "../../utils/invoiceSettings";
+import TablePicker from "../../components/billing/v3/TablePicker";
+import ApprovalPinDialog from "../../components/billing/v3/ApprovalPinDialog";
+import { PosServices } from "../../services/V3Services";
 import TotalsSummary from "../../components/billing/TotalsSummary";
 import { OrderServices } from "../../services/OrderServices";
 import { CustomerServices } from "../../services/CustomerServices";
@@ -70,6 +73,7 @@ export default function OrderForm() {
         setStoreId(o.store_id);
         setOrderDate(o.order_date || today());
         setOrderType(o.order_type || "Counter");
+        setTableNo(o.table_no || "");
         setNotes(o.notes || "");
         setOrderNumber(o.order_number);
         setItems(res.items.map(itemFromApi));
@@ -86,8 +90,33 @@ export default function OrderForm() {
   const catalog = useCatalog(storeId);
   const { pick, addCustom, dialog } = useBillPicker(setItems);
   const kotOn = kot ?? (!orderId && getInvoiceSettings(store).kot_auto_order);
+  const [tableNo, setTableNo] = useState("");
+  const [pos, setPos] = useState(null);
+  const [approval, setApproval] = useState(null);
+  useEffect(() => {
+    if (!storeId) return;
+    PosServices.get(storeId)
+      .then((r) => setPos(r.data))
+      .catch(() => {});
+  }, [storeId]);
   const validItems = billLines(items);
   const totals = useMemo(() => calcTotals(validItems, interstate), [validItems, interstate]);
+
+  const send = async (payload) => {
+    setSaving(true);
+    setError("");
+    try {
+      const res = orderId ? await OrderServices.updateOrderData(payload) : await OrderServices.postOrderData(payload);
+      notify(orderId ? "Order updated" : `Order ${res.order_number} created`);
+      navigate(`/orders/${orderId || res.order_id}${kotOn ? "?print=kot" : ""}`);
+    } catch (err) {
+      const data = err?.response?.data || {};
+      if (data.code === "approval_required" || data.code === "approval_wrong_pin") setApproval({ info: { ...data, wrong: data.code === "approval_wrong_pin" }, payload });
+      else setError(apiError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -95,9 +124,7 @@ export default function OrderForm() {
       setError(t("Add at least one item"));
       return;
     }
-    setSaving(true);
-    setError("");
-    const payload = {
+    await send({
       order_id: orderId || undefined,
       store_id: storeId,
       customer_id: party.customer?.customer_id || null,
@@ -105,18 +132,10 @@ export default function OrderForm() {
       customer_phone: party.customer ? undefined : party.customer_phone,
       order_date: orderDate,
       order_type: orderType,
+      table_no: tableNo,
       notes,
       items: validItems.map(itemToApi),
-    };
-    try {
-      const res = orderId ? await OrderServices.updateOrderData(payload) : await OrderServices.postOrderData(payload);
-      notify(orderId ? "Order updated" : `Order ${res.order_number} created`);
-      navigate(`/orders/${orderId || res.order_id}${kotOn ? "?print=kot" : ""}`);
-    } catch (err) {
-      setError(apiError(err));
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   if (loading) return <Loader />;
@@ -149,6 +168,18 @@ export default function OrderForm() {
                   ))}
                 </TextField>
               </Grid>
+              {pos?.table_count > 0 && (
+                <Grid size={12}>
+                  <TablePicker
+                    count={pos.table_count}
+                    value={tableNo}
+                    onChange={(n) => {
+                      setTableNo(n);
+                      if (n) setOrderType("Dine-in");
+                    }}
+                  />
+                </Grid>
+              )}
               {isAdmin && stores.length > 1 && (
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <TextField select fullWidth label={t("Store")} value={storeId} onChange={(e) => setStoreId(e.target.value)} disabled={Boolean(orderId)}>
@@ -212,6 +243,17 @@ export default function OrderForm() {
         </Grid>
       </Grid>
       {dialog}
+      {approval && (
+        <ApprovalPinDialog
+          info={approval.info}
+          onCancel={() => setApproval(null)}
+          onConfirm={(pin) => {
+            const payload = { ...approval.payload, approval_pin: pin };
+            setApproval(null);
+            send(payload);
+          }}
+        />
+      )}
       <Paper
         elevation={8}
         sx={{ display: { xs: validItems.length ? "flex" : "none", lg: "none" }, position: "sticky", bottom: 8, mt: 2, p: 1, pl: 2, gap: 1, alignItems: "center", zIndex: 5, borderRadius: 3 }}

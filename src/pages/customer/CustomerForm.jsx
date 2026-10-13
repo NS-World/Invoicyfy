@@ -10,6 +10,7 @@ import useMeta from "../../hooks/useMeta";
 import { apiError, formatCurrency } from "../../utils/format";
 import { GSTIN_REGEX } from "../../utils/gst";
 import { useT } from "../../context/PrefsContext";
+import CustomerPoints from "../../components/v3/CustomerPoints";
 
 const blank = {
   customer_type: "B2C",
@@ -24,6 +25,8 @@ const blank = {
   pincode: "",
   shipping_address: "",
   notes: "",
+  birthday: "",
+  anniversary: "",
   marketing_opt_in: true,
 };
 
@@ -157,7 +160,13 @@ export default function CustomerForm() {
               <TextField fullWidth multiline minRows={2} label={t("Shipping address (if different)")} value={form.shipping_address} onChange={set("shipping_address")} />
             </Grid>
           )}
-          <Grid size={12}>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <TextField fullWidth type="date" label={t("Birthday")} value={form.birthday || ""} onChange={set("birthday")} slotProps={{ inputLabel: { shrink: true } }} />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <TextField fullWidth type="date" label={t("Anniversary")} value={form.anniversary || ""} onChange={set("anniversary")} slotProps={{ inputLabel: { shrink: true } }} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField fullWidth label={t("Notes")} value={form.notes} onChange={set("notes")} />
           </Grid>
           <Grid size={12}>
@@ -179,6 +188,7 @@ export default function CustomerForm() {
           {t("Only the name is required. Add GSTIN for business customers to issue GST tax invoices.")}
         </Typography>
       </Paper>
+      {customerId && <CustomerPoints customerId={customerId} />}
     </Box>
   );
 }
