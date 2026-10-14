@@ -173,7 +173,7 @@ export default function Home() {
               dense
               subheader={
                 group.section && !collapsed ? (
-                  <ListSubheader sx={{ bgcolor: "transparent", color: "rgba(255,255,255,0.5)", lineHeight: "32px", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+                  <ListSubheader disableSticky sx={{ bgcolor: "transparent", color: "rgba(255,255,255,0.5)", lineHeight: "32px", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
                     {t(group.section)}
                   </ListSubheader>
                 ) : null

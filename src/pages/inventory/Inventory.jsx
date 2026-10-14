@@ -3,6 +3,10 @@ import { Button, Grid, IconButton, Tab, Tabs, Tooltip, Typography } from "@mui/m
 import AddBoxIcon from "@mui/icons-material/AddBox";
 import HistoryIcon from "@mui/icons-material/History";
 import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ConfirmationDialog from "../../components/ConfirmationDialog";
+import { ProductServices } from "../../services/ProductServices";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import PageHeader from "../../components/common/PageHeader";
@@ -16,7 +20,7 @@ import StockHistoryDialog from "./StockHistoryDialog";
 import { InventoryServices } from "../../services/InventoryServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
-import { formatCurrency, formatNumber } from "../../utils/format";
+import { apiError, formatCurrency, formatNumber } from "../../utils/format";
 import { useT } from "../../context/PrefsContext";
 
 export default function Inventory() {
@@ -27,6 +31,19 @@ export default function Inventory() {
   const [filter, setFilter] = useState("");
   const [adjust, setAdjust] = useState(null);
   const [history, setHistory] = useState(null);
+  const [toDelete, setToDelete] = useState(null);
+
+  // Same delete as the Products screen: removed, or marked Inactive when it was already billed (then it leaves this list).
+  const confirmDelete = async () => {
+    try {
+      const res = await ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id });
+      notify(res.message);
+      table.reload();
+    } catch (err) {
+      notify(apiError(err), "error");
+    }
+    setToDelete(null);
+  };
   const table = useServerTable((p, s, q, f) => InventoryServices.getStock(p, s, q, f), { filters: { filter }, idField: "product_id", pageSize: 25 });
   const summary = table.response?.summary;
 
@@ -53,10 +70,17 @@ export default function Inventory() {
     {
       field: "actions",
       headerName: "",
-      minWidth: 100,
+      minWidth: 170,
       sortable: false,
       renderCell: ({ row }) => (
         <span>
+          {can("products", "edit") && (
+            <Tooltip title={t("Edit")}>
+              <IconButton size="small" color="primary" onClick={() => navigate(`/product?id=${row.product_id}`)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           {can("inventory", "add") && (
           <Tooltip title={t("Stock in / out")}>
             <IconButton size="small" color="primary" onClick={() => setAdjust(row)}>
@@ -69,6 +93,13 @@ export default function Inventory() {
               <HistoryIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          {can("products", "delete") && (
+            <Tooltip title={t("Delete")}>
+              <IconButton size="small" color="error" onClick={() => setToDelete(row)}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </span>
       ),
     },
@@ -136,6 +167,14 @@ export default function Inventory() {
         }}
       />
       <StockHistoryDialog product={history} open={Boolean(history)} onClose={() => setHistory(null)} />
+      <ConfirmationDialog
+        open={Boolean(toDelete)}
+        onClose={() => setToDelete(null)}
+        onConfirm={confirmDelete}
+        title={t("Delete product?")}
+        message={`${toDelete?.name || ""} will be deleted (or marked Inactive if it was already billed).`}
+        confirmLabel="Delete"
+      />
     </>
   );
 }

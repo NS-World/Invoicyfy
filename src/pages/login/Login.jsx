@@ -12,6 +12,10 @@ import {
 import {
   Email,
   Lock,
+  PointOfSale,
+  ReceiptLong,
+  MoneyOff,
+  CloudOff,
 } from "@mui/icons-material";
 import { Alert, CircularProgress } from "@mui/material";
 import { useAuth } from "../../context/useAuth";
@@ -21,6 +25,13 @@ import { useT } from "../../context/PrefsContext";
 
 // The animation (and its player) load after the form so login is usable immediately.
 const Lottie = lazy(() => import("lottie-react"));
+
+const HIGHLIGHTS = [
+  [<PointOfSale key="a" />, "Quick Bill & KOT", "Tap items by category, weight or scoop — bill and kitchen slip in seconds."],
+  [<ReceiptLong key="b" />, "GST invoices & reports", "Retail receipts, B2B tax invoices, GST summary and daily reports."],
+  [<MoneyOff key="c" />, "Udhaar, coupons & loyalty", "Track dues, send reminders and bring customers back."],
+  [<CloudOff key="d" />, "Works without internet", "Bills are saved on the device and sent when the internet is back."],
+];
 
 export default function Login() {
   const t = useT();
@@ -69,6 +80,28 @@ export default function Login() {
 
   return (
     <Box className="login-container">
+      <Box className="login-shell">
+      {/* Brand panel beside the form (large screens only). */}
+      <Box className="login-hero" aria-hidden="true">
+        <span className="login-hero-circle c1" />
+        <span className="login-hero-circle c2" />
+        <Box sx={{ position: "relative" }}>
+          <Typography className="login-hero-brand">Invoicyfy</Typography>
+          <Typography className="login-hero-title">{t("Billing made simple for your shop")}</Typography>
+          <Box component="ul" className="login-hero-list">
+            {HIGHLIGHTS.map(([icon, title, text]) => (
+              <li key={title}>
+                <span className="login-hero-icon">{icon}</span>
+                <span>
+                  <strong>{t(title)}</strong>
+                  <small>{t(text)}</small>
+                </span>
+              </li>
+            ))}
+          </Box>
+        </Box>
+        <Typography className="login-hero-foot">{t("Secure login · Your data stays on your own server")}</Typography>
+      </Box>
       <Fade in timeout={600}>
         <Card className="login-card" elevation={10}>
           <Box className="robot-animation">
@@ -145,6 +178,7 @@ export default function Login() {
           </form>
         </Card>
       </Fade>
+      </Box>
     </Box>
   );
 }
