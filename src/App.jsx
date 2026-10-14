@@ -44,6 +44,17 @@ const Credit = lazy(() => import("./pages/credit/Credit"));
 const ActivityLog = lazy(() => import("./pages/activity/ActivityLog"));
 const Automation = lazy(() => import("./pages/automation/Automation"));
 const CounterSettings = lazy(() => import("./pages/counter/CounterSettings"));
+// V4
+const Suppliers = lazy(() => import("./pages/supplier/Suppliers"));
+const Purchases = lazy(() => import("./pages/purchase/Purchases"));
+const PurchaseForm = lazy(() => import("./pages/purchase/PurchaseForm"));
+const Recipes = lazy(() => import("./pages/recipe/Recipes"));
+const ExpiryWastage = lazy(() => import("./pages/expiry/ExpiryWastage"));
+const ComboOffers = lazy(() => import("./pages/combo/ComboOffers"));
+const OnlineOrders = lazy(() => import("./pages/online/OnlineOrders"));
+const OwnerDashboard = lazy(() => import("./pages/owner/OwnerDashboard"));
+const StaffReport = lazy(() => import("./pages/staff/StaffReport"));
+const Gstr1 = lazy(() => import("./pages/gstr1/Gstr1"));
 
 const admin = (el) => <PrivateRoute admin>{el}</PrivateRoute>;
 const guard = (perm, el) => <PrivateRoute perm={perm}>{el}</PrivateRoute>;
@@ -97,6 +108,16 @@ function App() {
                   <Route path="activity" element={guard("activity", <ActivityLog />)} />
                   <Route path="automation" element={guard("settings", <Automation />)} />
                   <Route path="counter" element={<CounterSettings />} />
+                  <Route path="owner" element={guard("dashboard", <OwnerDashboard />)} />
+                  <Route path="suppliers" element={guard("purchases", <Suppliers />)} />
+                  <Route path="purchases" element={guard("purchases", <Purchases />)} />
+                  <Route path="purchases/new" element={guard("purchases.add", <PurchaseForm />)} />
+                  <Route path="recipes" element={guard("products", <Recipes />)} />
+                  <Route path="expiry" element={guard("inventory", <ExpiryWastage />)} />
+                  <Route path="combo-offers" element={guard("loyalty", <ComboOffers />)} />
+                  <Route path="online-orders" element={guard("invoices", <OnlineOrders />)} />
+                  <Route path="staff-report" element={guard("reports", <StaffReport />)} />
+                  <Route path="gstr1" element={guard("reports", <Gstr1 />)} />
 
                   <Route path="users" element={guard("users", <Users />)} />
                   <Route path="user" element={guard("users", <UserForm />)} />

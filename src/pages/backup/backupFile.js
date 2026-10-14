@@ -232,3 +232,34 @@ export async function restoreBackup(parsed, tables, onProgress) {
   onProgress?.({ table: "", percent: 100 });
   return results;
 }
+
+/**
+ * Reads the automatic backup file (invoicyfy-backup-<date>.json.gz from the server / Google Drive) into the same
+ * shape as readBackupFile, so it restores the same way.
+ */
+export async function readJsonBackup(file, tables) {
+  let text;
+  if (/\.gz$/i.test(file.name)) {
+    if (typeof DecompressionStream === "undefined") throw new Error("This browser cannot open .gz files. Use the latest Chrome or Edge.");
+    text = await new Response(file.stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  } else {
+    text = await file.text();
+  }
+  const data = JSON.parse(text);
+  if (data?.format !== "invoicyfy-backup" || !data.tables) throw new Error("Not an Invoicyfy backup file");
+  const known = new Set(tables.map((t) => t.table));
+  const sheets = {};
+  Object.entries(data.tables).forEach(([table, { columns, rows }]) => {
+    if (!known.has(table)) return;
+    sheets[table] = {
+      columns,
+      sheetName: table,
+      rows: rows.map((r, i) => {
+        const obj = { __row: i + 2 };
+        columns.forEach((c, n) => (obj[c] = r[n]));
+        return obj;
+      }),
+    };
+  });
+  return { sheets, isBackup: true, createdAt: data.created_at };
+}

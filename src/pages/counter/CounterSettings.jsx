@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, Divider, FormControlLabel, Grid, Paper, Switch, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Divider, FormControlLabel, Grid, IconButton, InputAdornment, Paper, Switch, Tab, Tabs, TextField, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import Loader from "../../components/common/Loader";
@@ -90,7 +92,18 @@ export default function CounterSettings() {
   const save = async () => {
     setSaving(true);
     try {
-      const res = await PosServices.save({ store_id: storeId, require_day_open: s.require_day_open, table_count: s.table_count, upi_qr_on_screen: s.upi_qr_on_screen });
+      const res = await PosServices.save({
+        store_id: storeId,
+        require_day_open: s.require_day_open,
+        table_count: s.table_count,
+        upi_qr_on_screen: s.upi_qr_on_screen,
+        // V4
+        auto_send_bill: s.auto_send_bill,
+        bill_channels: s.bill_channels,
+        bill_message: s.bill_message,
+        online_platforms: (s.online_platforms || []).filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), commission: Number(p.commission) || 0 })),
+        expiry_alert_days: s.expiry_alert_days,
+      });
       notify(t(res.message));
     } catch (e) {
       notify(apiError(e), "error");
@@ -140,6 +153,86 @@ export default function CounterSettings() {
                   {t("Add your UPI ID in Business Settings to show the QR.")}
                 </Alert>
               )}
+
+              <Divider sx={{ my: 2 }} />
+              <FormControlLabel
+                control={<Switch checked={Boolean(s.auto_send_bill)} onChange={(e) => setS({ ...s, auto_send_bill: e.target.checked })} />}
+                label={t("Send the bill to the customer automatically when it is saved")}
+              />
+              <Typography variant="caption" color="text.secondary" component="div" sx={{ ml: 6, mb: 1 }}>
+                {t("The customer gets a link to the bill (opens on the phone, can be saved as PDF). Needs the customer's mobile / email on the bill and WhatsApp API, SMS or Email set up in Offers & Messages.")}
+              </Typography>
+              {s.auto_send_bill && (
+                <Box sx={{ ml: { sm: 6 } }}>
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    {[
+                      ["whatsapp", "WhatsApp"],
+                      ["sms", "SMS"],
+                      ["email", "Email"],
+                    ].map(([k, label]) => (
+                      <FormControlLabel
+                        key={k}
+                        control={
+                          <Checkbox
+                            checked={(s.bill_channels || []).includes(k)}
+                            onChange={(e) => setS({ ...s, bill_channels: e.target.checked ? [...(s.bill_channels || []), k] : (s.bill_channels || []).filter((c) => c !== k) })}
+                          />
+                        }
+                        label={label}
+                      />
+                    ))}
+                  </Box>
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    label={t("Message")}
+                    value={s.bill_message || ""}
+                    onChange={(e) => setS({ ...s, bill_message: e.target.value })}
+                    helperText={t("You can use {name} {shop} {bill_no} {amount} {date} {link}")}
+                  />
+                </Box>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+              <Typography sx={{ fontWeight: 700 }}>{t("Online platforms (Swiggy, Zomato...)")}</Typography>
+              <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 1 }}>
+                {t("In Quick Bill choose the platform and its order number. Commission % is used to estimate the payout in Online orders.")}
+              </Typography>
+              {(s.online_platforms || []).map((p, i) => (
+                <Box key={i} sx={{ display: "flex", gap: 1, mb: 1, maxWidth: 480 }}>
+                  <TextField size="small" label={t("Platform")} value={p.name} onChange={(e) => setS({ ...s, online_platforms: s.online_platforms.map((x, n) => (n === i ? { ...x, name: e.target.value } : x)) })} sx={{ flex: 1 }} />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label={t("Commission")}
+                    value={p.commission}
+                    onChange={(e) => setS({ ...s, online_platforms: s.online_platforms.map((x, n) => (n === i ? { ...x, commission: e.target.value } : x)) })}
+                    slotProps={{ input: { endAdornment: <InputAdornment position="end">%</InputAdornment> } }}
+                    sx={{ width: 140 }}
+                  />
+                  <IconButton aria-label={t("Remove")} color="error" onClick={() => setS({ ...s, online_platforms: s.online_platforms.filter((_, n) => n !== i) })}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+              {(s.online_platforms || []).length < 8 && (
+                <Button size="small" startIcon={<AddIcon />} onClick={() => setS({ ...s, online_platforms: [...(s.online_platforms || []), { name: "", commission: 0 }] })}>
+                  {t("Add platform")}
+                </Button>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+              <TextField
+                type="number"
+                label={t("Expiry alert (days before)")}
+                value={s.expiry_alert_days ?? 3}
+                onChange={(e) => setS({ ...s, expiry_alert_days: e.target.value })}
+                helperText={t("Batches expiring within these days show on the owner dashboard and in the daily low-stock alert.")}
+                slotProps={{ htmlInput: { min: 0, max: 60, inputMode: "numeric" } }}
+                sx={{ maxWidth: 420 }}
+                fullWidth
+              />
             </fieldset>
             {canEdit && (
               <Button variant="contained" sx={{ mt: 2 }} onClick={save} disabled={saving}>

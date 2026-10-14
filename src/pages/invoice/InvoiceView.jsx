@@ -28,6 +28,8 @@ import KitchenIcon from "@mui/icons-material/SoupKitchenOutlined";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import ShareIcon from "@mui/icons-material/Share";
+import LinkIcon from "@mui/icons-material/Link";
+import { BillLinkServices } from "../../services/V4Services";
 import BlockIcon from "@mui/icons-material/Block";
 import QrCodeIcon from "@mui/icons-material/QrCode2";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
@@ -242,6 +244,18 @@ export default function InvoiceView() {
     }
   };
 
+  // V4: link to this bill (opens without login) sent on WhatsApp from this device.
+  const sendLink = async () => {
+    try {
+      const r = await BillLinkServices.send({ invoice_id: invoice.invoice_id });
+      const to = r.phone || (phone.length === 10 ? `91${phone}` : phone);
+      window.open(`https://api.whatsapp.com/send?${to ? `phone=${to}&` : ""}text=${encodeURIComponent(r.text)}`, "_blank", "noopener");
+      navigator.clipboard?.writeText(r.link).catch(() => {});
+    } catch (e) {
+      notify(apiError(e), "error");
+    }
+  };
+
   const doCancel = async () => {
     try {
       const res = await InvoiceServices.cancelInvoice(invoice.invoice_id, cancelReason);
@@ -345,6 +359,11 @@ export default function InvoiceView() {
               <Button variant="outlined" startIcon={<ShareIcon />} onClick={share}>
                 {t("Share")}
               </Button>
+              {!cancelled && (
+                <Button variant="outlined" startIcon={<LinkIcon />} onClick={sendLink} sx={{ gridColumn: "1 / -1" }}>
+                  {invoice.bill_sent_at ? t("Bill link sent · send again") : t("Send bill link (WhatsApp)")}
+                </Button>
+              )}
               {invoice.invoice_type === "tax" && !cancelled && can("invoices", "edit") && (
                 <Button variant="outlined" startIcon={<QrCodeIcon />} onClick={() => setEinvOpen(true)} sx={{ gridColumn: "1 / -1" }}>
                   {invoice.irn ? "Edit e-invoice (IRN)" : "Add e-invoice (IRN)"}

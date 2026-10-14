@@ -55,6 +55,23 @@ API at `/api/` on the same domain). Step-by-step guide: [DEPLOY-HOSTINGER.md](DE
 * **Demo & help** — top bar icon with guided tours (`src/components/tour/tours.js`); parts of screens are
   marked with `data-tour="..."`.
 
+## Version 4 screens
+
+* **Suppliers** (`/suppliers`) and **Purchases** (`/purchases`, `/purchases/new`) — supplier bills with GST,
+  batch / expiry, part payment; supplier statement and payments; stock and cost price update on save.
+* **Recipes & Cost** (`/recipes`) — what one unit uses; real cost and margin. Products can be marked
+  *Raw material* (hidden from the Quick Bill grid).
+* **Expiry & Wastage** (`/expiry`) — expiring batches, all batches, wastage entry and loss report.
+* **Combo & Happy Hour** (`/combo-offers`) — offers that Quick Bill applies on its own (can be switched off
+  per bill).
+* **Online orders** (`/online-orders`) — Swiggy / Zomato bills (Quick Bill → *Sold through*), commission and
+  payouts received / pending.
+* **Owner's view** (`/owner`) — phone dashboard; **Staff report** (`/staff-report`); **GSTR-1 file**
+  (`/gstr1`, JSON for the GST portal + Excel).
+* **Bill link** — Counter settings *send the bill automatically*; invoice screen *Send bill link (WhatsApp)*.
+* **Automatic backup** — Backup screen (Admin): nightly backup to the server and Google Drive; `.json.gz`
+  backups restore with the same *Choose backup file* button.
+
 ## Printing
 
 * Receipt layout follows the shop's thermal bill: PAID/Duplicate, shop name, customer + mobile, date/time,

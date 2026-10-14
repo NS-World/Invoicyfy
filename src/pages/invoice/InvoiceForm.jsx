@@ -6,6 +6,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   FormControlLabel,
   Grid,
   MenuItem,
@@ -35,6 +36,8 @@ import TablePicker from "../../components/billing/v3/TablePicker";
 import HeldBills from "../../components/billing/v3/HeldBills";
 import OfflineSavedDialog from "../../components/billing/v3/OfflineSavedDialog";
 import { BillServices, HeldServices, PosServices } from "../../services/V3Services";
+import { ComboServices } from "../../services/V4Services";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import useDebounce from "../../hooks/useDebounce";
 import { fromServerTotals, newUuid, paymentAmounts } from "../../utils/payments";
 import { isNetworkError, queueBill } from "../../utils/offline";
@@ -84,6 +87,12 @@ export default function InvoiceForm() {
   const [offlineBill, setOfflineBill] = useState(null);
   const uuid = useRef(newUuid());
   const [extra, setExtra] = useState({ notes: "", terms: "", shipping_address: "", eway_bill_no: "", vehicle_no: "", reverse_charge: false });
+  // V4: combo / happy-hour offers, online platform orders, bill link to the customer.
+  const [offers, setOffers] = useState([]);
+  const [noOffers, setNoOffers] = useState(false);
+  const [channel, setChannel] = useState("");
+  const [channelOrder, setChannelOrder] = useState("");
+  const [sendBill, setSendBill] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -94,7 +103,15 @@ export default function InvoiceForm() {
   const store = stores.find((s) => String(s.store_id) === String(storeId));
   const buyer = party.customer || (gstin ? { gstin } : posCode ? { state_code: posCode } : null);
   const interstate = isInterstate(store, buyer);
-  const catalog = useCatalog(storeId);
+  const fullCatalog = useCatalog(storeId);
+  // Raw materials (milk, cones...) are not sold, so they stay out of the item grid.
+  const catalog = useMemo(() => {
+    if (!fullCatalog.products.some((p) => Number(p.is_ingredient))) return fullCatalog;
+    const products = fullCatalog.products.filter((p) => !Number(p.is_ingredient));
+    const counts = {};
+    products.forEach((p) => (counts[p.category || ""] = (counts[p.category || ""] || 0) + 1));
+    return { ...fullCatalog, products, categories: fullCatalog.categories.filter((c) => counts[c.name]).map((c) => ({ ...c, count: counts[c.name] })) };
+  }, [fullCatalog]);
   const { pick, addCustom, dialog } = useBillPicker(setItems);
   const kotOn = type === "retail" && (kot ?? getInvoiceSettings(store).kot_auto);
   const validItems = billLines(items);
@@ -107,12 +124,20 @@ export default function InvoiceForm() {
     PosServices.get(storeId)
       .then((r) => setPos(r.data))
       .catch(() => {});
+    const loadOffers = () =>
+      ComboServices.running(storeId)
+        .then((r) => setOffers(r.data || []))
+        .catch(() => setOffers([]));
+    loadOffers();
+    const timer = setInterval(loadOffers, 5 * 60 * 1000); // happy hours start and end while the screen is open
+    return () => clearInterval(timer);
   }, [storeId]);
 
   // Coupon / points: the server works out the exact discount (debounced while the cart changes).
   const customerId = party.customer?.customer_id || null;
-  const wantQuote = validItems.length > 0 && (disc.coupon_code || disc.redeem_points > 0 || (customerId && pos?.loyalty?.enabled));
-  const quoteKey = useDebounce(wantQuote ? JSON.stringify([storeId, customerId, disc, interstate, validItems.map(itemToApi)]) : "", 350);
+  const offersOn = offers.length > 0 && !noOffers;
+  const wantQuote = validItems.length > 0 && (disc.coupon_code || disc.redeem_points > 0 || (customerId && pos?.loyalty?.enabled) || offersOn);
+  const quoteKey = useDebounce(wantQuote ? JSON.stringify([storeId, customerId, disc, interstate, validItems.map(itemToApi), noOffers]) : "", 350);
   useEffect(() => {
     if (!quoteKey) {
       setQuote(null);
@@ -120,8 +145,8 @@ export default function InvoiceForm() {
       return undefined;
     }
     let live = true;
-    const [sid, cid, d, , lines] = JSON.parse(quoteKey);
-    BillServices.quote({ store_id: sid, customer_id: cid, items: lines, coupon_code: d.coupon_code || undefined, redeem_points: d.redeem_points || undefined })
+    const [sid, cid, d, , lines, skipOffers] = JSON.parse(quoteKey);
+    BillServices.quote({ store_id: sid, customer_id: cid, items: lines, coupon_code: d.coupon_code || undefined, redeem_points: d.redeem_points || undefined, no_offers: skipOffers || undefined })
       .then((r) => {
         if (!live) return;
         setQuote(r.data);
@@ -136,7 +161,8 @@ export default function InvoiceForm() {
       live = false;
     };
   }, [quoteKey]);
-  const discounted = Boolean(quote && !quoteError && (disc.coupon_code || disc.redeem_points > 0));
+  const offerApplied = Boolean(quote && !quoteError && offersOn && quote.offer_discount > 0);
+  const discounted = Boolean(quote && !quoteError && (disc.coupon_code || disc.redeem_points > 0 || offerApplied));
   const totals = discounted ? { ...fromServerTotals(quote.totals, validItems.length), qty: localTotals.qty, tax: quote.totals.tax_amount } : localTotals;
 
   const switchType = (t) => {
@@ -153,6 +179,9 @@ export default function InvoiceForm() {
     setTableNo("");
     setDisc({ coupon_code: "", redeem_points: 0 });
     setExtra((x) => ({ ...x, notes: "" }));
+    setNoOffers(false);
+    setChannel("");
+    setChannelOrder("");
     setError("");
   };
 
@@ -199,7 +228,7 @@ export default function InvoiceForm() {
       const data = err?.response?.data || {};
       if (data.code === "approval_required" || data.code === "approval_wrong_pin") {
         setApproval({ info: { ...data, wrong: data.code === "approval_wrong_pin" }, payload });
-      } else if (isNetworkError(err) && type === "retail" && !payload.coupon_code && !payload.redeem_points && !payload.order_id) {
+      } else if (isNetworkError(err) && type === "retail" && !payload.coupon_code && !payload.redeem_points && !payload.order_id && !payload.sales_channel) {
         // No internet: keep the bill on this device and print it now; it is sent when the connection is back.
         try {
           const preview = buildOfflineInvoice({
@@ -215,7 +244,8 @@ export default function InvoiceForm() {
             user,
             notes: payload.notes,
           });
-          await queueBill(payload, preview);
+          // The printed receipt has no automatic offer, so the bill sent later must not get one either.
+          await queueBill({ ...payload, no_offers: true }, preview);
           setOfflineBill({ invoice: preview, withKot: kotOn });
         } catch (qErr) {
           setError(qErr.message || apiError(err));
@@ -239,8 +269,12 @@ export default function InvoiceForm() {
       setError("Enter the buyer name for a tax invoice");
       return;
     }
+    if (channel && !channelOrder.trim()) {
+      setError(t("Enter the {platform} order number", { platform: channel }));
+      return;
+    }
     const amounts = paymentAmounts(payRows, totals.total);
-    const payments = paid ? payRows.map((r, i) => ({ amount: amounts[i], payment_method: r.method, reference_no: r.reference || undefined })).filter((p) => p.amount > 0) : [];
+    const payments = paid && !channel ? payRows.map((r, i) => ({ amount: amounts[i], payment_method: r.method, reference_no: r.reference || undefined })).filter((p) => p.amount > 0) : [];
     await send({
       invoice_type: type,
       store_id: storeId,
@@ -251,7 +285,11 @@ export default function InvoiceForm() {
       place_of_supply_code: !party.customer && posCode ? posCode : undefined,
       invoice_date: invoiceDate,
       due_date: !paid && dueDate ? dueDate : undefined,
-      order_type: type === "retail" ? orderType : undefined,
+      order_type: type === "retail" ? (channel ? "Online" : orderType) : undefined,
+      sales_channel: channel || undefined,
+      channel_order_id: channel ? channelOrder.trim() : undefined,
+      no_offers: offers.length && noOffers ? true : undefined,
+      send_bill: pos?.auto_send_bill ? sendBill : undefined,
       table_no: tableNo || undefined,
       items: validItems.map(itemToApi),
       payments: payments.length ? payments : undefined,
@@ -345,6 +383,25 @@ export default function InvoiceForm() {
                   <TextField fullWidth type="date" label={t("Due date")} value={dueDate} onChange={(e) => setDueDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} disabled={paid} />
                 </Grid>
               )}
+              {type === "retail" && pos?.online_platforms?.length > 0 && (
+                <>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <TextField select fullWidth label={t("Sold through")} value={channel} onChange={(e) => setChannel(e.target.value)} data-tour="sales-channel">
+                      <MenuItem value="">{t("Shop / counter")}</MenuItem>
+                      {pos.online_platforms.map((p) => (
+                        <MenuItem key={p.name} value={p.name}>
+                          {p.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  {channel && (
+                    <Grid size={{ xs: 6, sm: 4 }}>
+                      <TextField fullWidth required label={t("{platform} order no.", { platform: channel })} value={channelOrder} onChange={(e) => setChannelOrder(e.target.value)} />
+                    </Grid>
+                  )}
+                </>
+              )}
               {type === "retail" && pos?.table_count > 0 && (
                 <Grid size={12}>
                   <TablePicker
@@ -372,6 +429,20 @@ export default function InvoiceForm() {
             </Grid>
           </Paper>
 
+          {offers.length > 0 && (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5, alignItems: "center" }}>
+              <LocalOfferIcon color="secondary" fontSize="small" />
+              {offers.map((o) => (
+                <Chip
+                  key={o.offer_id}
+                  size="small"
+                  color="secondary"
+                  variant={noOffers ? "outlined" : "filled"}
+                  label={o.offer_type === "combo" ? `${o.name}: ${formatCurrency(o.combo_price)}` : `${o.name}: ${o.discount_percent}% ${t("off")}${o.end_time ? ` ${t("till")} ${o.end_time}` : ""}`}
+                />
+              ))}
+            </Box>
+          )}
           <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }} data-tour="catalog">
             <ProductCatalog catalog={catalog} items={items} onPick={pick} onCustom={addCustom} />
           </Paper>
@@ -429,6 +500,22 @@ export default function InvoiceForm() {
                 </Alert>
               )}
               <TotalsSummary t={totals} interstate={interstate} />
+              {offers.length > 0 && validItems.length > 0 && (
+                <Box sx={{ mt: 1, p: 1, borderRadius: 2, bgcolor: "action.hover" }}>
+                  {offerApplied ? (
+                    quote.offers.map((o) => (
+                      <Typography key={o.offer_id + o.name} variant="body2" color="success.main" sx={{ fontWeight: 600 }}>
+                        🎉 {o.name}: −{formatCurrency(o.discount)}
+                      </Typography>
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      {noOffers ? t("Offers are off for this bill") : t("No offer matches these items yet")}
+                    </Typography>
+                  )}
+                  <FormControlLabel control={<Switch size="small" checked={!noOffers} onChange={(e) => setNoOffers(!e.target.checked)} />} label={<Typography variant="body2">{t("Apply offers")}</Typography>} />
+                </Box>
+              )}
               {validItems.length > 0 && (
                 <CouponPoints
                   value={disc}
@@ -445,7 +532,13 @@ export default function InvoiceForm() {
                 </Alert>
               )}
 
-              <PaymentBox total={totals.total} paid={paid} onPaid={setPaid} rows={payRows} onRows={setPayRows} methods={meta.payment_methods} upi={pos} />
+              {channel ? (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  {t("{platform} collects the money. The payout is tracked in Online orders.", { platform: channel })}
+                </Alert>
+              ) : (
+                <PaymentBox total={totals.total} paid={paid} onPaid={setPaid} rows={payRows} onRows={setPayRows} methods={meta.payment_methods} upi={pos} />
+              )}
 
               <TextField fullWidth multiline minRows={1} label={t("Notes")} value={extra.notes} onChange={(e) => setExtra({ ...extra, notes: e.target.value })} sx={{ mt: 2 }} />
               {type === "retail" && (
@@ -453,6 +546,13 @@ export default function InvoiceForm() {
                   sx={{ mt: 1 }}
                   control={<Switch checked={Boolean(kotOn)} onChange={(e) => setKot(e.target.checked)} />}
                   label={t("Also print KOT (kitchen copy)")}
+                />
+              )}
+              {pos?.auto_send_bill && (
+                <FormControlLabel
+                  sx={{ mt: 1 }}
+                  control={<Switch checked={sendBill} onChange={(e) => setSendBill(e.target.checked)} />}
+                  label={t("Send bill to customer (WhatsApp / SMS)")}
                 />
               )}
               <Box sx={{ display: "flex", gap: 1, mt: 1 }}>

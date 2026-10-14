@@ -22,7 +22,7 @@ export default function StockAdjustDialog({ product, open, onClose, onSaved }) {
 
   useEffect(() => {
     if (open && product) {
-      setForm({ type: "purchase", quantity: "", unit_cost: product.cost_price || "", notes: "", record_expense: true, vendor: "", payment_method: "Cash", date: today() });
+      setForm({ type: "purchase", quantity: "", unit_cost: product.cost_price || "", notes: "", record_expense: true, vendor: "", payment_method: "Cash", date: today(), batch_no: "", expiry_date: "" });
       setError("");
     }
   }, [open, product]);
@@ -47,6 +47,8 @@ export default function StockAdjustDialog({ product, open, onClose, onSaved }) {
         vendor: form.vendor,
         payment_method: form.payment_method,
         date: form.date,
+        batch_no: isPurchase && form.batch_no ? form.batch_no : undefined,
+        expiry_date: isPurchase && form.expiry_date ? form.expiry_date : undefined,
       });
       onSaved(res);
     } catch (err) {
@@ -84,6 +86,12 @@ export default function StockAdjustDialog({ product, open, onClose, onSaved }) {
           )}
           {isPurchase && (
             <>
+              <Grid size={6}>
+                <TextField fullWidth label={t("Batch no.")} value={form.batch_no || ""} onChange={set("batch_no")} />
+              </Grid>
+              <Grid size={6}>
+                <TextField fullWidth type="date" label={t("Expiry date")} value={form.expiry_date || ""} onChange={set("expiry_date")} slotProps={{ inputLabel: { shrink: true } }} helperText={t("Optional")} />
+              </Grid>
               <Grid size={12}>
                 <FormControlLabel
                   control={<Switch checked={Boolean(form.record_expense)} onChange={(e) => setForm((f) => ({ ...f, record_expense: e.target.checked }))} />}

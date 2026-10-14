@@ -46,6 +46,15 @@ import {
   History,
   AutoMode,
   Print,
+  PhoneIphone,
+  LocalShipping,
+  ShoppingBasket,
+  MenuBook,
+  EventBusy,
+  Fastfood,
+  DeliveryDining,
+  Badge,
+  RequestQuote,
 } from "@mui/icons-material";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
@@ -63,7 +72,13 @@ const DRAWER_WIDTH = 240;
 const MINI_WIDTH = 68;
 
 const menu = [
-  { section: null, items: [{ text: "Dashboard", icon: <Dashboard />, path: "/dashboard", perm: "dashboard" }] },
+  {
+    section: null,
+    items: [
+      { text: "Dashboard", icon: <Dashboard />, path: "/dashboard", perm: "dashboard" },
+      { text: "Owner's view (phone)", icon: <PhoneIphone />, path: "/owner", perm: "dashboard" },
+    ],
+  },
   {
     section: "Sales",
     items: [
@@ -71,11 +86,13 @@ const menu = [
       { text: "Orders", icon: <Assignment />, path: "/orders", perm: "orders" },
       { text: "Invoices", icon: <Receipt />, path: "/invoices", perm: "invoices" },
       { text: "Payments", icon: <Payment />, path: "/payments", perm: "payments" },
+      { text: "Online orders", icon: <DeliveryDining />, path: "/online-orders", perm: "invoices" },
       { text: "Udhaar / Credit", icon: <MoneyOff />, path: "/credit", perm: "payments" },
       { text: "Day Close", icon: <LockClock />, path: "/day-close", perm: "cash" },
       { text: "Customers", icon: <People />, path: "/customers", perm: "customers" },
       { text: "Offers & Messages", icon: <Campaign />, path: "/offers", perm: "marketing" },
       { text: "Coupons & Loyalty", icon: <Loyalty />, path: "/coupons", perm: "loyalty" },
+      { text: "Combo & Happy Hour", icon: <Fastfood />, path: "/combo-offers", perm: "loyalty" },
     ],
   },
   {
@@ -83,9 +100,15 @@ const menu = [
     items: [
       { text: "Products", icon: <ShoppingCart />, path: "/products", perm: "products" },
       { text: "Categories", icon: <Category />, path: "/categories", perm: "products" },
+      { text: "Recipes & Cost", icon: <MenuBook />, path: "/recipes", perm: "products" },
       { text: "Inventory", icon: <Inventory2 />, path: "/inventory", perm: "inventory" },
+      { text: "Expiry & Wastage", icon: <EventBusy />, path: "/expiry", perm: "inventory" },
+      { text: "Purchases", icon: <ShoppingBasket />, path: "/purchases", perm: "purchases" },
+      { text: "Suppliers", icon: <LocalShipping />, path: "/suppliers", perm: "purchases" },
       { text: "Expenses", icon: <AccountBalanceWallet />, path: "/expenses", perm: "expenses" },
       { text: "Reports", icon: <Assessment />, path: "/reports", perm: "reports" },
+      { text: "Staff report", icon: <Badge />, path: "/staff-report", perm: "reports" },
+      { text: "GSTR-1 file", icon: <RequestQuote />, path: "/gstr1", perm: "reports" },
     ],
   },
   {

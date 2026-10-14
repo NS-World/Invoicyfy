@@ -27,7 +27,8 @@ import { useAuth } from "../../context/useAuth";
 import { useNotify } from "../../context/NotifyProvider";
 import { BackupServices } from "../../services/BackupServices";
 import { apiError } from "../../utils/format";
-import { createBackup, downloadErrorFile, readBackupFile, restoreBackup } from "./backupFile";
+import { createBackup, downloadErrorFile, readBackupFile, readJsonBackup, restoreBackup } from "./backupFile";
+import DriveBackup from "./DriveBackup";
 import { useT } from "../../context/PrefsContext";
 
 const when = (v) => (v ? new Date(String(v).replace(" ", "T")).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "Never");
@@ -36,7 +37,7 @@ const daysSince = (v) => (v ? Math.floor((Date.now() - new Date(String(v).replac
 export default function Backup() {
   const t = useT();
   const notify = useNotify();
-  const { can } = useAuth();
+  const { can, isAdmin } = useAuth();
   const canImport = can("backup", "add");
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(null); // { mode: "export" | "read" | "import", table, percent }
@@ -68,14 +69,15 @@ export default function Backup() {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    if (!/\.xlsx$/i.test(f.name)) {
+    const isJson = /\.json(\.gz)?$/i.test(f.name);
+    if (!/\.xlsx$/i.test(f.name) && !isJson) {
       notify(t("Please choose an Excel (.xlsx) backup file"), "error");
       return;
     }
     setResults(null);
     setBusy({ mode: "read", table: f.name, percent: 0 });
     try {
-      const p = await readBackupFile(f, info.tables);
+      const p = isJson ? await readJsonBackup(f, info.tables) : await readBackupFile(f, info.tables);
       if (!Object.keys(p.sheets).length) {
         notify(t("No matching sheets found. Use a file downloaded from this screen."), "error");
         setParsed(null);
@@ -83,8 +85,8 @@ export default function Backup() {
         setFile(f);
         setParsed(p);
       }
-    } catch {
-      notify(t("Could not read this file. Is it a valid Excel file?"), "error");
+    } catch (err) {
+      notify(isJson ? err.message || t("Could not read this file") : t("Could not read this file. Is it a valid Excel file?"), "error");
     }
     setBusy(null);
   };
@@ -159,7 +161,7 @@ export default function Backup() {
                 Choose a backup file. New records are added; records that already exist are <b>never overwritten</b> — they are skipped
                 and listed in an error file you can download.
               </Typography>
-              <input ref={inputRef} type="file" accept=".xlsx" hidden onChange={pickFile} />
+              <input ref={inputRef} type="file" accept=".xlsx,.json,.gz" hidden onChange={pickFile} />
               <Button
                 variant="outlined"
                 color="secondary"
@@ -174,6 +176,8 @@ export default function Backup() {
           </Card>
         </Grid>
       </Grid>
+
+      {isAdmin && <DriveBackup />}
 
       {busy && (
         <Card sx={{ mt: 2 }}>

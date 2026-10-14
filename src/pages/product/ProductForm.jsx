@@ -27,6 +27,7 @@ const blank = {
   gst_rate: 0,
   price_includes_tax: true,
   track_inventory: true,
+  is_ingredient: false,
   stock_qty: "",
   low_stock_threshold: "",
   status: "Active",
@@ -65,6 +66,7 @@ export default function ProductForm() {
           ...Object.fromEntries(Object.keys(blank).map((k) => [k, d[k] ?? blank[k]])),
           price_includes_tax: Boolean(d.price_includes_tax),
           track_inventory: Boolean(d.track_inventory),
+          is_ingredient: Boolean(Number(d.is_ingredient)),
         });
       })
       .catch((err) => setError(apiError(err)))
@@ -266,6 +268,12 @@ export default function ProductForm() {
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
             <FormControlLabel control={<Switch checked={form.track_inventory} onChange={setBool("track_inventory")} />} label={t("Track stock")} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 8 }}>
+            <FormControlLabel
+              control={<Switch checked={Boolean(form.is_ingredient)} onChange={setBool("is_ingredient")} />}
+              label={t("Raw material (used in recipes, not sold) — hidden from Quick Bill")}
+            />
           </Grid>
           {form.track_inventory && (
             <>
