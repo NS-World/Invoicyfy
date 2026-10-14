@@ -221,9 +221,13 @@ export const directPrint = {
     }
     try {
       await c.write(job);
-    } catch (e) {
-      conn = null; // printer switched off / unplugged: reconnect next time
-      throw e;
+    } catch {
+      // Connection dropped (Bluetooth idle, USB re-plugged): reconnect once and send again.
+      await conn?.close?.();
+      conn = null;
+      const again = await reconnect().catch(() => null);
+      if (!again) return false;
+      await again.write(job);
     }
     return true;
   },
@@ -234,3 +238,35 @@ export const directPrint = {
     await c.write(buildTestJob(`Invoicyfy test print\n${new Date().toLocaleString()}\nPaper ${s.paper}`, { cut: s.cut }));
   },
 };
+
+/* ---------------------------------------------------------------- one-click printing */
+
+export const PRINTER_ASK_EVENT = "invoicyfy:ask-printer";
+
+/** Opens the "connect your printer" prompt (PrinterPrompt) and waits for the answer: "paired" or "dialog". */
+function askPrinter(reason) {
+  if (typeof window === "undefined" || !window.__printerPromptMounted) return Promise.resolve("dialog");
+  return new Promise((resolve) => window.dispatchEvent(new CustomEvent(PRINTER_ASK_EVENT, { detail: { reason, resolve } })));
+}
+
+/**
+ * Prints a thermal slip (receipt / KOT / report) straight to the printer. Returns true when printed;
+ * false means the caller should open the normal print window (A4, kiosk mode, or the user chose so).
+ *   - printer set up and reachable: prints directly
+ *   - printer set up but not reachable (refresh, switched off): asks once to connect again
+ *   - nothing set up yet: offers to connect the printer once (can be turned off)
+ */
+export async function printSlip(root, pageSize) {
+  if (!root || pageSize === "A4") return false;
+  const s = loadPrinterSettings();
+  if (s.mode === "kiosk") return false; // Chrome kiosk printing: the normal print is already silent
+  if (directPrint.enabled() && s.device) {
+    if (await directPrint.printElement(root, pageSize).catch(() => false)) return true;
+    if ((await askPrinter("reconnect")) === "paired") return directPrint.printElement(root, pageSize).catch(() => false);
+    return false;
+  }
+  if (!s.noPrompt && (support().usb || support().serial || support().bluetooth) && support().secure) {
+    if ((await askPrinter("setup")) === "paired") return directPrint.printElement(root, pageSize).catch(() => false);
+  }
+  return false;
+}

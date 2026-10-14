@@ -86,7 +86,7 @@ export default function PrinterSetup() {
               {t("Direct printing needs the app to open on https.")}
             </Alert>
           )}
-          <RadioGroup value={s.mode} onChange={(e) => update({ mode: e.target.value })}>
+          <RadioGroup value={s.mode} onChange={(e) => update({ mode: e.target.value, noPrompt: e.target.value === "dialog" })}>
             {MODES.map((m) => (
               <Paper
                 key={m.key}

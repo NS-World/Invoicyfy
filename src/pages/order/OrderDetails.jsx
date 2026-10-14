@@ -28,7 +28,7 @@ import ConfirmationDialog from "../../components/ConfirmationDialog";
 import GenerateInvoiceDialog from "../../components/billing/GenerateInvoiceDialog";
 import PrintPortal from "../../components/print/PrintPortal";
 import KotTicket from "../../components/print/KotTicket";
-import { directPrint } from "../../utils/directPrint";
+import { printSlip } from "../../utils/directPrint";
 import useStores from "../../hooks/useStores";
 import { getInvoiceSettings } from "../../utils/invoiceSettings";
 import { OrderServices } from "../../services/OrderServices";
@@ -93,10 +93,7 @@ export default function OrderDetails() {
     let stop = false;
     const done = () => setPrinting(false);
     const timer = setTimeout(async () => {
-      if (directPrint.enabled()) {
-        const ok = await directPrint.printElement(document.getElementById("print-root"), localStorage.getItem("receiptWidth") || "80mm").catch(() => false);
-        if (ok) return done();
-      }
+      if (await printSlip(document.getElementById("print-root"), localStorage.getItem("receiptWidth") || "80mm").catch(() => false)) return done();
       if (stop) return;
       window.addEventListener("afterprint", done);
       window.print();

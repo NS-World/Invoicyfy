@@ -54,6 +54,7 @@ import PrefsSwitcher from "../../components/common/PrefsSwitcher";
 import DatabaseUpdateBanner from "../../components/common/DatabaseUpdateBanner";
 import OfflineStatus from "../../components/v3/OfflineStatus";
 import HelpTour from "../../components/tour/HelpTour";
+import PrinterPrompt from "../../components/printer/PrinterPrompt";
 import { AutomationServices } from "../../services/V3Services";
 import { SIDEBAR_BG } from "../../theme";
 import "./Home.css";
@@ -299,6 +300,7 @@ export default function Home() {
         <Box className="tab-content" sx={{ p: { xs: 1.5, sm: 2.5, lg: 3 }, maxWidth: 1600, mx: "auto" }}>
           <DatabaseUpdateBanner />
           <Outlet />
+          <PrinterPrompt />
         </Box>
       </Box>
     </Box>

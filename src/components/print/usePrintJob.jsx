@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import PrintPortal from "./PrintPortal";
-import { directPrint } from "../../utils/directPrint";
+import { printSlip } from "../../utils/directPrint";
 
 /**
  * One way to print everywhere:
  *   const job = usePrintJob();
  *   job.print({ pageSize: "80mm", key: "kot" });     // open the print
  *   {job.render((key) => <KotTicket ... />)}           // what to print for that key
- * Thermal slips go straight to a connected printer (Printer setup) when one is set; otherwise the browser
- * print dialog opens, as before.
+ * Thermal slips go straight to the connected printer (asks once to connect it when needed); A4 and
+ * "print window" choices open the browser print dialog, as before.
  */
 export default function usePrintJob() {
   const [job, setJob] = useState(null); // { key, pageSize, direct }
 
   const print = useCallback((opts = {}) => {
     const pageSize = opts.pageSize || "80mm";
-    setJob({ key: opts.key ?? "default", pageSize, direct: pageSize !== "A4" && directPrint.enabled(), n: Date.now() });
+    setJob({ key: opts.key ?? "default", pageSize, direct: pageSize !== "A4", n: Date.now() });
   }, []);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function usePrintJob() {
       if (cancelled) return;
       if (job.direct) {
         const root = document.getElementById("print-root");
-        const ok = await directPrint.printElement(root, job.pageSize).catch(() => false);
+        const ok = await printSlip(root, job.pageSize).catch(() => false);
         if (ok) {
           done();
           return;
