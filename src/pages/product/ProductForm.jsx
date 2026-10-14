@@ -108,7 +108,7 @@ export default function ProductForm() {
       if (productId) await ProductServices.updateProductData(payload);
       else await ProductServices.postProductData(payload);
       notify(productId ? "Product updated" : "Product added");
-      navigate("/products");
+      navigate(params.get("back") === "inventory" ? "/inventory" : "/products");
     } catch (err) {
       setError(apiError(err));
     } finally {
@@ -307,7 +307,7 @@ export default function ProductForm() {
           )}
         </Grid>
         <Box sx={{ display: "flex", gap: 1, mt: 3, justifyContent: "flex-end" }}>
-          <Button variant="outlined" onClick={() => navigate("/products")}>
+          <Button variant="outlined" onClick={() => navigate(params.get("back") === "inventory" ? "/inventory" : "/products")}>
             {t("Cancel")}
           </Button>
           <Button type="submit" variant="contained" disabled={saving}>

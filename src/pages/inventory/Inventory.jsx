@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, Grid, IconButton, Tab, Tabs, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, InputAdornment, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
+import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import AddBoxIcon from "@mui/icons-material/AddBox";
 import HistoryIcon from "@mui/icons-material/History";
 import AddIcon from "@mui/icons-material/Add";
@@ -32,6 +33,22 @@ export default function Inventory() {
   const [adjust, setAdjust] = useState(null);
   const [history, setHistory] = useState(null);
   const [toDelete, setToDelete] = useState(null);
+  const [trackDlg, setTrackDlg] = useState(null); // { product, opening } or { all: true }
+  const [busy, setBusy] = useState(false);
+
+  // "Track stock" on / off — the same switch as on the product form.
+  const saveTracking = async (body) => {
+    setBusy(true);
+    try {
+      const res = await InventoryServices.setTracking(body);
+      notify(t(res.message));
+      setTrackDlg(null);
+      table.reload();
+    } catch (err) {
+      notify(apiError(err), "error");
+    }
+    setBusy(false);
+  };
 
   // Same delete as the Products screen: removed, or marked Inactive when it was already billed (then it leaves this list).
   const confirmDelete = async () => {
@@ -48,14 +65,39 @@ export default function Inventory() {
   const summary = table.response?.summary;
 
   const columns = [
-    { field: "name", headerName: "Product", minWidth: 180, flex: 1.5 },
+    {
+      field: "name",
+      headerName: "Product",
+      minWidth: 180,
+      flex: 1.5,
+      renderCell: ({ row }) => (
+        <Box sx={{ lineHeight: 1.3, py: 0.5 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {row.name}
+          </Typography>
+          {row.sku && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
+              {row.sku}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
     { field: "category", headerName: "Category", minWidth: 120, flex: 1 },
     {
       field: "stock_qty",
       headerName: "In Stock",
-      minWidth: 110,
+      minWidth: 135,
       type: "number",
       renderCell: ({ row }) => {
+        if (!row.track_inventory)
+          return can("inventory", "add") ? (
+            <Tooltip title={t("Stock is not counted for this product. Click to start tracking.")}>
+              <Chip size="small" variant="outlined" icon={<TrackChangesIcon />} label={t("Not tracked")} onClick={() => setTrackDlg({ product: row, opening: "" })} />
+            </Tooltip>
+          ) : (
+            <Chip size="small" variant="outlined" label={t("Not tracked")} />
+          );
         const color = row.stock_qty <= 0 ? "error" : row.stock_qty <= row.low_stock_threshold ? "warning.main" : "text.primary";
         return (
           <Typography variant="body2" color={color} sx={{ fontWeight: 700, lineHeight: "inherit" }}>
@@ -64,19 +106,20 @@ export default function Inventory() {
         );
       },
     },
-    { field: "low_stock_threshold", headerName: "Reorder At", minWidth: 100, type: "number", valueFormatter: (v) => formatNumber(v, 3) },
+    { field: "low_stock_threshold", headerName: "Reorder At", minWidth: 100, type: "number", valueGetter: (v, r) => (r.track_inventory ? formatNumber(v, 3) : "—") },
+    { field: "price", headerName: "Price", minWidth: 100, type: "number", valueFormatter: (v) => formatCurrency(v) },
     { field: "cost_price", headerName: "Cost", minWidth: 100, type: "number", valueFormatter: (v) => formatCurrency(v) },
-    { field: "stock_value", headerName: "Stock Value", minWidth: 120, type: "number", valueFormatter: (v) => formatCurrency(v) },
+    { field: "stock_value", headerName: "Stock Value", minWidth: 120, type: "number", valueGetter: (v, r) => (r.track_inventory ? formatCurrency(v) : "—") },
     {
       field: "actions",
       headerName: "",
-      minWidth: 170,
+      minWidth: 200,
       sortable: false,
       renderCell: ({ row }) => (
         <span>
           {can("products", "edit") && (
             <Tooltip title={t("Edit")}>
-              <IconButton size="small" color="primary" onClick={() => navigate(`/product?id=${row.product_id}`)}>
+              <IconButton size="small" color="primary" onClick={() => navigate(`/product?id=${row.product_id}&back=inventory`)}>
                 <EditIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -87,6 +130,13 @@ export default function Inventory() {
               <AddBoxIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          )}
+          {can("inventory", "add") && row.track_inventory === 1 && (
+            <Tooltip title={t("Stop tracking stock")}>
+              <IconButton size="small" onClick={() => saveTracking({ product_ids: [row.product_id], track: false })}>
+                <TrackChangesIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
           <Tooltip title={t("History")}>
             <IconButton size="small" onClick={() => setHistory(row)}>
@@ -111,7 +161,7 @@ export default function Inventory() {
         title={t("Inventory")}
         actions={
           can("products", "add") && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product")}>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product?back=inventory")}>
               {t("Add Product")}
             </Button>
           )
@@ -119,7 +169,13 @@ export default function Inventory() {
       />
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <StatCard label={t("Products tracked")} value={summary?.products ?? "-"} loading={!summary} />
+          <StatCard
+            label={t("Products")}
+            value={summary?.all_products ?? "-"}
+            hint={summary ? `${summary.products} ${t("stock tracked")} · ${summary.untracked} ${t("not tracked")}` : ""}
+            loading={!summary}
+            onClick={() => setFilter("")}
+          />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
           <StatCard label={t("Low stock")} value={summary?.low_stock ?? "-"} color="warning.main" loading={!summary} onClick={() => setFilter("low")} />
@@ -131,8 +187,23 @@ export default function Inventory() {
           <StatCard label={t("Stock value (cost)")} value={formatCurrency(summary?.stock_value_cost)} hint={summary ? `Sale value ${formatCurrency(summary.stock_value_sale)}` : ""} loading={!summary} />
         </Grid>
       </Grid>
-      <Tabs value={filter} onChange={(_, v) => setFilter(v)} variant="scrollable" sx={{ mb: 1 }}>
+      {summary?.untracked > 0 && can("inventory", "add") && (
+        <Alert
+          severity="info"
+          sx={{ mb: 1.5 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setTrackDlg({ all: true })}>
+              {t("Track all")}
+            </Button>
+          }
+        >
+          {t("{n} product(s) have \"Track stock\" off, so their stock is not counted. Turn it on for items you want to count (tubs, cones, packs).", { n: summary.untracked })}
+        </Alert>
+      )}
+      <Tabs value={filter} onChange={(_, v) => setFilter(v)} variant="scrollable" allowScrollButtonsMobile sx={{ mb: 1 }}>
         <Tab value="" label={t("All")} />
+        <Tab value="tracked" label={t("Stock tracked")} />
+        <Tab value="untracked" label={t("Not tracked")} />
         <Tab value="low" label={t("Low stock")} />
         <Tab value="out" label={t("Out of stock")} />
       </Tabs>
@@ -147,6 +218,7 @@ export default function Inventory() {
             { label: "SKU", key: "sku" },
             { label: "Category", key: "category" },
             { label: "Unit", key: "unit" },
+            { label: "Track stock", value: (r) => (r.track_inventory ? "Yes" : "No") },
             { label: "In stock", key: "stock_qty", type: "qty", total: false },
             { label: "Reorder at", key: "low_stock_threshold", type: "qty", total: false },
             { label: "Cost", key: "cost_price", type: "money", total: false },
@@ -155,7 +227,46 @@ export default function Inventory() {
           ]}
         />
       </Toolbar>
-      <DataTable table={table} columns={columns} mobileHidden={["category", "low_stock_threshold", "cost_price", "stock_value"]} />
+      <DataTable table={table} columns={columns} mobileHidden={["category", "low_stock_threshold", "cost_price", "price", "stock_value"]} />
+      {trackDlg && (
+        <Dialog open onClose={() => setTrackDlg(null)} fullWidth maxWidth="xs">
+          <DialogTitle>{trackDlg.all ? t("Track stock for all products?") : `${t("Start tracking stock")}: ${trackDlg.product.name}`}</DialogTitle>
+          <DialogContent dividers>
+            {trackDlg.all ? (
+              <Typography variant="body2">
+                {t("Stock will be counted for {n} product(s), starting at 0. Then use Stock in (or a purchase bill) to add what you have now.", { n: summary?.untracked || 0 })}
+              </Typography>
+            ) : (
+              <TextField
+                fullWidth
+                autoFocus
+                type="number"
+                label={t("Stock you have now")}
+                value={trackDlg.opening}
+                onChange={(e) => setTrackDlg({ ...trackDlg, opening: e.target.value })}
+                helperText={t("Leave empty to start at 0")}
+                slotProps={{ input: { endAdornment: <InputAdornment position="end">{trackDlg.product.unit}</InputAdornment> }, htmlInput: { min: 0, step: "any", inputMode: "decimal" } }}
+              />
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setTrackDlg(null)}>{t("Cancel")}</Button>
+            <Button
+              variant="contained"
+              disabled={busy}
+              onClick={() =>
+                saveTracking(
+                  trackDlg.all
+                    ? { all_untracked: true, track: true }
+                    : { product_ids: [trackDlg.product.product_id], track: true, opening_stock: trackDlg.opening === "" ? undefined : Number(trackDlg.opening) }
+                )
+              }
+            >
+              {t("Start tracking")}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
       <StockAdjustDialog
         product={adjust}
         open={Boolean(adjust)}
