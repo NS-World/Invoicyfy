@@ -37,7 +37,7 @@ function BatchesTab({ storeId, state, onWaste }) {
       { field: "product_name", headerName: "Item", minWidth: 170, flex: 1.3 },
       { field: "batch_no", headerName: "Batch", minWidth: 100, valueFormatter: (v) => v || "—" },
       { field: "expiry_date", headerName: "Expiry", minWidth: 110, valueFormatter: (v) => (v ? formatDate(v) : "—") },
-      { field: "days_left", headerName: "Status", minWidth: 150, renderCell: ({ row }) => daysChip(t, row.expiry_date ? row.days_left : null) },
+      { field: "days_left", headerName: "Status", minWidth: 185, renderCell: ({ row }) => daysChip(t, row.expiry_date ? row.days_left : null) },
       { field: "qty_left", headerName: "Left", minWidth: 100, type: "number", valueGetter: (v, r) => `${formatNumber(v, 3)} ${r.unit || ""}` },
       { field: "value", headerName: "Value", minWidth: 100, type: "number", valueGetter: (v, r) => formatCurrency(r.qty_left * r.cost) },
       { field: "supplier_name", headerName: "Supplier", minWidth: 140, valueGetter: (v, r) => [v, r.bill_no].filter(Boolean).join(" · ") || "—" },
