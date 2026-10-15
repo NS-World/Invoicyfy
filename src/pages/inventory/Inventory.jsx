@@ -6,7 +6,9 @@ import HistoryIcon from "@mui/icons-material/History";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ConfirmationDialog from "../../components/ConfirmationDialog";
+import DeleteRelatedDialog from "../../components/common/DeleteRelatedDialog";
+import AddInventoryDialog from "./AddInventoryDialog";
+import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 import { ProductServices } from "../../services/ProductServices";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
@@ -35,6 +37,7 @@ export default function Inventory() {
   const [toDelete, setToDelete] = useState(null);
   const [trackDlg, setTrackDlg] = useState(null); // { product, opening } or { all: true }
   const [busy, setBusy] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   // "Track stock" on / off — the same switch as on the product form.
   const saveTracking = async (body) => {
@@ -50,17 +53,6 @@ export default function Inventory() {
     setBusy(false);
   };
 
-  // Same delete as the Products screen: removed, or marked Inactive when it was already billed (then it leaves this list).
-  const confirmDelete = async () => {
-    try {
-      const res = await ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id });
-      notify(res.message);
-      table.reload();
-    } catch (err) {
-      notify(apiError(err), "error");
-    }
-    setToDelete(null);
-  };
   const table = useServerTable((p, s, q, f) => InventoryServices.getStock(p, s, q, f), { filters: { filter }, idField: "product_id", pageSize: 25 });
   const summary = table.response?.summary;
 
@@ -160,11 +152,18 @@ export default function Inventory() {
       <PageHeader
         title={t("Inventory")}
         actions={
-          can("products", "add") && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product?back=inventory")}>
-              {t("Add Product")}
-            </Button>
-          )
+          <>
+            {can("inventory", "add") && (
+              <Button variant="contained" color="success" startIcon={<PlaylistAddIcon />} onClick={() => setAddOpen(true)}>
+                {t("Add inventory")}
+              </Button>
+            )}
+            {can("products", "add") && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/product?back=inventory")}>
+                {t("Add Product")}
+              </Button>
+            )}
+          </>
         }
       />
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
@@ -278,13 +277,23 @@ export default function Inventory() {
         }}
       />
       <StockHistoryDialog product={history} open={Boolean(history)} onClose={() => setHistory(null)} />
-      <ConfirmationDialog
+      <AddInventoryDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSaved={() => table.reload()}
+      />
+      <DeleteRelatedDialog
         open={Boolean(toDelete)}
+        title="Delete product?"
+        name={toDelete?.name}
+        preview={() => ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id, preview: true })}
+        remove={() => ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id })}
         onClose={() => setToDelete(null)}
-        onConfirm={confirmDelete}
-        title={t("Delete product?")}
-        message={`${toDelete?.name || ""} will be deleted (or marked Inactive if it was already billed).`}
-        confirmLabel="Delete"
+        onDeleted={(res) => {
+          notify(res.message);
+          setToDelete(null);
+          table.reload();
+        }}
       />
     </>
   );

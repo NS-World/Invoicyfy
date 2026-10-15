@@ -11,11 +11,11 @@ import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
 import StatusChip from "../../components/common/StatusChip";
-import ConfirmationDialog from "../../components/ConfirmationDialog";
+import DeleteRelatedDialog from "../../components/common/DeleteRelatedDialog";
 import { ProductServices } from "../../services/ProductServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
-import { apiError, formatCurrency, formatNumber } from "../../utils/format";
+import { formatCurrency, formatNumber } from "../../utils/format";
 import { useT } from "../../context/PrefsContext";
 
 export default function Products() {
@@ -27,16 +27,6 @@ export default function Products() {
   const [toDelete, setToDelete] = useState(null);
   const table = useServerTable((p, s, q, f) => ProductServices.getProductsData(p, s, q, f), { filters: { status }, idField: "product_id" });
 
-  const confirmDelete = async () => {
-    try {
-      const res = await ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id });
-      notify(res.message);
-      table.reload();
-    } catch (err) {
-      notify(apiError(err), "error");
-    }
-    setToDelete(null);
-  };
 
   const columns = [
     {
@@ -148,14 +138,18 @@ export default function Products() {
         getRowHeight={() => "auto"}
         onRowClick={({ row }) => navigate(`/product-details?id=${row.product_id}`)}
       />
-      <ConfirmationDialog
+      <DeleteRelatedDialog
         open={Boolean(toDelete)}
+        title="Delete product?"
+        name={toDelete?.name}
+        preview={() => ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id, preview: true })}
+        remove={() => ProductServices.deleteProductDataFromId({ product_id: toDelete.product_id })}
         onClose={() => setToDelete(null)}
-        onConfirm={confirmDelete}
-        title={t("Delete product?")}
-        message={`${toDelete?.name || ""} will be deleted (or marked Inactive if it was already billed).`}
-        cancelLabel="Cancel"
-        confirmLabel="Delete"
+        onDeleted={(res) => {
+          notify(res.message);
+          setToDelete(null);
+          table.reload();
+        }}
       />
     </>
   );

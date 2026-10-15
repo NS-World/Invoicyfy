@@ -12,11 +12,11 @@ import SearchField from "../../components/common/SearchField";
 import Toolbar from "../../components/common/Toolbar";
 import DataTable from "../../components/common/DataTable";
 import StatusChip from "../../components/common/StatusChip";
-import ConfirmationDialog from "../../components/ConfirmationDialog";
+import DeleteRelatedDialog from "../../components/common/DeleteRelatedDialog";
 import { CustomerServices } from "../../services/CustomerServices";
 import { useNotify } from "../../context/NotifyProvider";
 import useServerTable from "../../hooks/useServerTable";
-import { apiError, formatCurrency } from "../../utils/format";
+import { formatCurrency } from "../../utils/format";
 import { useT } from "../../context/PrefsContext";
 
 export default function Customers() {
@@ -28,16 +28,6 @@ export default function Customers() {
   const [toDelete, setToDelete] = useState(null);
   const table = useServerTable((p, s, q, f) => CustomerServices.getCustomersData(p, s, q, f), { filters: { customer_type: type }, idField: "customer_id" });
 
-  const confirmDelete = async () => {
-    try {
-      await CustomerServices.deleteCustomerDataFromId({ customer_id: toDelete.customer_id });
-      notify(t("Customer deleted"));
-      table.reload();
-    } catch (err) {
-      notify(apiError(err), "error");
-    }
-    setToDelete(null);
-  };
 
   const columns = [
     {
@@ -146,14 +136,18 @@ export default function Customers() {
         getRowHeight={() => "auto"}
         onRowClick={({ row }) => navigate(`/customer?id=${row.customer_id}`)}
       />
-      <ConfirmationDialog
+      <DeleteRelatedDialog
         open={Boolean(toDelete)}
+        title="Delete customer?"
+        name={toDelete?.company_name || toDelete?.name}
+        preview={() => CustomerServices.deleteCustomerDataFromId({ customer_id: toDelete.customer_id, preview: true })}
+        remove={() => CustomerServices.deleteCustomerDataFromId({ customer_id: toDelete.customer_id })}
         onClose={() => setToDelete(null)}
-        onConfirm={confirmDelete}
-        title={t("Delete customer?")}
-        message={`${toDelete?.name || ""} will be deleted.`}
-        cancelLabel="Cancel"
-        confirmLabel="Delete"
+        onDeleted={(res) => {
+          notify(res.message);
+          setToDelete(null);
+          table.reload();
+        }}
       />
     </>
   );
