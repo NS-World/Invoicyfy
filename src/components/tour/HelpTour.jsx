@@ -1,5 +1,20 @@
 import { useCallback, useState } from "react";
-import { Badge, Box, Button, ButtonBase, Dialog, DialogContent, DialogTitle, Grid, IconButton, Paper, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Badge,
+  Box,
+  Button,
+  ButtonBase,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  Paper,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import PlayCircleIcon from "@mui/icons-material/PlayCircleOutline";
 import SchoolIcon from "@mui/icons-material/SchoolOutlined";
@@ -11,6 +26,18 @@ import LoyaltyIcon from "@mui/icons-material/Loyalty";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
 import PrintIcon from "@mui/icons-material/Print";
 import PinIcon from "@mui/icons-material/Pin";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import DeliveryDiningIcon from "@mui/icons-material/DeliveryDining";
+import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
+import BadgeIcon from "@mui/icons-material/Badge";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import AddToDriveIcon from "@mui/icons-material/AddToDrive";
+import Inventory2Icon from "@mui/icons-material/Inventory2Outlined";
 import { useAuth } from "../../context/useAuth";
 import { useT } from "../../context/PrefsContext";
 import { TOURS, TOUR_SEEN_KEY } from "./tours";
@@ -25,7 +52,27 @@ const ICONS = {
   auto: <AutoModeIcon />,
   print: <PrintIcon />,
   pin: <PinIcon />,
+  stock: <InventoryIcon />,
+  supplier: <LocalShippingIcon />,
+  recipe: <MenuBookIcon />,
+  expiry: <EventBusyIcon />,
+  combo: <LocalOfferIcon />,
+  online: <DeliveryDiningIcon />,
+  owner: <PhoneIphoneIcon />,
+  staff: <BadgeIcon />,
+  gst: <ReceiptLongIcon />,
+  delete: <DeleteForeverIcon />,
+  backup: <AddToDriveIcon />,
+  archive: <Inventory2Icon />,
 };
+const GROUPS = [
+  "Getting started",
+  "Billing & counter",
+  "Sales & offers",
+  "Stock & purchase",
+  "Reports",
+  "Settings & data",
+];
 
 const seen = () => {
   try {
@@ -47,7 +94,10 @@ export default function HelpTour({ color = "inherit", label = false }) {
 
   const allowed = (perm) => !perm || can(...perm.split("."));
   const tours = TOURS.filter((tour) => allowed(tour.perm))
-    .map((tour) => ({ ...tour, steps: tour.steps.filter((s) => allowed(s.perm)) }))
+    .map((tour) => ({
+      ...tour,
+      steps: tour.steps.filter((s) => allowed(s.perm)),
+    }))
     .filter((tour) => tour.steps.length);
 
   const show = () => {
@@ -80,17 +130,37 @@ export default function HelpTour({ color = "inherit", label = false }) {
     <>
       <Tooltip title={t("Demo & help — see how the app works")}>
         {label ? (
-          <Button size="small" variant="outlined" startIcon={icon} onClick={show} data-tour="help-tour" sx={{ color, borderColor: "divider", whiteSpace: "nowrap" }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={icon}
+            onClick={show}
+            data-tour="help-tour"
+            sx={{ color, borderColor: "divider", whiteSpace: "nowrap" }}
+          >
             {t("Demo & help")}
           </Button>
         ) : (
-          <IconButton onClick={show} sx={{ color }} data-tour="help-tour" aria-label={t("Demo & help")}>
+          <IconButton
+            onClick={show}
+            sx={{ color }}
+            data-tour="help-tour"
+            aria-label={t("Demo & help")}
+          >
             {icon}
           </IconButton>
         )}
       </Tooltip>
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" fullScreen={phone}>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1 }}>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="md"
+        fullScreen={phone}
+      >
+        <DialogTitle
+          sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1 }}
+        >
           <SchoolIcon color="primary" />
           <Box sx={{ flex: 1 }}>{t("Demo & help")}</Box>
           <IconButton onClick={() => setOpen(false)} aria-label={t("Close")}>
@@ -99,31 +169,85 @@ export default function HelpTour({ color = "inherit", label = false }) {
         </DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t("Pick a topic. The demo opens the right screen and shows each part step by step. Nothing is saved or changed during a demo.")}
+            {t(
+              "Pick a topic. The demo opens the right screen and shows each part step by step. Nothing is saved or changed during a demo.",
+            )}
           </Typography>
-          <Grid container spacing={1.5}>
-            {tours.map((tour) => (
-              <Grid key={tour.id} size={{ xs: 12, sm: 6 }}>
-                <Paper variant="outlined" sx={{ height: "100%", "&:hover": { borderColor: "primary.main" } }}>
-                  <ButtonBase onClick={() => start(tour)} data-testid={`tour-${tour.id}`} sx={{ width: "100%", height: "100%", p: 1.5, display: "flex", alignItems: "flex-start", gap: 1.5, textAlign: "left", borderRadius: 1 }}>
-                    <Box sx={{ color: "primary.main", mt: 0.25 }}>{ICONS[tour.icon]}</Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 700 }}>{t(tour.title)}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {t(tour.text)}
-                      </Typography>
-                      <Typography variant="caption" color="primary" sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5, fontWeight: 600 }}>
-                        <PlayCircleIcon sx={{ fontSize: 16 }} /> {t("{n} steps", { n: tour.steps.length })}
-                      </Typography>
-                    </Box>
-                  </ButtonBase>
-                </Paper>
-              </Grid>
+          {GROUPS.map((g) => [
+            g,
+            tours.filter((tour) => (tour.group || "Getting started") === g),
+          ])
+            .filter(([, list]) => list.length)
+            .map(([g, list]) => (
+              <Box key={g} sx={{ mb: 2 }}>
+                <Typography
+                  variant="overline"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 0.5, fontWeight: 700 }}
+                >
+                  {t(g)}
+                </Typography>
+                <Grid container spacing={1.5}>
+                  {list.map((tour) => (
+                    <Grid key={tour.id} size={{ xs: 12, sm: 6 }}>
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          height: "100%",
+                          "&:hover": { borderColor: "primary.main" },
+                        }}
+                      >
+                        <ButtonBase
+                          onClick={() => start(tour)}
+                          data-testid={`tour-${tour.id}`}
+                          sx={{
+                            width: "100%",
+                            height: "100%",
+                            p: 1.5,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 1.5,
+                            textAlign: "left",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Box sx={{ color: "primary.main", mt: 0.25 }}>
+                            {ICONS[tour.icon]}
+                          </Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontWeight: 700 }}>
+                              {t(tour.title)}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {t(tour.text)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="primary"
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                mt: 0.5,
+                                fontWeight: 600,
+                              }}
+                            >
+                              <PlayCircleIcon sx={{ fontSize: 16 }} />{" "}
+                              {t("{n} steps", { n: tour.steps.length })}
+                            </Typography>
+                          </Box>
+                        </ButtonBase>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
             ))}
-          </Grid>
         </DialogContent>
       </Dialog>
-      {running && <TourRunner key={running.id} tour={running} onClose={finish} />}
+      {running && (
+        <TourRunner key={running.id} tour={running} onClose={finish} />
+      )}
     </>
   );
 }

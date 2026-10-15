@@ -24,11 +24,25 @@ import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useNotify } from "../../context/NotifyProvider";
 import { useT } from "../../context/PrefsContext";
-import { connectedName, directPrint, forgetPrinter, loadPrinterSettings, pairPrinter, savePrinterSettings, support } from "../../utils/directPrint";
+import DownloadIcon from "@mui/icons-material/Download";
+import WindowsPrinterHelp from "./WindowsPrinterHelp";
+import {
+  connectedName,
+  directPrint,
+  downloadKioskShortcut,
+  forgetPrinter,
+  isWindows,
+  isWindowsDriverProblem,
+  loadPrinterSettings,
+  pairPrinter,
+  printTestSlip,
+  savePrinterSettings,
+  support,
+} from "../../utils/directPrint";
 
 const MODES = [
   { key: "dialog", icon: <PrintIcon />, title: "Normal (print window)", hint: "The browser print window opens; choose the printer there. Works everywhere." },
-  { key: "kiosk", icon: <DesktopWindowsIcon />, title: "Windows PC: silent print (Chrome kiosk)", hint: "Prints to the default printer without any window. One-time shortcut setup below." },
+  { key: "kiosk", icon: <DesktopWindowsIcon />, title: "Windows PC: silent print (Chrome kiosk)", hint: "Best for a printer already installed on the PC. Prints to the default printer without any window. One-time shortcut setup below." },
   { key: "usb", icon: <UsbIcon />, title: "USB printer (direct)", hint: "Chrome / Edge. Best on Android tablets with an OTG cable; on Windows the printer may need the WinUSB driver." },
   { key: "bluetooth", icon: <BluetoothIcon />, title: "Bluetooth printer (direct)", hint: "Portable 58 / 80 mm printers, Chrome on Android or PC." },
   { key: "serial", icon: <CableIcon />, title: "Serial / COM port (direct)", hint: "Printers that show as a COM port (USB-serial, or Bluetooth paired in Windows)." },
@@ -41,6 +55,7 @@ export default function PrinterSetup() {
   const [s, setS] = useState(loadPrinterSettings);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState(connectedName() || s.device?.name || null);
+  const [winHelp, setWinHelp] = useState(false);
   const sup = support();
   const update = (patch) => {
     savePrinterSettings(patch);
@@ -56,7 +71,9 @@ export default function PrinterSetup() {
       setName(n);
       notify(t("Printer connected: {name}", { name: n }));
     } catch (e) {
-      if (e?.name !== "NotFoundError") notify(e.message || t("Could not connect"), "error");
+      // Windows: a printer with its own driver is not in the USB list (empty list / "access denied").
+      if (s.mode === "usb" && isWindowsDriverProblem(e)) setWinHelp(true);
+      else if (e?.name !== "NotFoundError") notify(e.message || t("Could not connect"), "error");
     }
     setBusy(false);
   };
@@ -86,7 +103,7 @@ export default function PrinterSetup() {
               {t("Direct printing needs the app to open on https.")}
             </Alert>
           )}
-          <RadioGroup value={s.mode} onChange={(e) => update({ mode: e.target.value, noPrompt: e.target.value === "dialog" })}>
+          <RadioGroup value={s.mode} onChange={(e) => update({ mode: e.target.value, noPrompt: e.target.value === "dialog" })} data-tour="printer-modes">
             {MODES.map((m) => (
               <Paper
                 key={m.key}
@@ -143,6 +160,17 @@ export default function PrinterSetup() {
             </Box>
           )}
 
+          {s.mode === "usb" && isWindows() && (
+            <WindowsPrinterHelp
+              compact={!winHelp}
+              onUseWindows={() => {
+                setWinHelp(false);
+                setName(null);
+                setS(loadPrinterSettings());
+              }}
+            />
+          )}
+
           {s.mode === "kiosk" && (
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -156,6 +184,17 @@ export default function PrinterSetup() {
                 "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing {window.location.origin}
               </Box>
               {t("Open the app from this shortcut. Bills and KOT then print straight away without the print window.")}
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
+                <Button size="small" variant="contained" startIcon={<DownloadIcon />} onClick={downloadKioskShortcut}>
+                  {t("Download shortcut")}
+                </Button>
+                <Button size="small" variant="outlined" startIcon={<PrintIcon />} onClick={() => printTestSlip(s.paper)}>
+                  {t("Test print")}
+                </Button>
+              </Box>
+              <Typography variant="caption" sx={{ display: "block", mt: 1 }}>
+                {t("The shortcut also works with Microsoft Edge. If the print window still opens, close every Chrome window and open the app from the shortcut again.")}
+              </Typography>
             </Alert>
           )}
         </Paper>

@@ -86,7 +86,7 @@ export default function OnlineOrders() {
           </>
         }
       />
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      <Grid container data-tour="screen-main" spacing={1.5} sx={{ mb: 2 }}>
         {summary.length === 0 && (
           <Grid size={12}>
             <Alert severity="info">{t("No online orders in this period. In Quick Bill choose the platform (Swiggy / Zomato) and type its order number; the bill is kept here.")}</Alert>

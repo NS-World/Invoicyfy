@@ -3,7 +3,8 @@ import { Alert, Box, Button, Card, CardContent, Chip, FormControlLabel, Grid, Li
 import AddToDriveIcon from "@mui/icons-material/AddToDrive";
 import BackupIcon from "@mui/icons-material/Backup";
 import DownloadIcon from "@mui/icons-material/Download";
-import { useSearchParams } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 import { DriveServices } from "../../services/V4Services";
 import { useNotify } from "../../context/NotifyProvider";
 import { useT } from "../../context/PrefsContext";
@@ -25,7 +26,7 @@ export default function DriveBackup() {
     DriveServices.get()
       .then((r) => {
         setS(r.data);
-        setF({ enabled: r.data.enabled, time: r.data.time, keep: r.data.keep, local_keep: r.data.local_keep, client_id: r.data.client_id, client_secret: "" });
+        setF({ enabled: r.data.enabled, time: r.data.time, keep: r.data.keep, keep_monthly: r.data.keep_monthly, local_keep: r.data.local_keep, client_id: r.data.client_id, client_secret: "" });
       })
       .catch((e) => notify(apiError(e), "error"));
   }, [notify]);
@@ -89,8 +90,29 @@ export default function DriveBackup() {
           {s.connected ? <Chip color="success" label={`${t("Google Drive")}: ${s.email || t("connected")}`} /> : <Chip label={t("Google Drive not connected")} />}
         </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {t("The whole database is saved as one file on the server every night and, when connected, uploaded to your Google Drive (folder \"Invoicyfy Backups\"). Restore it with \"Choose backup file\" above.")}
+          {t("Every night the data is saved as one file on the server and, when connected, uploaded to your Google Drive in a folder for each financial year. Restore it with \"Choose backup file\" above.")}
         </Typography>
+        <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: "action.hover", fontSize: 13 }} data-tour="drive-layout">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, fontWeight: 700 }}>
+            <FolderIcon fontSize="small" /> Invoicyfy Backups
+          </Box>
+          <Box sx={{ pl: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+              <FolderIcon fontSize="small" /> {s.current_fy || "FY"}
+            </Box>
+            <Box sx={{ pl: 3, color: "text.secondary" }}>
+              <div>📁 daily — {t("last {n} nights", { n: f.keep })}</div>
+              <div>📁 monthly — {t("first backup of each month (last {n})", { n: f.keep_monthly })}</div>
+              <div>📦 FY … FINAL.json.gz — {t("the whole year, made after 31 March (kept for ever)")}</div>
+            </Box>
+          </Box>
+          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
+            {t("Year archives and removing old years:")}{" "}
+            <Link component={RouterLink} to="/data-archive">
+              {t("Data & Archive")}
+            </Link>
+          </Typography>
+        </Box>
         {s.last_run_at && (
           <Alert severity={s.last_ok ? "success" : "error"} sx={{ mb: 2 }}>
             {when(s.last_run_at)} — {s.last_result}
@@ -104,9 +126,12 @@ export default function DriveBackup() {
             <TextField fullWidth size="small" type="time" label={t("At")} value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={{ xs: 4, sm: 2.75 }}>
-            <TextField fullWidth size="small" type="number" label={t("Keep on Drive")} value={f.keep} onChange={(e) => setF({ ...f, keep: e.target.value })} />
+            <TextField fullWidth size="small" type="number" label={t("Daily kept on Drive")} value={f.keep} onChange={(e) => setF({ ...f, keep: e.target.value })} />
           </Grid>
           <Grid size={{ xs: 4, sm: 2.75 }}>
+            <TextField fullWidth size="small" type="number" label={t("Monthly kept on Drive")} value={f.keep_monthly} onChange={(e) => setF({ ...f, keep_monthly: e.target.value })} />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <TextField fullWidth size="small" type="number" label={t("Keep on server")} value={f.local_keep} onChange={(e) => setF({ ...f, local_keep: e.target.value })} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>

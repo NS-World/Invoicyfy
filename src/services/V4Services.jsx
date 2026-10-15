@@ -70,3 +70,16 @@ export const DriveServices = {
   runNow: async () => (await API.post("/master/backup/create-backup-now.php", {}, { timeout: 600000 })).data,
   download: async (file) => (await API.get(`/master/backup/download-backup.php${qs({ file })}`, { responseType: "blob", timeout: 600000 })).data,
 };
+
+/** Data & Archive: year archives (Google Drive), purge of old years and logs (Admin) */
+export const ArchiveServices = {
+  overview: async () => (await API.get("/master/archive/overview.php")).data,
+  saveSettings: async (data) => (await API.post("/master/archive/update-settings.php", data)).data,
+  createArchive: async (fy) => (await API.post("/master/archive/create-archive.php", { fy }, { timeout: 120000 })).data,
+  preview: async (fy) => (await API.get(`/master/archive/purge-preview.php${qs({ fy })}`, { timeout: 120000 })).data,
+  startPurge: async (fy, confirm) => (await API.post("/master/archive/start-purge.php", { fy, confirm }, { timeout: 120000 })).data,
+  purgeLogs: async (confirm) => (await API.post("/master/archive/purge-logs.php", { confirm }, { timeout: 120000 })).data,
+  step: async () => (await API.post("/master/archive/step.php", {}, { timeout: 120000 })).data,
+  cancel: async (jobId) => (await API.post("/master/archive/cancel-job.php", { job_id: jobId })).data,
+  download: async (fy) => (await API.get(`/master/archive/download.php${qs({ fy })}`, { responseType: "blob", timeout: 600000 })).data,
+};

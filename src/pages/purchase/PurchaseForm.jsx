@@ -117,7 +117,7 @@ export default function PurchaseForm() {
     <>
       <PageHeader title="New purchase bill" subtitle="Stock goes up, cost price updates and GST paid is kept as input credit" back="/purchases" actions={<StorePicker value={storeId} onChange={setStoreId} />} />
       <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2 }}>
-        <Grid container spacing={2}>
+        <Grid container data-tour="screen-main" spacing={2}>
           <Grid size={{ xs: 12, md: 5 }}>
             <Box sx={{ display: "flex", gap: 1 }}>
               <Autocomplete

@@ -7,6 +7,7 @@ export const TOURS = [
   {
     id: "start",
     icon: "start",
+    group: "Getting started",
     title: "Quick tour of the app",
     text: "Where everything is: menu, internet status, language and this help.",
     steps: [
@@ -22,6 +23,7 @@ export const TOURS = [
   {
     id: "bill",
     icon: "bill",
+    group: "Billing & counter",
     perm: "invoices.add",
     title: "Make a Quick Bill",
     text: "Pick items by category, table, coupon, split payment, hold bill and print.",
@@ -43,6 +45,7 @@ export const TOURS = [
   {
     id: "day",
     icon: "day",
+    group: "Billing & counter",
     perm: "cash",
     title: "Day open & day close",
     text: "Count opening cash, pay in / pay out, X report and Z report.",
@@ -57,6 +60,7 @@ export const TOURS = [
   {
     id: "credit",
     icon: "credit",
+    group: "Sales & offers",
     perm: "payments",
     title: "Udhaar / credit",
     text: "Who has to pay, since how long, receive money and send reminders.",
@@ -70,6 +74,7 @@ export const TOURS = [
   {
     id: "loyalty",
     icon: "loyalty",
+    group: "Sales & offers",
     perm: "loyalty",
     title: "Coupons & loyalty points",
     text: "Make discount codes and reward regular customers.",
@@ -83,6 +88,7 @@ export const TOURS = [
   {
     id: "auto",
     icon: "auto",
+    group: "Settings & data",
     perm: "settings",
     title: "Automatic messages",
     text: "Night summary to owner, low stock alert, birthday wishes, payment reminders.",
@@ -96,6 +102,7 @@ export const TOURS = [
   {
     id: "print",
     icon: "print",
+    group: "Settings & data",
     title: "Direct print & offline billing",
     text: "Print without the print dialog and keep billing when the internet goes.",
     steps: [
@@ -108,12 +115,194 @@ export const TOURS = [
   {
     id: "pin",
     icon: "pin",
+    group: "Settings & data",
     title: "Discount limit & manager PIN",
     text: "Stop big discounts without permission and see who did what.",
     steps: [
       { title: "Discount limit per role", body: "In Roles & Permissions set 'Max discount without manager PIN (%)' for each role, e.g. Staff 5%." },
       { route: "/counter", target: "counter-tabs", title: "Manager PIN", body: "Managers set their own 4-8 digit approval PIN in the 'My approval PIN' tab. When staff give more discount, the manager types the PIN on the billing screen." },
       { route: "/activity", perm: "activity", target: "activity-important", title: "Activity Log", body: "Every bill, cancel, delete, price change, discount approval and login — who, when and from where. Turn on 'Only important' to see the risky ones." },
+    ],
+  },
+
+  /* ---------------------------------------------------------------- Stock & purchase */
+  {
+    id: "inventory",
+    icon: "stock",
+    group: "Stock & purchase",
+    perm: "inventory",
+    title: "Inventory & Add inventory",
+    text: "See every product's stock, add many products' stock at once, low / out of stock.",
+    steps: [
+      { route: "/inventory", target: "page-header", title: "Inventory", body: "Every product of the Products screen is here with its stock, reorder level, cost and stock value." },
+      { route: "/inventory", target: "inventory-tabs", title: "Filters", body: "All, Stock tracked, Not tracked, Low stock, Out of stock. The cards on top open the same lists." },
+      { route: "/inventory", target: "add-inventory", title: "Add inventory", perm: "inventory.add", body: "Goods arrived? Press Add inventory: the product list opens with each product's current stock and status. Type the quantity (and cost) for every product that came, add a note like the supplier bill number and press Save stock." },
+      { title: "After saving", body: "Each product shows +quantity, the new stock and its status (In stock / Low / Out). Products whose stock was not counted start being counted. Every entry is in the History (clock) button." },
+      { route: "/inventory", target: "page-actions", title: "One product", body: "The + button on a row is Stock in / out for one product: purchase, return, correction or damage, with batch and expiry." },
+      { title: "Delete a product", perm: "products.delete", body: "The red bin shows, in red, everything that goes with the product (stock history, batches, recipes) and asks you to type DELETE. Old bills keep the item name and amount." },
+    ],
+  },
+  {
+    id: "suppliers",
+    icon: "supplier",
+    group: "Stock & purchase",
+    perm: "purchases",
+    title: "Suppliers & purchase bills",
+    text: "Supplier ledger, purchase bill with batch / expiry, paying the supplier.",
+    steps: [
+      { route: "/suppliers", target: "page-header", title: "Suppliers", body: "Each supplier with mobile, GSTIN and how much you owe them (opening balance + bills − payments)." },
+      { route: "/suppliers", target: "page-actions", title: "New supplier", body: "Add the name, mobile, GSTIN and old balance once." },
+      { route: "/purchases", target: "screen-main", title: "Purchases", body: "All supplier bills of the period: total, paid and still to pay." },
+      { route: "/purchases/new", perm: "purchases.add", target: "screen-main", title: "New purchase bill", body: "Choose the supplier, add items with quantity, rate, GST, batch and expiry. Saving adds the stock, updates the cost price and books GST input credit." },
+      { title: "Pay the supplier", body: "On Suppliers press ₹ to record a payment (cash, UPI, bank). The statement shows every bill and payment with the running balance." },
+    ],
+  },
+  {
+    id: "recipes",
+    icon: "recipe",
+    group: "Stock & purchase",
+    perm: "products",
+    title: "Recipes & real cost",
+    text: "What goes into a sundae or shake; stock of raw material goes down with every bill.",
+    steps: [
+      { route: "/recipes", target: "page-header", title: "Recipes & Cost", body: "For each dish say how much raw material one piece uses (e.g. 120 ml milk, 1 brownie piece)." },
+      { title: "Raw material", body: "Make milk, cones, toppings as products with 'Raw material' on — they stay out of Quick Bill but their stock is counted." },
+      { title: "On every bill", body: "Selling one sundae takes its ingredients out of stock, and reports use the real cost for profit." },
+    ],
+  },
+  {
+    id: "expiry",
+    icon: "expiry",
+    group: "Stock & purchase",
+    perm: "inventory",
+    title: "Expiry & wastage",
+    text: "Batches about to expire, melted / damaged stock and the loss.",
+    steps: [
+      { route: "/expiry", target: "page-header", title: "Expiry & Wastage", body: "Stock that is expired or expires soon (oldest first), and wastage entries with their cost." },
+      { route: "/expiry", target: "screen-main", title: "Loss at a glance", body: "Wastage loss of the period, expiring batches and their value." },
+      { route: "/expiry", target: "page-actions", title: "Add wastage", body: "Melted, expired, damaged, staff use… enter the quantity and reason; stock goes down and the loss is shown here." },
+      { title: "Alerts", body: "Counter settings → Expiry alert days. The low-stock automatic message also lists stock expiring soon." },
+    ],
+  },
+  /* ---------------------------------------------------------------- Sales */
+  {
+    id: "combo",
+    icon: "combo",
+    group: "Sales & offers",
+    perm: "loyalty",
+    title: "Combo & happy hour",
+    text: "2 Scoop + 1 Shake = ₹199, or 3–5 pm 10% off — applied by itself on the bill.",
+    steps: [
+      { route: "/combo-offers", target: "page-header", title: "Combo & Happy Hour", body: "Offers that Quick Bill applies by itself when the items / time match." },
+      { route: "/combo-offers", target: "page-actions", title: "New offer", body: "Combo price for a set of items, or a % off for some hours / days, on all items, a category or chosen products." },
+      { route: "/combo-offers", target: "screen-main", title: "Offers list", body: "Switch an offer off without deleting it. Used count shows how often it was applied." },
+      { route: "/invoices/new", target: "bill-cart", title: "On the bill", body: "The offer appears as a green chip and the price changes. Cashiers can turn 'Apply offers' off for one bill." },
+    ],
+  },
+  {
+    id: "online",
+    icon: "online",
+    group: "Sales & offers",
+    perm: "invoices",
+    title: "Swiggy / Zomato orders",
+    text: "Bill online orders, commission and payout received or pending.",
+    steps: [
+      { route: "/invoices/new", target: "sales-channel", perm: "invoices.add", title: "Sold through", body: "In Quick Bill choose the platform and type its order number. Payment is booked as 'Online platform'.", optional: true },
+      { route: "/online-orders", target: "screen-main", title: "Online orders", body: "Orders, sales, commission (from your % in Counter settings), expected payout, received and pending — per platform." },
+      { title: "Payout received", body: "When the platform pays, tick the orders and press Payout received with the amount." },
+    ],
+  },
+  {
+    id: "owner",
+    icon: "owner",
+    group: "Reports",
+    perm: "dashboard",
+    title: "Owner's view on phone",
+    text: "Today at a glance: sales, cash, top items, what needs attention.",
+    steps: [
+      { route: "/owner", target: "screen-main", title: "Today", body: "Sales and bills today vs yesterday and the same day last week, month so far, and money by mode." },
+      { title: "Needs attention", body: "Udhaar to collect, low stock, expiring stock, supplier dues and platform payouts pending. It refreshes every minute." },
+    ],
+  },
+  {
+    id: "staff",
+    icon: "staff",
+    group: "Reports",
+    perm: "reports",
+    title: "Staff report",
+    text: "Who billed how much, discounts, cancellations and cash shifts.",
+    steps: [
+      { route: "/staff-report", target: "screen-main", title: "Per cashier", body: "Bills, sales, average bill, discounts (manual, coupon, points, offers), manager approvals, cancelled bills and money collected by mode." },
+      { title: "Cash shifts", body: "Every day open → close with expected and counted cash and the difference." },
+    ],
+  },
+  {
+    id: "gstr1",
+    icon: "gst",
+    group: "Reports",
+    perm: "reports",
+    title: "GSTR-1 file",
+    text: "Monthly sales return as JSON for the GST portal and Excel.",
+    steps: [
+      { route: "/gstr1", target: "page-header", title: "GSTR-1", body: "Choose the month and press Prepare GSTR-1." },
+      { title: "What you get", body: "B2B, B2C large / small, HSN summary and documents issued — download the JSON for the GST portal (offline tool) and an Excel to check." },
+    ],
+  },
+  /* ---------------------------------------------------------------- Data & settings */
+  {
+    id: "delete",
+    icon: "delete",
+    group: "Settings & data",
+    perm: "customers.delete",
+    title: "Deleting a customer or product",
+    text: "See in red everything that will be deleted with it before confirming.",
+    steps: [
+      { route: "/customers", target: "page-header", title: "Delete with everything linked", body: "Press the red bin on a customer. Before anything is deleted the app shows how many bills, payments, orders, points and messages go with them." },
+      { title: "Confirm", body: "The list is shown in red and Delete everything works only after you type DELETE. This cannot be undone — take a backup first if unsure." },
+      { route: "/products", target: "page-header", perm: "products.delete", title: "Products", body: "Deleting a product removes its stock history, batches and recipes, and switches off offers with it. Old bills keep the item name and amount." },
+    ],
+  },
+  {
+    id: "backup",
+    icon: "backup",
+    group: "Settings & data",
+    perm: "backup",
+    title: "Automatic backup to Google Drive",
+    text: "Nightly backup in a folder for every financial year.",
+    steps: [
+      { route: "/backup", target: "page-header", title: "Backup & Restore", body: "Download all data to Excel / restore it, and the automatic nightly backup." },
+      { route: "/backup", target: "drive-layout", title: "Year-wise folders on Drive", body: "Invoicyfy Backups / FY 2026-27 / daily (last 30 nights) and monthly (first backup of each month). After 31 March the whole year is saved as one FINAL file in its year folder." },
+      { title: "Connect once", body: "Admin enters the Google Client ID / secret, presses Connect Google Drive and allows. The app can only see the files it creates." },
+      { title: "Every night", body: "At the chosen time the backup is made and uploaded in pieces, checked, and old copies are removed. Big data continues every minute until done (cron job)." },
+    ],
+  },
+  {
+    id: "archive",
+    icon: "archive",
+    group: "Settings & data",
+    perm: "backup",
+    title: "Data & Archive (remove old years)",
+    text: "Keep 3, 4, 5... years in the app; older years stay safe in their Drive archive.",
+    steps: [
+      { route: "/data-archive", target: "archive-drive", title: "Data & Archive", body: "Only for the Admin. Shows whether Google Drive is connected — year archives are stored there." },
+      { route: "/data-archive", target: "archive-settings", title: "How long to keep", body: "Choose 3, 4, 5... years (or never remove) and how long to keep activity / message logs. Removing can run by itself every night, or only when you press the button." },
+      { route: "/data-archive", target: "archive-years", title: "Financial years", body: "Each year with its bills and sales, its FINAL archive (on Google Drive / server only) and whether it is still in the app." },
+      { title: "Make archive", body: "Saves the whole year (with customers, products...) as one file in its Drive folder and checks the size. Download keeps a copy on your PC too." },
+      { title: "Remove year", body: "Only for years older than the keep period, oldest first, and only after the archive is safe. The red list shows what goes; type PURGE. Udhaar bills, pending orders and unpaid supplier bills always stay, and old years keep their totals in reports." },
+      { route: "/data-archive", target: "archive-history", title: "Log", body: "Every backup, archive and removal: when, how many records, file and result. A running job shows a progress bar and can be stopped." },
+    ],
+  },
+  {
+    id: "printer",
+    icon: "print",
+    group: "Settings & data",
+    title: "Printer on a Windows PC",
+    text: "Printer already installed on the PC does not show in USB? Use silent Windows printing.",
+    steps: [
+      { route: "/counter", target: "printer-tab", title: "Printer tab", body: "Counter & Printer → Printer." },
+      { title: "Why USB shows nothing", body: "Windows keeps a printer that has its own driver for itself, so the browser's USB list cannot see it. That is normal — use the Windows printer instead." },
+      { title: "Windows PC: silent print", body: "Choose 'Windows PC: silent print', press Download shortcut, put it on the desktop and make the bill printer the Windows default printer." },
+      { title: "Every day", body: "Open the app from that shortcut (Chrome or Edge). Bills and KOT print straight away without the print window. Use Test print to check." },
     ],
   },
 ];

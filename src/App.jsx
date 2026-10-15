@@ -36,6 +36,7 @@ const StoreForm = lazy(() => import("./pages/store/StoreForm"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const InvoiceDesigner = lazy(() => import("./pages/settings/InvoiceDesigner"));
 const Backup = lazy(() => import("./pages/backup/Backup"));
+const DataArchive = lazy(() => import("./pages/archive/DataArchive"));
 const Offers = lazy(() => import("./pages/marketing/Offers"));
 const Categories = lazy(() => import("./pages/category/Categories"));
 const DayClose = lazy(() => import("./pages/cash/DayClose"));
@@ -101,6 +102,7 @@ function App() {
                   <Route path="settings" element={<Settings />} />
                   <Route path="settings/invoice-design" element={guard("settings", <InvoiceDesigner />)} />
                   <Route path="backup" element={guard("backup", <Backup />)} />
+                  <Route path="data-archive" element={guard("backup", <DataArchive />)} />
                   <Route path="offers" element={guard("marketing", <Offers />)} />
                   <Route path="day-close" element={guard("cash", <DayClose />)} />
                   <Route path="coupons" element={guard("loyalty", <CouponsLoyalty />)} />

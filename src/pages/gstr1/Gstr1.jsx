@@ -103,7 +103,7 @@ export default function Gstr1() {
               {t(w)}
             </Alert>
           ))}
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
+          <Grid container data-tour="screen-main" spacing={1.5} sx={{ mb: 2 }}>
             <Grid size={{ xs: 6, md: 3 }}>
               <StatCard label="Taxable value" value={formatCurrency(s.taxable)} />
             </Grid>

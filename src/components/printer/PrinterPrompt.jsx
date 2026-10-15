@@ -6,7 +6,8 @@ import CableIcon from "@mui/icons-material/Cable";
 import PrintIcon from "@mui/icons-material/Print";
 import { useNavigate } from "react-router-dom";
 import { useT } from "../../context/PrefsContext";
-import { PRINTER_ASK_EVENT, loadPrinterSettings, pairPrinter, savePrinterSettings, support } from "../../utils/directPrint";
+import WindowsPrinterHelp from "./WindowsPrinterHelp";
+import { PRINTER_ASK_EVENT, isWindows, isWindowsDriverProblem, loadPrinterSettings, pairPrinter, savePrinterSettings, support } from "../../utils/directPrint";
 
 const KINDS = [
   ["usb", "USB printer", <UsbIcon key="u" />],
@@ -25,6 +26,7 @@ export default function PrinterPrompt() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [noAsk, setNoAsk] = useState(false);
+  const [winHelp, setWinHelp] = useState(false);
   const askRef = useRef(null);
   askRef.current = ask;
 
@@ -35,6 +37,7 @@ export default function PrinterPrompt() {
       if (askRef.current) return e.detail.resolve("dialog");
       setError("");
       setNoAsk(false);
+      setWinHelp(false);
       setAsk(e.detail);
     };
     window.addEventListener(PRINTER_ASK_EVENT, onAsk);
@@ -59,7 +62,8 @@ export default function PrinterPrompt() {
       finish("paired");
     } catch (e) {
       setBusy("");
-      if (e?.name !== "NotFoundError") setError(e?.message || t("Could not connect"));
+      if (kind === "usb" && isWindowsDriverProblem(e)) setWinHelp(true);
+      else if (e?.name !== "NotFoundError") setError(e?.message || t("Could not connect"));
     }
   };
 
@@ -93,6 +97,9 @@ export default function PrinterPrompt() {
           <Alert severity="error" sx={{ mt: 2 }}>
             {error}
           </Alert>
+        )}
+        {(winHelp || (isWindows() && ask.reason === "setup")) && (
+          <WindowsPrinterHelp compact={!winHelp} onUseWindows={() => finish("dialog")} />
         )}
         {ask.reason === "setup" && (
           <FormControlLabel sx={{ mt: 1 }} control={<Checkbox checked={noAsk} onChange={(e) => setNoAsk(e.target.checked)} />} label={t("Don't ask again on this device")} />

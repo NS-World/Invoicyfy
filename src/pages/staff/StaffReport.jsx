@@ -87,7 +87,7 @@ export default function StaffReport() {
       {error && <Alert severity="error">{error}</Alert>}
       {d && (
         <>
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
+          <Grid container data-tour="screen-main" spacing={1.5} sx={{ mb: 2 }}>
             <Grid size={{ xs: 6, md: 3 }}>
               <StatCard label="Bills" value={d.totals.bills} />
             </Grid>

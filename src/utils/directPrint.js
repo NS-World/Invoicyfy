@@ -270,3 +270,60 @@ export async function printSlip(root, pageSize) {
   }
   return false;
 }
+
+/* ---------------------------------------------------------------- Windows PCs */
+
+export const isWindows = () => typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent || "");
+
+/**
+ * On Windows a printer installed with its own driver ("USB Printing Support") belongs to Windows, so the browser's
+ * USB list does not show it (or cannot open it). True for errors that mean exactly that.
+ */
+export const isWindowsDriverProblem = (e) =>
+  isWindows() && ["NotFoundError", "SecurityError", "NetworkError", "InvalidStateError"].includes(e?.name);
+
+/** A double-click file for the billing PC: opens the app in Chrome (or Edge) with silent printing to the default printer. */
+export function kioskShortcutFile(url = typeof window !== "undefined" ? window.location.origin + "/" : "") {
+  const lines = [
+    "@echo off",
+    "rem Invoicyfy billing: bills and KOT print straight to the Windows default printer (no print window).",
+    `set "URL=${url}"`,
+    'set "PROFILE=%LocalAppData%\\InvoicyfyPrint"',
+    'set "APP=%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe"',
+    'if not exist "%APP%" set "APP=%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe"',
+    'if not exist "%APP%" set "APP=%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe"',
+    'if not exist "%APP%" set "APP=%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe"',
+    'if not exist "%APP%" set "APP=%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe"',
+    'start "" "%APP%" --kiosk-printing --user-data-dir="%PROFILE%" --no-first-run "%URL%"',
+    "",
+  ];
+  return new Blob([lines.join("\r\n")], { type: "application/octet-stream" });
+}
+
+export function downloadKioskShortcut() {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(kioskShortcutFile());
+  a.download = "Invoicyfy Billing.bat";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/** Prints a small test slip through the normal print (silent when the app was opened from the shortcut). */
+export function printTestSlip(paper = loadPrinterSettings().paper) {
+  const width = paper === "58mm" ? "58mm" : "80mm";
+  const frame = document.createElement("iframe");
+  frame.setAttribute("style", "position:fixed;right:0;bottom:0;width:0;height:0;border:0");
+  document.body.appendChild(frame);
+  const doc = frame.contentDocument;
+  doc.open();
+  doc.write(`<!doctype html><html><head><style>@page{size:${width} auto;margin:0}body{width:${width};margin:0;padding:4mm;font:14px monospace;text-align:center}</style></head>
+<body><b>Invoicyfy test print</b><br>${new Date().toLocaleString()}<br>Paper ${width}<br>--------------------<br>If you can read this, printing works.</body></html>`);
+  doc.close();
+  setTimeout(() => {
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+    setTimeout(() => frame.remove(), 3000);
+  }, 200);
+}

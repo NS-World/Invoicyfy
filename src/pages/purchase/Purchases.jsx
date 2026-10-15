@@ -64,7 +64,7 @@ export default function Purchases() {
           </>
         }
       />
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      <Grid container data-tour="screen-main" spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
           <StatCard label="Purchases in period" value={formatCurrency(sum?.total || 0)} loading={!table.response} />
         </Grid>

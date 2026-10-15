@@ -154,7 +154,7 @@ export default function Inventory() {
         actions={
           <>
             {can("inventory", "add") && (
-              <Button variant="contained" color="success" startIcon={<PlaylistAddIcon />} onClick={() => setAddOpen(true)}>
+              <Button variant="contained" color="success" startIcon={<PlaylistAddIcon />} onClick={() => setAddOpen(true)} data-tour="add-inventory">
                 {t("Add inventory")}
               </Button>
             )}
@@ -199,7 +199,7 @@ export default function Inventory() {
           {t("{n} product(s) have \"Track stock\" off, so their stock is not counted. Turn it on for items you want to count (tubs, cones, packs).", { n: summary.untracked })}
         </Alert>
       )}
-      <Tabs value={filter} onChange={(_, v) => setFilter(v)} variant="scrollable" allowScrollButtonsMobile sx={{ mb: 1 }}>
+      <Tabs value={filter} onChange={(_, v) => setFilter(v)} variant="scrollable" allowScrollButtonsMobile sx={{ mb: 1 }} data-tour="inventory-tabs">
         <Tab value="" label={t("All")} />
         <Tab value="tracked" label={t("Stock tracked")} />
         <Tab value="untracked" label={t("Not tracked")} />

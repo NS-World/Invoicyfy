@@ -29,6 +29,7 @@ import {
   Menu as MenuIcon,
   Category,
   CloudSync,
+  Inventory2Outlined,
   Campaign,
   Store,
   Inventory2,
@@ -123,6 +124,7 @@ const menu = [
       { text: "Users", icon: <People />, path: "/users", perm: "users" },
       { text: "Roles & Permissions", icon: <AdminPanelSettings />, path: "/roles", perm: "users" },
       { text: "Backup & Restore", icon: <CloudSync />, path: "/backup", perm: "backup" },
+      { text: "Data & Archive", icon: <Inventory2Outlined />, path: "/data-archive", admin: true },
     ],
   },
 ];

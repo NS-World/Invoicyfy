@@ -109,7 +109,7 @@ function WastageTab({ storeId, reloadKey }) {
   ];
   return (
     <>
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      <Grid container data-tour="screen-main" spacing={1.5} sx={{ mb: 2 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
           <StatCard label="Wastage loss in period" value={formatCurrency(sum?.loss || 0)} color="error.main" loading={!table.response} />
         </Grid>

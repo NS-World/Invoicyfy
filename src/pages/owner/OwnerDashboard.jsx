@@ -111,7 +111,7 @@ export default function OwnerDashboard() {
             </Box>
           </Paper>
 
-          <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+          <Grid container data-tour="screen-main" spacing={1.5} sx={{ mb: 1.5 }}>
             <Grid size={6}>
               <Tile title="This month" value={formatCurrency(d.month.sales)} sub={<Change now={d.month.sales} before={d.month.last_month_same_days} label="vs last month" />} />
             </Grid>

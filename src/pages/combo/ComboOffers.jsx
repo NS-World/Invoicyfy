@@ -76,7 +76,7 @@ export default function ComboOffers() {
         }
       />
       {offers && offers.length === 0 && <Alert severity="info">{t("No offers yet. Example: \"2 Scoop + 1 Shake = ₹199\" or \"3 to 5 pm: 10% off on shakes\".")}</Alert>}
-      <Grid container spacing={2}>
+      <Grid container data-tour="screen-main" spacing={2}>
         {(offers || []).map((o) => (
           <Grid key={o.offer_id} size={{ xs: 12, sm: 6, lg: 4 }}>
             <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column", opacity: o.is_active ? 1 : 0.6 }}>
