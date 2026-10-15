@@ -906,6 +906,8 @@ export default {
   "Payment modes": "भुगतान के तरीके",
   "Payment received": "पेमेंट मिला",
   "Payment received now": "अभी पेमेंट मिला",
+  "Big data: showing matches from": "बड़ा डेटा: इस तारीख से मैच दिखा रहे हैं",
+  "Choose an older date range to search further back.": "और पुराना खोजने के लिए पुरानी तारीख रेंज चुनें.",
   "Payment recorded": "पेमेंट दर्ज हुआ",
   "Payment reminders (udhaar)": "भुगतान रिमाइंडर (उधार)",
   "Payments": "पेमेंट",

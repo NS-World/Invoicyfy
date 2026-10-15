@@ -114,6 +114,7 @@ export default function Backup() {
   if (!info) return <Loader />;
   const age = daysSince(info.last_backup_at);
   const totalRecords = info.tables.reduce((s, t) => s + t.count, 0);
+  const anyApprox = info.tables.some((t) => t.approx);
   const issueCount = results ? results.reduce((s, r) => s + r.issues.length, 0) : 0;
 
   return (
@@ -141,7 +142,7 @@ export default function Backup() {
                 <Typography variant="h6">{t("Download backup")}</Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                One Excel file with every table ({totalRecords.toLocaleString("en-IN")} records): customers, products, orders, invoices,
+                One Excel file with every table ({anyApprox ? "~" : ""}{totalRecords.toLocaleString("en-IN")} records): customers, products, orders, invoices,
                 payments, expenses, stock and settings. Last backup: <b>{when(info.last_backup_at)}</b>
               </Typography>
               <Button variant="contained" startIcon={<CloudDownloadIcon />} onClick={runExport} disabled={!!busy} fullWidth>
@@ -218,7 +219,7 @@ export default function Backup() {
                       <TableRow key={t.table}>
                         <TableCell>{t.label}</TableCell>
                         <TableCell align="right">{parsed.sheets[t.table].rows.length}</TableCell>
-                        <TableCell align="right">{t.count}</TableCell>
+                        <TableCell align="right">{t.approx ? "~" : ""}{t.count.toLocaleString("en-IN")}</TableCell>
                       </TableRow>
                     ))}
                 </TableBody>

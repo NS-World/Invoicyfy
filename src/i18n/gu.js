@@ -906,6 +906,8 @@ export default {
   "Payment modes": "ચુકવણી રીતો",
   "Payment received": "પેમેન્ટ મળ્યું",
   "Payment received now": "હમણાં પેમેન્ટ મળ્યું",
+  "Big data: showing matches from": "મોટો ડેટા: આ તારીખથી મેચ બતાવે છે",
+  "Choose an older date range to search further back.": "વધુ જૂનું શોધવા માટે જૂની તારીખ રેન્જ પસંદ કરો.",
   "Payment recorded": "પેમેન્ટ નોંધાયું",
   "Payment reminders (udhaar)": "પેમેન્ટ રિમાઇન્ડર (ઉધાર)",
   "Payments": "પેમેન્ટ",

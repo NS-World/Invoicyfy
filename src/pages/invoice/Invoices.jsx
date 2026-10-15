@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Button, Grid, IconButton, MenuItem, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Grid, IconButton, MenuItem, TextField, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
 import PaymentsIcon from "@mui/icons-material/Payments";
@@ -160,6 +160,11 @@ export default function Invoices() {
           ]}
         />
       </Toolbar>
+      {table.response?.search_from && (
+        <Alert severity="info" sx={{ mb: 1 }}>
+          {t("Big data: showing matches from")} {formatDate(table.response.search_from)}. {t("Choose an older date range to search further back.")}
+        </Alert>
+      )}
       <DataTable
         table={table}
         columns={columns}

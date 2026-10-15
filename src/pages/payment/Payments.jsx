@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Chip, MenuItem, TextField } from "@mui/material";
+import { Alert, Box, Chip, MenuItem, TextField } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import ListExport from "../../components/common/ListExport";
@@ -75,6 +75,11 @@ export default function Payments() {
           ]}
         />
       </Toolbar>
+      {table.response?.search_from && (
+        <Alert severity="info" sx={{ mb: 1 }}>
+          {t("Big data: showing matches from")} {formatDate(table.response.search_from)}. {t("Choose an older date range to search further back.")}
+        </Alert>
+      )}
       <DataTable
         table={table}
         columns={columns}
