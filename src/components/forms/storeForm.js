@@ -27,6 +27,8 @@ export const blankStore = {
   logo: null,
 };
 
-export const storeFromApi = (d) => Object.fromEntries(Object.keys(blankStore).map((k) => [k, d?.[k] ?? blankStore[k]]));
+// A saved store keeps what was saved: a field left empty stays empty (defaults are only for a new store).
+export const storeFromApi = (d) =>
+  Object.fromEntries(Object.keys(blankStore).map((k) => [k, d ? (d[k] ?? (k === "invoice_prefix" ? "INV" : k === "logo" ? null : "")) : blankStore[k]]));
 
 export const storeInvalid = (f) => Boolean(f.gstin && !GSTIN_REGEX.test(f.gstin));

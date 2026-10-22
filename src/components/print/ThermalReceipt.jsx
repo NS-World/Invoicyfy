@@ -170,7 +170,7 @@ export default function ThermalReceipt({ invoice, copyLabel = "", width = "80mm"
       <hr />
       {s.receipt_footer_note && <div className="center small note-line">{s.receipt_footer_note}</div>}
       {s.show_fssai && store.fssai_no && <div className="center">FSSAI Lic No. {store.fssai_no}</div>}
-      <div className="center">{store.receipt_footer || "Thanks"}</div>
+      {store.receipt_footer && <div className="center">{store.receipt_footer}</div>}
       {blocks("bottom")}
       <ExtraQrCodes codes={qrCodesFor(s, "receipt")} size={width === "58mm" ? 72 : 88} className="receipt-qr" />
     </div>
