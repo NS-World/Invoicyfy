@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PauseCircleIcon from "@mui/icons-material/PauseCircle";
+import SaveIcon from "@mui/icons-material/Save";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import CustomerPicker from "../../components/billing/CustomerPicker";
@@ -85,6 +86,7 @@ export default function InvoiceForm() {
   const [errorCode, setErrorCode] = useState("");
   const [heldKey, setHeldKey] = useState(0);
   const [offlineBill, setOfflineBill] = useState(null);
+  const saveOnly = useRef(false); // "Save E-bill": save the bill without printing (print later from the bill)
   const uuid = useRef(newUuid());
   const [extra, setExtra] = useState({ notes: "", terms: "", shipping_address: "", eway_bill_no: "", vehicle_no: "", reverse_charge: false });
   // V4: combo / happy-hour offers, online platform orders, bill link to the customer.
@@ -222,8 +224,9 @@ export default function InvoiceForm() {
     try {
       const res = await InvoiceServices.createInvoice(payload);
       uuid.current = newUuid();
-      notify(`Invoice ${res.invoice_number} created`);
-      navigate(`/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}${kotOn ? "&kot=1" : ""}`, { replace: true });
+      notify(`Invoice ${res.invoice_number} ${saveOnly.current ? "saved" : "created"}`);
+      if (saveOnly.current) navigate(`/invoices/${res.invoice_id}`, { replace: true });
+      else navigate(`/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}${kotOn ? "&kot=1" : ""}`, { replace: true });
     } catch (err) {
       const data = err?.response?.data || {};
       if (data.code === "approval_required" || data.code === "approval_wrong_pin") {
@@ -246,7 +249,7 @@ export default function InvoiceForm() {
           });
           // The printed receipt has no automatic offer, so the bill sent later must not get one either.
           await queueBill({ ...payload, no_offers: true }, preview);
-          setOfflineBill({ invoice: preview, withKot: kotOn });
+          setOfflineBill({ invoice: preview, withKot: kotOn, print: !saveOnly.current });
         } catch (qErr) {
           setError(qErr.message || apiError(err));
         }
@@ -261,6 +264,7 @@ export default function InvoiceForm() {
 
   const submit = async (e) => {
     e.preventDefault();
+    saveOnly.current = e.nativeEvent?.submitter?.dataset?.saveOnly === "1";
     if (!validItems.length) {
       setError(t("Add at least one item"));
       return;
@@ -565,6 +569,9 @@ export default function InvoiceForm() {
                   {saving ? t("Saving...") : `${t("Save & Print")} · ${formatCurrency(totals.total)}`}
                 </Button>
               </Box>
+              <Button type="submit" variant="outlined" fullWidth data-save-only="1" disabled={saving || !validItems.length || Boolean(gstinInvalid)} startIcon={<SaveIcon />} sx={{ mt: 1 }}>
+                {t("Save E-bill")}
+              </Button>
             </Paper>
           </Box>
         </Grid>
@@ -585,6 +592,7 @@ export default function InvoiceForm() {
         <OfflineSavedDialog
           invoice={offlineBill.invoice}
           withKot={offlineBill.withKot}
+          autoPrint={offlineBill.print}
           onClose={() => {
             setOfflineBill(null);
             resetBill();

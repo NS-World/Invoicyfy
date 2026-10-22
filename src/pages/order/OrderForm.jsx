@@ -102,13 +102,14 @@ export default function OrderForm() {
   const validItems = billLines(items);
   const totals = useMemo(() => calcTotals(validItems, interstate), [validItems, interstate]);
 
+  const saveOnly = useRef(false); // "Save KOT": save the order without printing the KOT (print later from the order)
   const send = async (payload) => {
     setSaving(true);
     setError("");
     try {
       const res = orderId ? await OrderServices.updateOrderData(payload) : await OrderServices.postOrderData(payload);
       notify(orderId ? "Order updated" : `Order ${res.order_number} created`);
-      navigate(`/orders/${orderId || res.order_id}${kotOn ? "?print=kot" : ""}`);
+      navigate(`/orders/${orderId || res.order_id}${kotOn && !saveOnly.current ? "?print=kot" : ""}`);
     } catch (err) {
       const data = err?.response?.data || {};
       if (data.code === "approval_required" || data.code === "approval_wrong_pin") setApproval({ info: { ...data, wrong: data.code === "approval_wrong_pin" }, payload });
@@ -120,6 +121,7 @@ export default function OrderForm() {
 
   const submit = async (e) => {
     e.preventDefault();
+    saveOnly.current = e.nativeEvent?.submitter?.dataset?.saveOnly === "1";
     if (!validItems.length) {
       setError(t("Add at least one item"));
       return;
@@ -238,6 +240,9 @@ export default function OrderForm() {
                   {saving ? t("Saving...") : orderId ? t("Update Order") : t("Create Order")}
                 </Button>
               </Box>
+              <Button type="submit" variant="outlined" fullWidth data-save-only="1" disabled={saving || !validItems.length} sx={{ mt: 1 }}>
+                {t("Save KOT")}
+              </Button>
           </Paper>
           </Box>
         </Grid>

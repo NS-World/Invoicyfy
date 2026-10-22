@@ -9,15 +9,15 @@ import { getInvoiceSettings } from "../../../utils/invoiceSettings";
 import { useT } from "../../../context/PrefsContext";
 
 /** Shown after a bill is saved on the device without internet: print it now, it syncs later by itself. */
-export default function OfflineSavedDialog({ invoice, withKot, onClose }) {
+export default function OfflineSavedDialog({ invoice, withKot, autoPrint = true, onClose }) {
   const t = useT();
   const job = usePrintJob();
   const settings = getInvoiceSettings(invoice.store);
   const width = localStorage.getItem("receiptWidth") || "80mm";
   const { print } = job;
   useEffect(() => {
-    print({ pageSize: width, key: "bill" });
-  }, [print, width]);
+    if (autoPrint) print({ pageSize: width, key: "bill" });
+  }, [print, width, autoPrint]);
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
@@ -36,7 +36,7 @@ export default function OfflineSavedDialog({ invoice, withKot, onClose }) {
       </DialogContent>
       <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
         <Button startIcon={<PrintIcon />} onClick={() => job.print({ pageSize: width, key: "bill" })}>
-          {t("Print again")}
+          {autoPrint ? t("Print again") : t("Print")}
         </Button>
         <Button variant="contained" onClick={onClose}>
           {t("New bill")}

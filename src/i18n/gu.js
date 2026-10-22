@@ -1099,6 +1099,8 @@ export default {
   "Sample": "નમૂનો",
   "Sat": "શનિ",
   "Save": "સેવ કરો",
+  "Save E-bill": "ઈ-બિલ સેવ કરો",
+  "Save KOT": "KOT સેવ કરો",
   "Save & Print": "સેવ કરો અને છાપો",
   "Save & print": "સેવ કરી છાપો",
   "Save changes": "ફેરફાર સાચવો",

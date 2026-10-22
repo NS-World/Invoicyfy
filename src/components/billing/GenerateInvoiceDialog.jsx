@@ -44,7 +44,7 @@ export default function GenerateInvoiceDialog({ order, open, onClose, onDone }) 
 
   if (!order) return null;
 
-  const create = async () => {
+  const create = async (print = true) => {
     setSaving(true);
     setError("");
     try {
@@ -55,7 +55,7 @@ export default function GenerateInvoiceDialog({ order, open, onClose, onDone }) 
         payment: paid ? { amount: order.total_amount, payment_method: method } : undefined,
       });
       onDone?.(res);
-      navigate(`/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}`);
+      navigate(print ? `/invoices/${res.invoice_id}?print=${type === "retail" ? "receipt" : "a4"}` : `/invoices/${res.invoice_id}`);
     } catch (err) {
       setError(apiError(err));
     } finally {
@@ -90,7 +90,10 @@ export default function GenerateInvoiceDialog({ order, open, onClose, onDone }) 
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t("Cancel")}</Button>
-        <Button variant="contained" onClick={create} disabled={saving}>
+        <Button variant="outlined" onClick={() => create(false)} disabled={saving}>
+          {t("Save E-bill")}
+        </Button>
+        <Button variant="contained" onClick={() => create()} disabled={saving}>
           {saving ? "Creating..." : "Create & Print"}
         </Button>
       </DialogActions>
