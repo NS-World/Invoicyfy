@@ -64,6 +64,7 @@ import PrefsSwitcher from "../../components/common/PrefsSwitcher";
 import DatabaseUpdateBanner from "../../components/common/DatabaseUpdateBanner";
 import OfflineStatus from "../../components/v3/OfflineStatus";
 import HelpTour from "../../components/tour/HelpTour";
+import InstallApp from "../../components/app/InstallApp";
 import PrinterPrompt from "../../components/printer/PrinterPrompt";
 import { AutomationServices } from "../../services/V3Services";
 import { SIDEBAR_BG } from "../../theme";
@@ -283,6 +284,7 @@ export default function Home() {
               Invoicyfy
             </Typography>
             <OfflineStatus color="#fff" />
+            <InstallApp color="#fff" />
             <HelpTour color="#fff" />
             <Box data-tour="prefs">
               <PrefsSwitcher short color="#fff" />
@@ -319,6 +321,7 @@ export default function Home() {
         {isDesktop && (
           <Box className="no-print" sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1, px: { sm: 2.5, lg: 3 }, pt: 1.5, mb: -1, maxWidth: 1600, mx: "auto" }}>
             <OfflineStatus color="text.secondary" />
+            <InstallApp label color="text.primary" />
             <HelpTour label color="text.primary" />
           </Box>
         )}

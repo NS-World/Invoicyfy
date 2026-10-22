@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import "./utils/installPrompt"; // catch the Android "install app" event before the top bar opens
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import { PreferencesProvider } from "./context/PreferencesProvider";
 import { AuthProvider } from "./context/AuthProvider";

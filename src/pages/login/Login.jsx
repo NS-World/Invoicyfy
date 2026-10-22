@@ -22,6 +22,7 @@ import { useAuth } from "../../context/useAuth";
 import { AuthServices } from "../../services/AuthServices";
 import "./Login.css";
 import { useT } from "../../context/PrefsContext";
+import InstallApp from "../../components/app/InstallApp";
 
 // The animation (and its player) load after the form so login is usable immediately.
 const Lottie = lazy(() => import("lottie-react"));
@@ -176,6 +177,9 @@ export default function Login() {
               {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
             </Button>
           </form>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+            <InstallApp label />
+          </div>
         </Card>
       </Fade>
       </Box>
