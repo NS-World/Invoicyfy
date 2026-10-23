@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link as RouterLink, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Card,
@@ -16,6 +16,7 @@ import {
   ReceiptLong,
   MoneyOff,
   CloudOff,
+  Storefront,
 } from "@mui/icons-material";
 import { Alert, CircularProgress } from "@mui/material";
 import { useAuth } from "../../context/useAuth";
@@ -23,6 +24,9 @@ import { AuthServices } from "../../services/AuthServices";
 import "./Login.css";
 import { useT } from "../../context/PrefsContext";
 import InstallApp from "../../components/app/InstallApp";
+import BrandMark from "../../components/app/BrandMark";
+import useSaasConfig from "../../hooks/useSaasConfig";
+import { shopStore } from "../../services/axios";
 
 // The animation (and its player) load after the form so login is usable immediately.
 const Lottie = lazy(() => import("lottie-react"));
@@ -36,7 +40,7 @@ const HIGHLIGHTS = [
 
 export default function Login() {
   const t = useT();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => new URLSearchParams(window.location.search).get("email") || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,6 +48,8 @@ export default function Login() {
   const [params] = useSearchParams();
   const { login, auth } = useAuth();
   const [animation, setAnimation] = useState(null);
+  const saas = useSaasConfig();
+  const [shop, setShop] = useState(() => (params.get("shop") || shopStore.code || "").toLowerCase());
 
   useEffect(() => {
     import("../../assets/robot-invoice.json").then((m) => setAnimation(m.default)).catch(() => {});
@@ -63,6 +69,15 @@ export default function Login() {
         return;
       }
 
+      if (saas?.saas) {
+        const code = shop.trim().toLowerCase();
+        if (!code) {
+          setError(t("Enter your shop code (it is in your welcome email)"));
+          setLoading(false);
+          return;
+        }
+        shopStore.set(code);
+      }
       const res = await AuthServices.postLoginData(email, password);
       if (res.data?.status === "success" && res.data?.access_token && res.data?.refresh_token) {
         login(res.data.user || null, res.data.access_token, res.data.refresh_token);
@@ -87,7 +102,7 @@ export default function Login() {
         <span className="login-hero-circle c1" />
         <span className="login-hero-circle c2" />
         <Box sx={{ position: "relative" }}>
-          <Typography className="login-hero-brand">Invoicyfy</Typography>
+          <Typography className="login-hero-brand" component="div"><BrandMark size={34} nameSize={22} /></Typography>
           <Typography className="login-hero-title">{t("Billing made simple for your shop")}</Typography>
           <Box component="ul" className="login-hero-list">
             {HIGHLIGHTS.map(([icon, title, text]) => (
@@ -114,7 +129,7 @@ export default function Login() {
           </Box>
 
           <Typography variant="h4" align="center" className="login-title">
-            {t("Invoicyfy")}
+            {t("Khanak")}
           </Typography>
           <Typography align="center" className="login-subtitle">
             {t("Get your invoice in just 2 minutes.")}
@@ -126,6 +141,26 @@ export default function Login() {
             </Alert>
           )}
           <form onSubmit={handleSubmit}>
+            {saas?.saas && (
+              <TextField
+                fullWidth
+                margin="normal"
+                label={t("Shop code")}
+                autoComplete="organization"
+                required
+                disabled={loading}
+                value={shop}
+                onChange={(e) => setShop(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                helperText={t("From your Khanak welcome email, e.g. scoopiez-surat")}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Storefront />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
             <TextField
               fullWidth
               margin="normal"
@@ -177,6 +212,14 @@ export default function Login() {
               {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
             </Button>
           </form>
+          {saas?.saas && (
+            <Typography align="center" variant="body2" sx={{ mt: 2 }}>
+              {t("New shop?")}{" "}
+              <RouterLink to="/pricing" style={{ fontWeight: 700 }}>
+                {t("See plans and start free")}
+              </RouterLink>
+            </Typography>
+          )}
           <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
             <InstallApp label />
           </div>

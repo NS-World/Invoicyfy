@@ -10,6 +10,10 @@ Options -Indexes
     RewriteCond %{HTTP:X-Forwarded-Proto} !https
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+    # Khanak SaaS: public links of a shop (bills, pictures) are /t/<shop code>/api/... — served by the same API,
+    # which reads the shop from KHANAK_TENANT. (Not used by a single-shop install.)
+    RewriteRule ^t/([a-z0-9-]{3,30})/api/(.*)$ api/$2 [E=KHANAK_TENANT:$1,L,QSA]
+
     # The API lives in /api and handles its own requests.
     RewriteRule ^api(/|$) - [L]
 

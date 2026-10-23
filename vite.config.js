@@ -28,8 +28,8 @@ function offlineApp() {
         source: JSON.stringify(
           {
             id: "./",
-            name: "Invoicyfy Billing",
-            short_name: "Invoicyfy",
+            name: "Khanak Billing",
+            short_name: "Khanak",
             description: "Billing, GST invoices, KOT, stock and reports for your shop",
             start_url: "./",
             scope: "./",

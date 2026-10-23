@@ -235,7 +235,7 @@ export const directPrint = {
     const c = await reconnect();
     if (!c) throw new Error("Printer is not connected. Press Connect first.");
     const s = loadPrinterSettings();
-    await c.write(buildTestJob(`Invoicyfy test print\n${new Date().toLocaleString()}\nPaper ${s.paper}`, { cut: s.cut }));
+    await c.write(buildTestJob(`Khanak test print\n${new Date().toLocaleString()}\nPaper ${s.paper}`, { cut: s.cut }));
   },
 };
 
@@ -286,7 +286,7 @@ export const isWindowsDriverProblem = (e) =>
 export function kioskShortcutFile(url = typeof window !== "undefined" ? window.location.origin + "/" : "") {
   const lines = [
     "@echo off",
-    "rem Invoicyfy billing: bills and KOT print straight to the Windows default printer (no print window).",
+    "rem Khanak billing: bills and KOT print straight to the Windows default printer (no print window).",
     `set "URL=${url}"`,
     'set "PROFILE=%LocalAppData%\\InvoicyfyPrint"',
     'set "APP=%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe"',
@@ -303,7 +303,7 @@ export function kioskShortcutFile(url = typeof window !== "undefined" ? window.l
 export function downloadKioskShortcut() {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(kioskShortcutFile());
-  a.download = "Invoicyfy Billing.bat";
+  a.download = "Khanak Billing.bat";
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -319,7 +319,7 @@ export function printTestSlip(paper = loadPrinterSettings().paper) {
   const doc = frame.contentDocument;
   doc.open();
   doc.write(`<!doctype html><html><head><style>@page{size:${width} auto;margin:0}body{width:${width};margin:0;padding:4mm;font:14px monospace;text-align:center}</style></head>
-<body><b>Invoicyfy test print</b><br>${new Date().toLocaleString()}<br>Paper ${width}<br>--------------------<br>If you can read this, printing works.</body></html>`);
+<body><b>Khanak test print</b><br>${new Date().toLocaleString()}<br>Paper ${width}<br>--------------------<br>If you can read this, printing works.</body></html>`);
   doc.close();
   setTimeout(() => {
     frame.contentWindow.focus();

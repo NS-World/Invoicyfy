@@ -57,6 +57,12 @@ const OnlineOrders = lazy(() => import("./pages/online/OnlineOrders"));
 const OwnerDashboard = lazy(() => import("./pages/owner/OwnerDashboard"));
 const StaffReport = lazy(() => import("./pages/staff/StaffReport"));
 const Gstr1 = lazy(() => import("./pages/gstr1/Gstr1"));
+// SaaS (only reachable when the backend runs in SAAS_MODE)
+const Pricing = lazy(() => import("./pages/saas/Pricing"));
+const Signup = lazy(() => import("./pages/saas/Signup"));
+const Welcome = lazy(() => import("./pages/saas/Welcome"));
+const KhanakAdmin = lazy(() => import("./pages/saas/admin/KhanakAdmin"));
+const PlanBilling = lazy(() => import("./pages/saas/PlanBilling"));
 
 const admin = (el) => <PrivateRoute admin>{el}</PrivateRoute>;
 const guard = (perm, el) => <PrivateRoute perm={perm}>{el}</PrivateRoute>;
@@ -70,6 +76,10 @@ function App() {
             <Suspense fallback={<Loader minHeight="60vh" />}>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/welcome" element={<Welcome />} />
+                <Route path="/khanak-admin" element={<KhanakAdmin />} />
                 <Route
                   path="/"
                   element={
@@ -128,6 +138,7 @@ function App() {
                   <Route path="role" element={guard("users", <RoleForm />)} />
                   <Route path="stores" element={admin(<Stores />)} />
                   <Route path="store" element={admin(<StoreForm />)} />
+                  <Route path="plan-billing" element={<PlanBilling />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

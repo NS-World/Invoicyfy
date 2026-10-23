@@ -200,7 +200,7 @@ export default function Backup() {
             </Typography>
             {!parsed.isBackup && (
               <Alert severity="info" sx={{ mb: 2 }}>
-                {t("This file was not created by Invoicyfy backup, but matching sheets were found. Each row will be checked before saving.")}
+                {t("This file was not created by Khanak backup, but matching sheets were found. Each row will be checked before saving.")}
               </Alert>
             )}
             <TableContainer>

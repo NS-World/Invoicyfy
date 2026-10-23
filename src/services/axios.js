@@ -18,6 +18,26 @@ export const tokenStore = {
   },
 };
 
+/** Khanak SaaS: the shop code chosen at login (empty on a single-shop install). Sent with every API call. */
+export const shopStore = {
+  get code() {
+    try {
+      return localStorage.getItem("khanakShop") || "";
+    } catch {
+      return "";
+    }
+  },
+  set(code) {
+    try {
+      if (code) localStorage.setItem("khanakShop", code);
+      else localStorage.removeItem("khanakShop");
+    } catch {
+      /* storage blocked */
+    }
+  },
+};
+const shopHeader = () => (shopStore.code ? { "X-Tenant": shopStore.code } : {});
+
 const API = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -27,6 +47,7 @@ const API = axios.create({
 API.interceptors.request.use((config) => {
   const token = tokenStore.access;
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (shopStore.code && !config.headers["X-Tenant"]) config.headers["X-Tenant"] = shopStore.code;
   return config;
 });
 
@@ -35,7 +56,7 @@ let refreshPromise = null;
 const refreshAccessToken = async () => {
   const refreshToken = tokenStore.refresh;
   if (!refreshToken) throw new Error("No refresh token");
-  const res = await axios.post(`${API_BASE_URL}auth/refresh.php`, { refresh_token: refreshToken });
+  const res = await axios.post(`${API_BASE_URL}auth/refresh.php`, { refresh_token: refreshToken }, { headers: shopHeader() });
   if (res.data?.status !== "success" || !res.data?.access_token) throw new Error("Token refresh failed");
   tokenStore.set(res.data.access_token, res.data.refresh_token);
   if (res.data.user) localStorage.setItem("user", JSON.stringify(res.data.user));

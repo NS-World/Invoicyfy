@@ -15,7 +15,7 @@ export async function createBackup(onProgress) {
   const { data } = await BackupServices.tables();
   const tables = data.tables;
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Invoicyfy";
+  wb.creator = "Khanak";
   wb.created = new Date();
 
   const readme = wb.addWorksheet("README");
@@ -75,7 +75,7 @@ export async function createBackup(onProgress) {
     ["Format version", 1],
     ...tables.map((t) => [t.label, `${counts[t.table]} row(s) in sheet "${t.table}"`]),
     [],
-    ["How to restore", "Open Invoicyfy > Backup & Restore > Import backup and choose this file."],
+    ["How to restore", "Open Khanak > Backup & Restore > Import backup and choose this file."],
     ["", "Existing records are never overwritten: rows already in the app are skipped and listed in an error file."],
     ["", "You can add new rows to a sheet (leave the id column empty). Do not rename sheets or the header row."],
   ].forEach((r) => readme.addRow(r));
@@ -246,7 +246,7 @@ export async function readJsonBackup(file, tables) {
     text = await file.text();
   }
   const data = JSON.parse(text);
-  if (data?.format !== "invoicyfy-backup" || !data.tables) throw new Error("Not an Invoicyfy backup file");
+  if (data?.format !== "invoicyfy-backup" || !data.tables) throw new Error("Not a Khanak backup file");
   const known = new Set(tables.map((t) => t.table));
   const sheets = {};
   Object.entries(data.tables).forEach(([table, { columns, rows }]) => {

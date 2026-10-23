@@ -1,5 +1,5 @@
 /* global __ASSETS__ */
-/* Invoicyfy service worker: keeps the app itself on the device so it opens and bills without internet.
+/* Khanak service worker: keeps the app itself on the device so it opens and bills without internet.
  * The API (/api/...) is never cached here — offline bills go to the app's own outbox instead.
  * __BUILD__ and __ASSETS__ are filled in at build time (vite.config.js). */
 const VERSION = "__BUILD__";

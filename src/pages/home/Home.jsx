@@ -56,6 +56,7 @@ import {
   DeliveryDining,
   Badge,
   RequestQuote,
+  WorkspacePremium,
 } from "@mui/icons-material";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
@@ -65,7 +66,10 @@ import DatabaseUpdateBanner from "../../components/common/DatabaseUpdateBanner";
 import OfflineStatus from "../../components/v3/OfflineStatus";
 import HelpTour from "../../components/tour/HelpTour";
 import InstallApp from "../../components/app/InstallApp";
+import BrandMark from "../../components/app/BrandMark";
 import PrinterPrompt from "../../components/printer/PrinterPrompt";
+import PlanBanner from "../../components/saas/PlanBanner";
+import useSaasConfig from "../../hooks/useSaasConfig";
 import { AutomationServices } from "../../services/V3Services";
 import { SIDEBAR_BG } from "../../theme";
 import "./Home.css";
@@ -126,6 +130,7 @@ const menu = [
       { text: "Roles & Permissions", icon: <AdminPanelSettings />, path: "/roles", perm: "users" },
       { text: "Backup & Restore", icon: <CloudSync />, path: "/backup", perm: "backup" },
       { text: "Data & Archive", icon: <Inventory2Outlined />, path: "/data-archive", admin: true },
+      { text: "Plan & billing", icon: <WorkspacePremium />, path: "/plan-billing", saas: true },
     ],
   },
 ];
@@ -154,6 +159,7 @@ export default function Home() {
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const { user, logout, isAdmin, can } = useAuth();
   const { pathname } = useLocation();
+  const saasCfg = useSaasConfig();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mini, setMini] = useState(() => localStorage.getItem("sidebarMini") === "1");
 
@@ -178,8 +184,8 @@ export default function Home() {
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: SIDEBAR_BG, color: "#fff" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "space-between", px: 2, minHeight: 64 }}>
         {!collapsed && (
-          <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>
-            Invoicyfy
+          <Typography variant="h6" component="div" sx={{ fontWeight: 800, letterSpacing: 0.5, display: "flex" }}>
+            <BrandMark size={30} />
           </Typography>
         )}
         {isDesktop && (
@@ -191,7 +197,7 @@ export default function Home() {
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
       <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }} data-tour="main-menu">
         {menu.map((group) => {
-          const items = group.items.filter((i) => (!i.admin || isAdmin) && (!i.perm || can(...i.perm.split("."))));
+          const items = group.items.filter((i) => (!i.admin || isAdmin) && (!i.saas || saasCfg?.saas) && (!i.perm || can(...i.perm.split("."))));
           if (!items.length) return null;
           return (
             <List
@@ -280,8 +286,8 @@ export default function Home() {
             <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} aria-label="Open menu" data-tour="main-menu" sx={{ ml: 0 }}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" sx={{ fontWeight: 800, flex: 1, minWidth: 0, fontSize: { xs: 18, sm: 20 } }} noWrap>
-              Invoicyfy
+            <Typography variant="h6" component="div" sx={{ fontWeight: 800, flex: 1, minWidth: 0, fontSize: { xs: 18, sm: 20 }, display: "flex" }} noWrap>
+              <BrandMark size={26} />
             </Typography>
             <OfflineStatus color="#fff" />
             <InstallApp color="#fff" />
@@ -327,6 +333,7 @@ export default function Home() {
         )}
         <Box className="tab-content" sx={{ p: { xs: 1.5, sm: 2.5, lg: 3 }, maxWidth: 1600, mx: "auto" }}>
           <DatabaseUpdateBanner />
+          {saasCfg?.saas && <PlanBanner />}
           <Outlet />
           <PrinterPrompt />
         </Box>

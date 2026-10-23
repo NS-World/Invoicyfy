@@ -46,7 +46,7 @@ const BRAND = "FF1A237E";
 export async function exportExcel(report) {
   const ExcelJS = await loadExcel();
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Invoicyfy";
+  wb.creator = "Khanak";
   wb.created = new Date();
   const used = new Set();
 
@@ -179,7 +179,7 @@ export async function exportWord(report) {
   });
 
   const doc = new Document({
-    creator: "Invoicyfy",
+    creator: "Khanak",
     title: report.title,
     sections: [
       {

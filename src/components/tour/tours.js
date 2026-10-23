@@ -11,7 +11,7 @@ export const TOURS = [
     title: "Quick tour of the app",
     text: "Where everything is: menu, internet status, language and this help.",
     steps: [
-      { title: "Welcome to Invoicyfy", body: "This short tour shows how the app works. Use Next / Back, or press Esc to stop any time." },
+      { title: "Welcome to Khanak", body: "This short tour shows how the app works. Use Next / Back, or press Esc to stop any time." },
       { target: "main-menu", title: "Main menu", body: "All screens are here — Quick Bill, Orders, Day Close, Udhaar, Coupons, Reports and Settings. On a phone open it with the ☰ button." },
       { target: "offline-status", title: "Internet status", body: "Green means connected. If the internet goes, Quick Bills are still made and printed — they are saved on this device and sent by themselves when the internet is back." },
       { target: "prefs", title: "Language & theme", body: "Switch between English, ગુજરાતી and हिन्दी, and between light and dark mode.", optional: true },

@@ -37,7 +37,7 @@ export default function InstallApp({ color = "inherit", label = false }) {
         </Tooltip>
       )}
       <Dialog open={help} onClose={() => setHelp(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t("Install Invoicyfy on iPhone / iPad")}</DialogTitle>
+        <DialogTitle>{t("Install Khanak on iPhone / iPad")}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>
             {t("Open this page in Safari, then:")}
@@ -51,7 +51,7 @@ export default function InstallApp({ color = "inherit", label = false }) {
             <Typography variant="body2">{t("2. Choose \"Add to Home Screen\" and tap Add")}</Typography>
           </Box>
           <Typography variant="caption" color="text.secondary">
-            {t("Invoicyfy then opens from its own icon, full screen, like any other app.")}
+            {t("Khanak then opens from its own icon, full screen, like any other app.")}
           </Typography>
         </DialogContent>
         <DialogActions>
